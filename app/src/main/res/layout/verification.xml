@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="30dp"
+    android:background="#FFFFFF"
+    tools:context="com.example.autopayroll_mobile.auth.verificationActivity">
+
+    <ImageView
+        android:id="@+id/autopayrollLogo"
+        android:layout_width="wrap_content"
+        android:layout_height="100dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="50dp"
+        android:contentDescription="Application Logo"
+        android:src="@drawable/autopayrolltitle" /> <TextView
+    android:id="@+id/titleTextView"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Enter Verification Code"
+    android:textColor="#000000"
+    android:textSize="22sp"
+    android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/subtitleTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="We've sent a code to example@gmail.com"
+        android:textColor="#666666"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="40dp"
+        android:gravity="center">
+
+        <EditText
+            android:id="@+id/otpBox1"
+            style="@style/OtpBoxStyle" />
+        <EditText
+            android:id="@+id/otpBox2"
+            style="@style/OtpBoxStyle" />
+        <EditText
+            android:id="@+id/otpBox3"
+            style="@style/OtpBoxStyle" />
+        <EditText
+            android:id="@+id/otpBox4"
+            style="@style/OtpBoxStyle" />
+        <EditText
+            android:id="@+id/otpBox5"
+            style="@style/OtpBoxStyle" />
+        <EditText
+            android:id="@+id/otpBox6"
+            style="@style/OtpBoxStyle" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/resendCodeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Didn't get a code? Click to resend."
+        android:textColor="#888888"
+        android:textSize="14sp" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0dp"
+            android:layout_height="55dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="#E0E0E0"
+            android:text="Cancel"
+            android:textColor="@color/text_primary" />
+
+        <Button
+            android:id="@+id/verifyButton"
+            android:layout_width="0dp"
+            android:layout_height="55dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/yellow_buttons"
+            android:text="Verify"
+            android:textColor="@color/text_primary" />
+    </LinearLayout>
+
+</LinearLayout>

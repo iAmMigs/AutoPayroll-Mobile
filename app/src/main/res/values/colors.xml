@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#FDFCF9</color>
-    <color name="card_surface">#F6F5F2</color>
-    <color name="card_inner_surface">#D7D5CE</color>
-    <color name="text_primary">#1F2937</color>
-    <color name="text_secondary">#4B5563</color>
+    <!-- Your Palette -->
+    <color name="background">#FDFCF9</color>         <!-- Very light, almost white -->
+    <color name="card_surface">#F6F5F2</color>       <!-- Light gray -->
+    <color name="card_inner_surface">#D7D5CE</color> <!-- Medium light gray -->
+    <color name="text_primary">#1F2937</color>       <!-- Very dark blue/gray (for text on light backgrounds) -->
+    <color name="text_secondary">#4B5563</color>     <!-- Dark gray (for secondary text on light backgrounds) -->
     <color name="red">#B82020</color>
-    <color name="muted_color_text">#9CA3AF</color>
+    <color name="muted_color_text">#9CA3AF</color>   <!-- Medium gray (for hints/muted text on light backgrounds) -->
     <color name="yellow_buttons">#FFD858</color>
     <color name="active">#3CBF6C</color>
     <color name="active_badge">#6FEA95</color>
     <color name="pending">#F5A623</color>
     <color name="pending_badge">#FFB94D</color>
-    <color name="deep_indigo_bottom_nav">#0B132B</color>
+    <color name="deep_indigo_bottom_nav">#0B132B</color> <!-- Very dark blue (will be main dark background) -->
+
+    <!-- Standard Colors (useful to keep for reference or specific needs) -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
 </resources>

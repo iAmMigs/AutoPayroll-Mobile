@@ -1,72 +1,58 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme for Night Mode. -->
-    <style name="Theme.AutoPayrollMobile" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!-- Base application theme. -->
+    <style name="Theme.AutoPayrollMobile" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <!-- Consider if your yellow needs adjustment for dark theme for better contrast/less glare -->
         <item name="colorPrimary">@color/yellow_buttons</item>
-        <!-- A darker variant or a specific color for the status bar in dark mode.
-             You might want this to be darker than the light theme's primaryVariant. -->
-        <item name="colorPrimaryVariant">@color/deep_indigo_bottom_nav</item> <!-- Example: a very dark color -->
-        <!-- Color for text and icons displayed on top of the primary color. -->
-        <item name="colorOnPrimary">@color/text_primary</item> <!-- Assuming text_primary is dark enough to contrast with yellow -->
+        <item name="colorPrimaryVariant">@color/deep_indigo_bottom_nav</item> <!-- Status bar can be dark -->
+        <item name="colorOnPrimary">@color/text_primary</item> <!-- Dark text on yellow buttons -->
 
         <!-- Secondary brand color. -->
-        <!-- Consider if your 'active' green needs adjustment for dark theme -->
         <item name="colorSecondary">@color/active</item>
-        <!-- A darker variant of the secondary color. -->
-        <item name="colorSecondaryVariant">@color/deep_indigo_bottom_nav</item> <!-- Example: can be same as dark background -->
-        <!-- Color for text and icons displayed on top of the secondary color. -->
-        <item name="colorOnSecondary">@color/background</item> <!-- Assuming background is light, for contrast on 'active' -->
+        <item name="colorSecondaryVariant">@color/active</item> <!-- Or a darker shade of active if you had one -->
+        <item name="colorOnSecondary">@color/background</item> <!-- Light text (#FDFCF9) on active green -->
 
-        <!-- Background colors -->
-        <!-- The overall background color of the app in dark mode. -->
-        <item name="android:colorBackground">@color/deep_indigo_bottom_nav</item> <!-- Using your darkest color as base -->
-        <!-- The color of surfaces like cards, sheets, and menus in dark mode.
-             Material Design recommends #121212 as a good dark surface color,
-             but we can use one of yours or a slightly lighter version of your background.
-             Let's use a slightly lighter shade if you had one, or keep it similar to background
-             and let elevation overlays do their work. For now, using a slightly lighter variant
-             or the same as background and relying on elevation overlays.
-             If card_surface is too light, choose a darker one or deep_indigo_bottom_nav.
-             For true Material Dark Theme, it's good to have distinct surface and background if possible.
-             Let's try a common dark theme approach: -->
-        <item name="colorSurface">#1E293B</item> <!-- A slightly lighter dark blue/grey than deep_indigo_bottom_nav. You might need to add this to colors.xml -->
-        <!-- Or, you could use @color/deep_indigo_bottom_nav and Material components will lighten it with elevation -->
+        <!-- Background and surface colors for Light Theme -->
+        <item name="android:colorBackground">@color/background</item>     <!-- #FDFCF9 -->
+        <item name="colorSurface">@color/card_surface</item>           <!-- #F6F5F2 -->
 
-        <!-- Color for text and icons displayed on top of background and surface colors. -->
-        <item name="colorOnBackground">@color/background</item> <!-- Your light 'background' color for text -->
-        <item name="colorOnSurface">@color/background</item>    <!-- Your light 'background' color for text -->
+        <!-- Text/icon colors on top of background/surface for Light Theme -->
+        <item name="colorOnBackground">@color/text_primary</item>       <!-- #1F2937 on #FDFCF9 -->
+        <item name="colorOnSurface">@color/text_primary</item>        <!-- #1F2937 on #F6F5F2 -->
 
         <!-- Error color -->
-        <!-- Red might need to be a slightly less saturated version in dark theme for some designs, but often the same works. -->
         <item name="colorError">@color/red</item>
-        <!-- Color for text and icons displayed on top of the error color. -->
-        <item name="colorOnError">@color/background</item> <!-- Light text on red -->
+        <item name="colorOnError">@color/background</item>             <!-- #FDFCF9 on red -->
 
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Or, for dark themes, sometimes the background color is used for a more seamless look:
-        <item name="android:statusBarColor">@color/deep_indigo_bottom_nav</item> -->
+        <!-- Status bar color for Light Theme. -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <!-- For light status bar icons on light backgrounds (if status bar is light): -->
+        <!-- <item name="android:windowLightStatusBar" tools:targetApi="m">true</item> -->
 
-        <!-- Customize your theme here. -->
-        <item name="android:textColorPrimary">@color/background</item> <!-- Light text for primary -->
-        <item name="android:textColorSecondary">@color/muted_color_text</item> <!-- Muted color for secondary text, ensure it has enough contrast -->
+        <!-- Text Colors -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/muted_color_text</item>
 
-        <!-- Default button style for dark theme -->
-        <item name="materialButtonStyle">@style/Widget.App.Button.Night</item>
+        <!-- Default button style -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
     </style>
 
-    <!-- Optional: A style for buttons in dark mode if you want to customize them further -->
-    <style name="Widget.App.Button.Night" parent="Widget.MaterialComponents.Button">
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">@color/yellow_buttons</item>
-        <item name="android:textColor">@color/text_primary</item> <!-- Dark text on yellow button -->
-        <!-- You might want to adjust ripple color or other properties for dark theme -->
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="rippleColor">@color/card_inner_surface</item> <!-- Subtle ripple -->
     </style>
 
-    <!-- You might want to add a specific color for dark surfaces if deep_indigo_bottom_nav is too dark for everything.
-         For example, in res/values/colors.xml (or a new res/values-night/colors.xml):
-         <color name="dark_surface">#1E293B</color>
-         And then use colorSurface = @color/dark_surface above.
-         Material's recommended default dark surface is #121212.
-    -->
+    <style name="OtpBoxStyle">
+        <item name="android:layout_width">45dp</item>
+        <item name="android:layout_height">55dp</item>
+        <item name="android:background">@drawable/otp_box_background</item>
+        <item name="android:inputType">number</item>
+        <item name="android:maxLength">1</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
 </resources>
