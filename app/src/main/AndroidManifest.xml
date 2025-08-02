@@ -21,6 +21,9 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".auth.resetPassword"
+            android:exported="false" />
+
         <activity
             android:name=".auth.verificationActivity"
             android:exported="false" />

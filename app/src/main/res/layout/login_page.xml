@@ -34,7 +34,7 @@
             android:id="@+id/emailLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Email"
+            android:text="Email or Username"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:labelFor="@+id/EmailInput" />
@@ -46,7 +46,7 @@
             android:layout_marginTop="4dp"
             android:background="@drawable/rounded_corner_text_bg"
             android:inputType="textEmailAddress"
-            android:padding="17dp"
+            android:padding="16dp"
             android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
@@ -67,7 +67,7 @@
             android:layout_marginTop="4dp"
             android:background="@drawable/rounded_corner_text_bg"
             android:inputType="textPassword"
-            android:padding="17dp"
+            android:padding="16dp"
             android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
