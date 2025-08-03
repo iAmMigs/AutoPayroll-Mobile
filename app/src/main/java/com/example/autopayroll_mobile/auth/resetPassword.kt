@@ -2,47 +2,90 @@ package com.example.autopayroll_mobile.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button // Make sure Button is imported
+import android.widget.Button
+import android.widget.EditText // Added for password fields
+import android.widget.Toast    // Added for user feedback
 import androidx.appcompat.app.AppCompatActivity
-// Remove unused imports if any, like TextWatcher, KeyEvent, View, EditText, TextView, Toast
-// if they are not used for other functionality in this specific activity.
 import com.example.autopayroll_mobile.R
 
 class resetPassword : AppCompatActivity() {
 
+    // Declare EditText fields as properties if you need to access them in multiple methods
+    private lateinit var newPasswordInput: EditText
+    private lateinit var confirmPasswordInput: EditText
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.password_reset) // Make sure this matches your XML file name
+        setContentView(R.layout.password_reset)
 
-        // Find the cancel button from your password_reset.xml layout
-        val cancelButton: Button = findViewById(R.id.cancelButton) // Ensure this ID matches your XML
+        // Initialize EditText fields
+        newPasswordInput = findViewById(R.id.newpasswordInput)
+        confirmPasswordInput = findViewById(R.id.confirmpasswordInput)
 
+        // Find the cancel button
+        val cancelButton: Button = findViewById(R.id.cancelButton)
         cancelButton.setOnClickListener {
-            // Option 1: Just finish this activity if loginActivity is directly below it in the stack.
-            // finish()
-
-            // Option 2: Explicitly navigate to loginActivity and clear the task stack above it.
-            // This is generally safer if the back stack could be complex.
             val intent = Intent(this, loginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
-            finish() // Also finish this activity so it's removed from the back stack
+            finish()
         }
 
-        // --- Add listeners and logic for your password input fields and the "Verify" (or "Save Password") button here ---
-        // Example for the other button (assuming it's for saving the new password):
-        // val savePasswordButton: Button = findViewById(R.id.verifyButton) // ID from your XML, you named it verifyButton
-        // savePasswordButton.setOnClickListener {
-        //     // Get new password and confirm password
-        //     // Validate them
-        //     // If valid, save the password (API call, etc.)
-        //     // Then navigate to login or show success message
-        //     Toast.makeText(this, "Password reset logic here...", Toast.LENGTH_SHORT).show()
-        //     // Example: After successful password change, go to login
-        //     // val loginIntent = Intent(this, loginActivity::class.java)
-        //     // loginIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        //     // startActivity(loginIntent)
-        //     // finish()
-        // }
+        // Find the confirm button
+        val confirmButton: Button = findViewById(R.id.confirmButton) // <--- ADD THIS LINE
+        confirmButton.setOnClickListener {
+            // Implement your password reset logic here
+            handleConfirmNewPassword()
+        }
+    }
+
+    private fun handleConfirmNewPassword() {
+        val newPassword = newPasswordInput.text.toString().trim()
+        val confirmedPassword = confirmPasswordInput.text.toString().trim()
+
+        // 1. Validate inputs
+
+        // Clear previous errors first to ensure fresh validation state
+        newPasswordInput.error = null
+        confirmPasswordInput.error = null
+
+        if (newPassword.isEmpty()) {
+            newPasswordInput.error = "New password cannot be empty"
+            newPasswordInput.requestFocus()
+            return
+        }
+
+        if (newPassword.length < 6) { // Example: minimum length
+            newPasswordInput.error = "Password must be at least 6 characters"
+            newPasswordInput.requestFocus()
+            return
+        }
+
+        if (confirmedPassword.isEmpty()) {
+            confirmPasswordInput.error = "Please confirm your password"
+            confirmPasswordInput.requestFocus()
+            return
+        }
+
+        if (newPassword != confirmedPassword) {
+            // Set the error on the confirmation field
+            confirmPasswordInput.error = "Passwords do not match"
+            // Request focus to make sure the error is visible and the user is directed there
+            confirmPasswordInput.requestFocus()
+            // DO NOT clear the text here immediately.
+            // Let the user see their input and the error.
+            // They will likely edit it, which will clear the error automatically,
+            // or you can clear it if they attempt to submit again.
+            return
+        }
+
+        // 2. If all validations pass, proceed with password reset
+        Toast.makeText(this, "Password reset successfully (simulated)", Toast.LENGTH_LONG).show()
+
+        // 3. Navigate back to login screen after successful password reset
+        val intent = Intent(this, loginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        startActivity(intent)
+        finish() // Finish this activity
     }
 }
