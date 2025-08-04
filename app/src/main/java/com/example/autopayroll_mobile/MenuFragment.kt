@@ -29,6 +29,8 @@ class MenuFragment : Fragment() {
         }
     }
 
+    //Changes Example
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
