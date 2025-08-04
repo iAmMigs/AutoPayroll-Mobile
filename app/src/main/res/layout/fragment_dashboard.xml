@@ -15,11 +15,13 @@
         android:padding="20dp">
 
         <androidx.cardview.widget.CardView
+            android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="15dp"
-            app:cardBackgroundColor="#3C3C3C"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -53,24 +55,24 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Marc Jurell Afable"
+                        android:text="Employee Name"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:textColor="@android:color/white"/>
+                        android:textColor="@color/text_primary"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Emp1001"
-                        android:textColor="#B0B0B0"
+                        android:text="EMPXXXX"
+                        android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:layout_marginTop="4dp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Janitor  •  Wilson Trading Inc."
-                        android:textColor="#B0B0B0"
+                        android:text="Janitor  •  FEU Institute of Technology"
+                        android:textColor="@color/text_primary"
                         android:textSize="14sp"/>
 
                 </LinearLayout>
@@ -118,11 +120,11 @@
                             android:layout_height="wrap_content"
                             android:text="Regular"
                             android:textSize="14sp"
-                            android:textColor="#888888"/>
+                            android:textColor="@color/text_primary"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="80"
+                            android:text="0"
                             android:textSize="28sp"
                             android:textColor="#3C3C3C"
                             android:textStyle="bold"/>
@@ -139,11 +141,11 @@
                             android:layout_height="wrap_content"
                             android:text="Overtime"
                             android:textSize="14sp"
-                            android:textColor="#888888"/>
+                            android:textColor="@color/text_primary"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="40"
+                            android:text="0"
                             android:textSize="28sp"
                             android:textColor="#3C3C3C"
                             android:textStyle="bold"/>
@@ -160,11 +162,11 @@
                             android:layout_height="wrap_content"
                             android:text="Late"
                             android:textSize="14sp"
-                            android:textColor="#888888"/>
+                            android:textColor="@color/text_primary"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="40"
+                            android:text="0"
                             android:textSize="28sp"
                             android:textColor="#3C3C3C"
                             android:textStyle="bold"/>
@@ -176,7 +178,7 @@
                     android:layout_height="wrap_content"
                     android:text="Accumulated hours over last attendance check"
                     android:textSize="12sp"
-                    android:textColor="#A0A0A0"
+                    android:textColor="@color/text_primary"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="8dp"/>
 
@@ -208,12 +210,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Leave Balance Preview"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_primary"
                         android:textSize="14sp"/>
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="15"
+                        android:text="0"
                         android:textSize="36sp"
                         android:textColor="#3C3C3C"
                         android:textStyle="bold"/>
@@ -237,12 +239,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Absence Preview"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_primary"
                         android:textSize="14sp"/>
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5"
+                        android:text="0"
                         android:textSize="36sp"
                         android:textColor="#3C3C3C"
                         android:textStyle="bold"/>
@@ -278,7 +280,7 @@
                     android:layout_weight="1"
                     android:text="Net Earning"
                     android:textStyle="bold"
-                    android:textColor="#888888"/>
+                    android:textColor="@color/text_primary"/>
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -286,7 +288,7 @@
                     android:text="Pay Date"
                     android:textStyle="bold"
                     android:gravity="center_horizontal"
-                    android:textColor="#888888"/>
+                    android:textColor="@color/text_primary"/>
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -294,7 +296,7 @@
                     android:text="Status"
                     android:textStyle="bold"
                     android:gravity="end"
-                    android:textColor="#888888"/>
+                    android:textColor="@color/text_primary"/>
             </LinearLayout>
 
             <TextView
