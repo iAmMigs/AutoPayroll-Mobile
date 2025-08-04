@@ -28,6 +28,10 @@
             android:name=".auth.verificationActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".DashboardActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

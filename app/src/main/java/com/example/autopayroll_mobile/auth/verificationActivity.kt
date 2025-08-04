@@ -1,5 +1,6 @@
 package com.example.autopayroll_mobile.auth
 
+import android.app.Activity // Required for Activity.RESULT_OK
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -11,15 +12,18 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.autopayroll_mobile.DashboardActivity // Make sure this import is correct
 import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.auth.loginActivity.Companion.EXTRA_VERIFICATION_REASON
-import com.example.autopayroll_mobile.auth.loginActivity.Companion.REASON_FORGOT_PASSWORD
+// It's good practice to import the companion object members directly if you use them often
+// import com.example.autopayroll_mobile.auth.loginActivity.Companion.EXTRA_VERIFICATION_REASON
+// import com.example.autopayroll_mobile.auth.loginActivity.Companion.REASON_FORGOT_PASSWORD
+// import com.example.autopayroll_mobile.auth.loginActivity.Companion.REASON_LOGIN_VERIFICATION
 
 class verificationActivity : AppCompatActivity() {
 
     private var verificationReason: String? = null
     private lateinit var subtitleTextView: TextView
-    private lateinit var otpBoxes: List<EditText> // Store OTP boxes in a list
+    private lateinit var otpBoxes: List<EditText>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +36,6 @@ class verificationActivity : AppCompatActivity() {
         val cancelButton: Button = findViewById(R.id.cancelButton)
         val resendCodeTextView: TextView = findViewById(R.id.resendCodeTextView)
 
-        // Initialize OTP boxes
         otpBoxes = listOf(
             findViewById(R.id.otpBox1),
             findViewById(R.id.otpBox2),
@@ -44,35 +47,44 @@ class verificationActivity : AppCompatActivity() {
 
         setupOtpInputListeners()
 
-        // --- Your existing subtitle logic can go here ---
-        // val userEmail = intent.getStringExtra("USER_EMAIL_FOR_VERIFICATION")
-        // subtitleTextView.text = "We've sent a code to $userEmail"
+        // Update subtitle based on reason (optional but good UX)
+        when (verificationReason) {
+            loginActivity.REASON_LOGIN_VERIFICATION ->
+                subtitleTextView.text = "Enter the code sent to your email for login."
+            loginActivity.REASON_FORGOT_PASSWORD ->
+                subtitleTextView.text = "Enter the code sent to your email to reset your password."
+            else ->
+                subtitleTextView.text = "Enter the verification code."
+        }
+        // If you were passing the email:
+        // val userEmail = intent.getStringExtra("USER_EMAIL_FOR_VERIFICATION") // If you decide to pass email
+        // if (userEmail != null) {
+        //    subtitleTextView.text = "We've sent a code to $userEmail"
+        // }
+
 
         verifyButton.setOnClickListener {
             val otpCode = getOtpCode()
-            val isCodeValid = otpCode.length == 6 // Simple validation
-
-            if (isCodeValid) {
+            // For now, any 6-digit code is "valid"
+            if (otpCode.length == 6) {
                 handleSuccessfulVerification()
-
             } else {
                 Toast.makeText(this, "Invalid OTP code. Please enter all 6 digits.", Toast.LENGTH_SHORT).show()
             }
         }
 
         cancelButton.setOnClickListener {
+            // When cancelling, set the result to CANCELED and finish
+            setResult(Activity.RESULT_CANCELED)
             finish()
         }
 
         resendCodeTextView.setOnClickListener {
             Toast.makeText(this, "Resending code...", Toast.LENGTH_SHORT).show()
-            // --- Implement your actual resend code logic here ---
-            // For example, clear OTP boxes and request focus on the first one
             otpBoxes.forEach { it.text.clear() }
             otpBoxes.firstOrNull()?.requestFocus()
         }
 
-        // Request focus on the first OTP box when the activity starts
         otpBoxes.firstOrNull()?.requestFocus()
     }
 
@@ -88,18 +100,15 @@ class verificationActivity : AppCompatActivity() {
                 override fun afterTextChanged(s: Editable?) {
                     if (s?.length == 1 && nextOtpBox != null) {
                         nextOtpBox.requestFocus()
-                    } else if (s?.length == 0 && prevOtpBox != null) {
-                        // This case is handled by onKeyListener for backspace
                     }
                 }
             })
 
-            // Handle backspace key press to move focus to the previous box
             currentOtpBox.setOnKeyListener(View.OnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
                     if (currentOtpBox.text.isEmpty() && prevOtpBox != null) {
                         prevOtpBox.requestFocus()
-                        prevOtpBox.text.clear() // Or select all: prevOtpBox.selectAll()
+                        // No need to clear text here, as it's already empty and focus is moving
                         return@OnKeyListener true
                     }
                 }
@@ -113,38 +122,39 @@ class verificationActivity : AppCompatActivity() {
     }
 
     private fun handleSuccessfulVerification() {
-        // !! IMPORTANT LOGGING !!
-        android.util.Log.d("VerificationActivity", "handleSuccessfulVerification called. Reason: '$verificationReason'")
+        android.util.Log.d("VerificationActivity", "handleSuccessfulVerification. Reason: '$verificationReason'")
 
         when (verificationReason) {
             loginActivity.REASON_FORGOT_PASSWORD -> {
-                Toast.makeText(this, "OTP Verified.", Toast.LENGTH_LONG).show()
-                android.util.Log.d("VerificationActivity", "Branch: REASON_FORGOT_PASSWORD - Preparing to start resetPassword")
-                try {
-                    val intent = Intent(this, resetPassword::class.java)
-                    startActivity(intent)
-                    finish() // Finish verification activity so user can't go back to it
-                    android.util.Log.d("VerificationActivity", "Successfully called startActivity for resetPassword and finish from FORGOT_PASSWORD branch.")
-                } catch (e: Exception) {
-                    android.util.Log.e("VerificationActivity", "Error starting resetPassword from FORGOT_PASSWORD branch", e)
-                    Toast.makeText(this, "Error starting Reset Password screen: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(this, "OTP Verified. Proceeding to reset password.", Toast.LENGTH_LONG).show()
+                val intent = Intent(this, resetPassword::class.java) // Assuming resetPassword activity exists
+                startActivity(intent)
+                // We don't set RESULT_OK here because the login flow isn't complete.
+                // Forgot password flow finishes here and goes to reset, then likely back to login.
+                finish() // Finish verification activity
             }
             loginActivity.REASON_LOGIN_VERIFICATION -> {
-                Toast.makeText(this, "OTP Verified. Navigating to Dashboard (Not Implemented Yet).", Toast.LENGTH_LONG).show()
-                android.util.Log.d("VerificationActivity", "Branch: REASON_LOGIN_VERIFICATION - Preparing to go to Dashboard (placeholder)")
-                // TODO: Implement navigation to your DashboardActivity when it's ready
-                // For example:
-                // val intent = Intent(this, DashboardActivity::class.java)
-                // startActivity(intent)
-                // finish()
-                // For now, you might just finish or stay, or show a more specific Toast
-                // finish() // Optional: finish verification if login OTP is successful
+                Toast.makeText(this, "OTP Verified. Navigating to Dashboard.", Toast.LENGTH_LONG).show()
+                android.util.Log.d("VerificationActivity", "Branch: REASON_LOGIN_VERIFICATION - Starting DashboardActivity")
+
+                val intent = Intent(this, DashboardActivity::class.java)
+                // These flags will clear the task stack up to DashboardActivity and make it the new root.
+                // This means loginActivity and verificationActivity will be removed from the back stack.
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+
+                // Instead of relying on CLEAR_TASK to finish loginActivity,
+                // we'll set a result so loginActivity can finish itself explicitly.
+                // However, since Dashboard is now the root of a new task, loginActivity might already be gone.
+                // Using setResult is still good practice for the launcher.
+                setResult(Activity.RESULT_OK)
+                finish() // Finish verificationActivity
             }
             else -> {
                 Toast.makeText(this, "OTP Verified. Action undefined. Reason: '$verificationReason'", Toast.LENGTH_LONG).show()
                 android.util.Log.w("VerificationActivity", "Branch: else. Actual reason: '$verificationReason'")
-                // finish() // Decide if you want to finish or stay on this page
+                setResult(Activity.RESULT_CANCELED) // Or some other custom result if needed
+                finish()
             }
         }
     }
