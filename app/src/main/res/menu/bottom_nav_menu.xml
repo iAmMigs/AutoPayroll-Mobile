@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_dashboard"
+        android:icon="@drawable/dashboardicon"
+        android:title="Dashboard" />
+    <item
+        android:id="@+id/navigation_payslip"
+        android:icon="@drawable/payslipicon"
+        android:title="Payslip" />
+    <item
+        android:id="@+id/navigation_announcement"
+        android:icon="@drawable/announcementicon"
+        android:title="Announcement" />
+    <item
+        android:id="@+id/navigation_menu"
+        android:icon="@drawable/menuicon"
+        android:title="Menu" />
+</menu>
