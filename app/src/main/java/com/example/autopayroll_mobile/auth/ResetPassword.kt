@@ -8,7 +8,7 @@ import android.widget.Toast    // Added for user feedback
 import androidx.appcompat.app.AppCompatActivity
 import com.example.autopayroll_mobile.R
 
-class resetPassword : AppCompatActivity() {
+class ResetPassword : AppCompatActivity() {
 
     // Declare EditText fields as properties if you need to access them in multiple methods
     private lateinit var newPasswordInput: EditText
@@ -25,7 +25,7 @@ class resetPassword : AppCompatActivity() {
         // Find the cancel button
         val cancelButton: Button = findViewById(R.id.cancelButton)
         cancelButton.setOnClickListener {
-            val intent = Intent(this, loginActivity::class.java)
+            val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()
@@ -83,7 +83,7 @@ class resetPassword : AppCompatActivity() {
         Toast.makeText(this, "Password reset successfully (simulated)", Toast.LENGTH_LONG).show()
 
         // 3. Navigate back to login screen after successful password reset
-        val intent = Intent(this, loginActivity::class.java)
+        val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
         finish() // Finish this activity

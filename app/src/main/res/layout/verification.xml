@@ -8,7 +8,7 @@
     android:gravity="center_horizontal"
     android:padding="30dp"
     android:background="#FFFFFF"
-    tools:context="com.example.autopayroll_mobile.auth.verificationActivity">
+    tools:context="com.example.autopayroll_mobile.auth.VerificationActivity">
 
     <ImageView
         android:id="@+id/autopayrollLogo"

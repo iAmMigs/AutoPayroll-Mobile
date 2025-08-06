@@ -19,7 +19,7 @@ import com.example.autopayroll_mobile.R
 // import com.example.autopayroll_mobile.auth.loginActivity.Companion.REASON_FORGOT_PASSWORD
 // import com.example.autopayroll_mobile.auth.loginActivity.Companion.REASON_LOGIN_VERIFICATION
 
-class verificationActivity : AppCompatActivity() {
+class VerificationActivity : AppCompatActivity() {
 
     private var verificationReason: String? = null
     private lateinit var subtitleTextView: TextView
@@ -29,7 +29,7 @@ class verificationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.verification)
 
-        verificationReason = intent.getStringExtra(loginActivity.EXTRA_VERIFICATION_REASON)
+        verificationReason = intent.getStringExtra(LoginActivity.EXTRA_VERIFICATION_REASON)
 
         subtitleTextView = findViewById(R.id.subtitleTextView)
         val verifyButton: Button = findViewById(R.id.verifyButton)
@@ -49,9 +49,9 @@ class verificationActivity : AppCompatActivity() {
 
         // Update subtitle based on reason (optional but good UX)
         when (verificationReason) {
-            loginActivity.REASON_LOGIN_VERIFICATION ->
+            LoginActivity.REASON_LOGIN_VERIFICATION ->
                 subtitleTextView.text = "Enter the code sent to your email for login."
-            loginActivity.REASON_FORGOT_PASSWORD ->
+            LoginActivity.REASON_FORGOT_PASSWORD ->
                 subtitleTextView.text = "Enter the code sent to your email to reset your password."
             else ->
                 subtitleTextView.text = "Enter the verification code."
@@ -125,15 +125,15 @@ class verificationActivity : AppCompatActivity() {
         android.util.Log.d("VerificationActivity", "handleSuccessfulVerification. Reason: '$verificationReason'")
 
         when (verificationReason) {
-            loginActivity.REASON_FORGOT_PASSWORD -> {
+            LoginActivity.REASON_FORGOT_PASSWORD -> {
                 Toast.makeText(this, "OTP Verified. Proceeding to reset password.", Toast.LENGTH_LONG).show()
-                val intent = Intent(this, resetPassword::class.java) // Assuming resetPassword activity exists
+                val intent = Intent(this, ResetPassword::class.java) // Assuming resetPassword activity exists
                 startActivity(intent)
                 // We don't set RESULT_OK here because the login flow isn't complete.
                 // Forgot password flow finishes here and goes to reset, then likely back to login.
                 finish() // Finish verification activity
             }
-            loginActivity.REASON_LOGIN_VERIFICATION -> {
+            LoginActivity.REASON_LOGIN_VERIFICATION -> {
                 Toast.makeText(this, "OTP Verified. Navigating to Dashboard.", Toast.LENGTH_LONG).show()
                 android.util.Log.d("VerificationActivity", "Branch: REASON_LOGIN_VERIFICATION - Starting DashboardActivity")
 

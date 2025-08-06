@@ -9,10 +9,9 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.example.autopayroll_mobile.DashboardActivity // Make sure this import is correct
 import com.example.autopayroll_mobile.R
 
-class loginActivity : AppCompatActivity() {
+class LoginActivity : AppCompatActivity() {
 
     private lateinit var emailInput: EditText
     private lateinit var passwordInput: EditText
@@ -82,7 +81,7 @@ class loginActivity : AppCompatActivity() {
         // It's generally better to clear fields *after* a successful operation or if explicitly navigating away permanently.
         // Let's hold off on clearing fields here for now, in case OTP is cancelled and user returns.
 
-        val intent = Intent(this, verificationActivity::class.java)
+        val intent = Intent(this, VerificationActivity::class.java)
         intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
         // Start verificationActivity expecting a result
         verificationLauncher.launch(intent)
@@ -92,7 +91,7 @@ class loginActivity : AppCompatActivity() {
         // Clear fields before navigating (optional, but can be good UX)
         // clearInputFields() // You can decide if you want to clear fields here
 
-        val intent = Intent(this, verificationActivity::class.java)
+        val intent = Intent(this, VerificationActivity::class.java)
         intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_FORGOT_PASSWORD)
         // For "Forgot Password", we might not need a result back in the same way as login,
         // as its flow leads to resetPassword and then typically back to login.

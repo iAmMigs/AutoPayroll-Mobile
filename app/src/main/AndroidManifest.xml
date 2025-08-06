@@ -13,7 +13,7 @@
         android:theme="@style/Theme.AutoPayrollMobile">
 
         <activity
-            android:name=".auth.loginActivity"
+            android:name=".auth.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,11 +21,11 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".auth.resetPassword"
+        <activity android:name=".auth.ResetPassword"
             android:exported="false" />
 
         <activity
-            android:name=".auth.verificationActivity"
+            android:name=".auth.VerificationActivity"
             android:exported="false" />
 
         <activity
