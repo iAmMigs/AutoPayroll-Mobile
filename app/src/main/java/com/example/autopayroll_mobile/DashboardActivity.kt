@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.autopayroll_mobile.databinding.DashboardBinding
+import androidx.core.view.WindowCompat
 
 class DashboardActivity : AppCompatActivity() {
 
@@ -11,6 +12,9 @@ class DashboardActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         binding = DashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
