@@ -15,6 +15,11 @@
     <color name="pending_badge">#FFB94D</color>
     <color name="deep_indigo_bottom_nav">#0B132B</color> <!-- Very dark blue (will be main dark background) -->
 
+    <!-- For Pay slip -->
+    <color name="status_processing">#FFA500</color>
+    <color name="status_completed">#28A745</color>
+    <color name="status_on_hold">#6C757D</color>
+
     <!-- Standard Colors (useful to keep for reference or specific needs) -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>

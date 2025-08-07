@@ -4,7 +4,7 @@
     <item android:state_checked="true" android:color="@color/yellow_buttons" /> <!-- Or your specific selected color, e.g., @color/your_selected_color -->
 
     <!-- Color when item is NOT selected (default state) - THIS IS WHAT YOU WANT TO BE WHITE -->
-        <item android:state_checked="false" android:color="@color/background" />
+        <item android:state_checked="false" android:color="@color/white" />
 
     <!-- You can add other states if needed, e.g., disabled, focused -->
     <!-- <item android:state_enabled="false" android:color="@color/grey_disabled" /> -->
