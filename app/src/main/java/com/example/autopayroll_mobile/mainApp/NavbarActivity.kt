@@ -2,9 +2,10 @@ package com.example.autopayroll_mobile
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import com.example.autopayroll_mobile.databinding.NavbarmainBinding
-import androidx.core.view.WindowCompat
+import com.example.autopayroll_mobile.mainApp.QrScannerFragment
 
 class NavbarActivity : AppCompatActivity() {
 
@@ -32,6 +33,10 @@ class NavbarActivity : AppCompatActivity() {
                     replaceFragment(PayslipFragment())
                     true
                 }
+                R.id.navigation_qr_scanner -> {
+                    replaceFragment(QrScannerFragment())
+                    true
+                }
                 R.id.navigation_announcement -> {
                     replaceFragment(AnnouncementFragment())
                     true
@@ -45,7 +50,6 @@ class NavbarActivity : AppCompatActivity() {
         }
     }
 
-    // Helper function to switch fragments
     private fun replaceFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.nav_host_fragment, fragment)
