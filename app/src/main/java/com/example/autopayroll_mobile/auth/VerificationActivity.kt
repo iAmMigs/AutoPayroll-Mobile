@@ -12,7 +12,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.autopayroll_mobile.DashboardActivity // Make sure this import is correct
+import com.example.autopayroll_mobile.NavbarActivity // Make sure this import is correct
 import com.example.autopayroll_mobile.R
 // It's good practice to import the companion object members directly if you use them often
 // import com.example.autopayroll_mobile.auth.loginActivity.Companion.EXTRA_VERIFICATION_REASON
@@ -137,7 +137,7 @@ class VerificationActivity : AppCompatActivity() {
                 Toast.makeText(this, "OTP Verified. Navigating to Dashboard.", Toast.LENGTH_LONG).show()
                 android.util.Log.d("VerificationActivity", "Branch: REASON_LOGIN_VERIFICATION - Starting DashboardActivity")
 
-                val intent = Intent(this, DashboardActivity::class.java)
+                val intent = Intent(this, NavbarActivity::class.java)
                 // These flags will clear the task stack up to DashboardActivity and make it the new root.
                 // This means loginActivity and verificationActivity will be removed from the back stack.
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)

@@ -4,7 +4,8 @@ package com.example.autopayroll_mobile
 // Enum to represent the status in a safe way
 enum class PayslipStatus {
     PROCESSING,
-    COMPLETED
+    COMPLETED,
+    ON_HOLD
 }
 
 // Data class to hold the information for one payslip

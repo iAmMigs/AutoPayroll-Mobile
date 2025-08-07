@@ -29,7 +29,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".DashboardActivity"
+            android:name=".NavbarActivity"
             android:exported="false" />
 
     </application>

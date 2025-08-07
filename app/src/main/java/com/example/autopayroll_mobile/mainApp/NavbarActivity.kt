@@ -3,19 +3,19 @@ package com.example.autopayroll_mobile
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.autopayroll_mobile.databinding.DashboardBinding
+import com.example.autopayroll_mobile.databinding.NavbarmainBinding
 import androidx.core.view.WindowCompat
 
-class DashboardActivity : AppCompatActivity() {
+class NavbarActivity : AppCompatActivity() {
 
-    private lateinit var binding: DashboardBinding
+    private lateinit var binding: NavbarmainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        binding = DashboardBinding.inflate(layoutInflater)
+        binding = NavbarmainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         if (savedInstanceState == null) {
