@@ -9,9 +9,13 @@
         android:icon="@drawable/payslipicon"
         android:title="Payslip" />
     <item
+        android:id="@+id/navigation_qr_scanner"
+        android:icon="@drawable/qrscannericon"
+        android:title="QR" />
+    <item
         android:id="@+id/navigation_announcement"
         android:icon="@drawable/announcementicon"
-        android:title="Announcement" />
+        android:title="Notifications" />
     <item
         android:id="@+id/navigation_menu"
         android:icon="@drawable/menuicon"
