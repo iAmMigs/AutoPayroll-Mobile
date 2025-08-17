@@ -70,7 +70,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Janitor  •  Wilson Trading Inc"
+                    android:text="Janitor  •  FEU Institute of Technology"
                     android:textColor="#6C757D"
                     android:textSize="14sp" />
             </LinearLayout>
