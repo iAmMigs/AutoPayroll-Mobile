@@ -92,7 +92,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="2dp"
-        android:background="#0000000"
+        android:background="#000000"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"/>
 
@@ -325,7 +325,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_employment"
+                            android:src="@drawable/ic_contact"
                             app:tint="@color/text_secondary"
                             android:contentDescription="Employment Overview" />
                         <TextView
@@ -483,17 +483,6 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:orientation="horizontal">
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_marginEnd="16dp"
-                                android:src="@drawable/ic_facebook"
-                                android:contentDescription="Facebook" />
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:src="@drawable/ic_linkedin"
-                                android:contentDescription="LinkedIn" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
