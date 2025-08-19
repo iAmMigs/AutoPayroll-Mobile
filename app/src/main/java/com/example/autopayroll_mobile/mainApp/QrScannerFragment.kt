@@ -10,7 +10,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -26,7 +28,6 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-@androidx.camera.core.ExperimentalGetImage // Add the annotation here, for the whole class
 class QrScannerFragment : Fragment() {
 
     private var _binding: FragmentQrScannerBinding? = null
@@ -75,7 +76,7 @@ class QrScannerFragment : Fragment() {
         }
     }
 
-    // No annotation needed here anymore
+    @OptIn(ExperimentalGetImage::class)
     private fun startCamera() {
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -114,7 +115,7 @@ class QrScannerFragment : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
-    // No annotation needed here anymore
+    @ExperimentalGetImage // Annotation is now here
     private fun processImage(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
