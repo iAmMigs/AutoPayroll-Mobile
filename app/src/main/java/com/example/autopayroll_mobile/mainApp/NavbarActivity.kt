@@ -1,7 +1,11 @@
 package com.example.autopayroll_mobile
 
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.addCallback
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.ExperimentalGetImage
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import com.example.autopayroll_mobile.databinding.NavbarmainBinding
@@ -10,7 +14,9 @@ import com.example.autopayroll_mobile.mainApp.QrScannerFragment
 class NavbarActivity : AppCompatActivity() {
 
     private lateinit var binding: NavbarmainBinding
+    private var backPressedTime: Long = 0
 
+    @OptIn(ExperimentalGetImage::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -18,6 +24,17 @@ class NavbarActivity : AppCompatActivity() {
 
         binding = NavbarmainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Modern way to handle back press
+        onBackPressedDispatcher.addCallback(this) {
+            val twoSeconds = 2000
+            if (backPressedTime + twoSeconds > System.currentTimeMillis()) {
+                finish() // Exit the app
+            } else {
+                Toast.makeText(this@NavbarActivity, "Click again to exit the app", Toast.LENGTH_SHORT).show()
+            }
+            backPressedTime = System.currentTimeMillis()
+        }
 
         if (savedInstanceState == null) {
             replaceFragment(DashboardFragment())
