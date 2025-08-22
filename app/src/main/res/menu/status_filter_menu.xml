@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/filter_all" android:title="All" />
+    <item android:id="@+id/filter_pending" android:title="Pending" />
+    <item android:id="@+id/filter_revision" android:title="Revision" />
+    <item android:id="@+id/filter_rejected" android:title="Rejected" />
+    <item android:id="@+id/filter_approved" android:title="Approved" />
+</menu>
