@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import com.example.autopayroll_mobile.databinding.FragmentMenuBinding
 import com.example.autopayroll_mobile.mainApp.ProfileFragment
 import com.example.autopayroll_mobile.auth.LoginActivity
+import com.example.autopayroll_mobile.leaveRequest.LeaveRequest
 
 class MenuFragment : Fragment() {
 
@@ -39,6 +40,13 @@ class MenuFragment : Fragment() {
             // This code now perfectly matches the logic from your NavbarActivity's replaceFragment function.
             parentFragmentManager.beginTransaction()
                 .replace(R.id.nav_host_fragment, ProfileFragment()) // Uses your container ID
+                .commit() // Does not add to the back stack, as requested
+        }
+
+        binding.btnLeaveRequest.setOnClickListener {
+            // This code now perfectly matches the logic from your NavbarActivity's replaceFragment function.
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.nav_host_fragment, LeaveRequest()) // Uses your container ID
                 .commit() // Does not add to the back stack, as requested
         }
 
