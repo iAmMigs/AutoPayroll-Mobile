@@ -5,11 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.autopayroll_mobile.MenuFragment // Import your ProfileFragment
 import com.example.autopayroll_mobile.R
 import java.time.LocalDate
 import java.time.YearMonth
@@ -20,7 +23,12 @@ class LeaveRequest : Fragment() {
     // Variable to hold the currently selected date.
     private lateinit var selectedDate: LocalDate
 
+    //References to CardViews
+    private lateinit var fileLeaveCard: CardView
+    private lateinit var trackLeaveCard: CardView
+
     // References to UI views
+    private lateinit var backButton: ImageView
     private lateinit var monthYearTextView: TextView
     private lateinit var calendarRecyclerView: RecyclerView
     private lateinit var prevMonthButton: ImageButton
@@ -40,20 +48,21 @@ class LeaveRequest : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize all views by finding them in the inflated view
+        backButton = view.findViewById(R.id.backButton)
         monthYearTextView = view.findViewById(R.id.monthYearTextView)
         calendarRecyclerView = view.findViewById(R.id.calendarRecyclerView)
         prevMonthButton = view.findViewById(R.id.prevMonthButton)
         nextMonthButton = view.findViewById(R.id.nextMonthButton)
         leaveProgressBar = view.findViewById(R.id.leaveProgressBar)
         remainingDaysTextView = view.findViewById(R.id.remainingDaysTextView)
+        fileLeaveCard = view.findViewById(R.id.cardFileLeave)
+        trackLeaveCard = view.findViewById(R.id.cardTrackLeave)
 
         // Set the initial date to the current month
         selectedDate = LocalDate.now()
 
-        // Set up the calendar UI
+        // Set up the UI components
         setMonthView()
-
-        // Set up the progress bar UI
         updateLeaveProgress(remaining = 10, taken = 5)
 
         // Set up click listeners for the navigation buttons
@@ -66,6 +75,33 @@ class LeaveRequest : Fragment() {
             selectedDate = selectedDate.plusMonths(1)
             setMonthView()
         }
+
+        backButton.setOnClickListener {
+            // Use the FragmentManager to perform the transaction
+            parentFragmentManager.beginTransaction().apply {
+                replace(R.id.nav_host_fragment,MenuFragment()) // Replace with your main container ID
+                commit()
+            }
+        }
+
+        fileLeaveCard.setOnClickListener {
+            val leaveRequestFragment = FileLeave() // Create an instance of FileLeave fragment
+            parentFragmentManager.beginTransaction().apply {
+                replace(R.id.nav_host_fragment, FileLeave()) // Use your container ID
+                addToBackStack(null) // This allows the back button to work correctly
+                commit()
+            }
+        }
+
+        trackLeaveCard.setOnClickListener {
+            val trackLeaveFragment = TrackLeaveFragment()
+            parentFragmentManager.beginTransaction().apply {
+                replace(R.id.nav_host_fragment, trackLeaveFragment) // Use your container ID
+                addToBackStack(null) // Allows the back button to work correctly
+                commit()
+            }
+        }
+
     }
 
     private fun setMonthView() {

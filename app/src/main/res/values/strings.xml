@@ -1,5 +1,14 @@
 <resources>
     <string name="app_name">AutoPayroll-Mobile</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string-array name="leave_types">
+        <item>Vacation Leave</item>
+        <item>Sick Leave</item>
+        <item>Paid Time Off</item>
+        <item>Official Business</item>
+        <item>Emergency Leave</item>
+        <item>Bereavement Leave</item>
+    </string-array>
+
 </resources>

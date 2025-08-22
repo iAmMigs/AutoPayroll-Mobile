@@ -27,14 +27,9 @@ class ProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.backButton.setOnClickListener {
-            // Use parentFragmentManager to navigate.
-            // Replace 'R.id.your_fragment_container_in_hosting_activity'
-            // with the actual ID of the container in the Activity that hosts ProfileFragment.
             parentFragmentManager.beginTransaction()
                 .replace(R.id.nav_host_fragment, MenuFragment())
-                // Optional: Add to back stack if you want the system back button
-                // to return from MenuFragment to ProfileFragment.
-                // .addToBackStack(null)
+                .addToBackStack(null)
                 .commit()
         }
 

@@ -16,7 +16,7 @@
         android:padding="16dp">
 
         <LinearLayout
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="18dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -136,7 +136,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="8dp"
-            android:text="August 26 - 27"
+            android:text="No Approved Leaves Currently"
             android:textColor="#555555"
             android:textSize="14sp" />
 
@@ -266,30 +266,63 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="fill"
-            android:orientation="horizontal">
-            <androidx.cardview.widget.CardView style="@style/ActionCard">
+            android:layout_marginTop="24dp">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardFileLeave"
+                style="@style/ActionCard"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/cardTrackLeave"
+                app:layout_constraintHeight_default="wrap"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
                 <LinearLayout style="@style/ActionCardContent">
                     <ImageView style="@style/ActionCardIcon" android:src="@drawable/ic_file_leave"/>
                     <TextView style="@style/ActionCardText" android:text="File a Leave"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            <androidx.cardview.widget.CardView style="@style/ActionCard">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardTrackLeave"
+                style="@style/ActionCard"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/cardLeavePolicy"
+                app:layout_constraintHeight_default="wrap"
+                app:layout_constraintStart_toEndOf="@+id/cardFileLeave"
+                app:layout_constraintTop_toTopOf="parent">
+
                 <LinearLayout style="@style/ActionCardContent">
                     <ImageView style="@style/ActionCardIcon" android:src="@drawable/ic_track_request"/>
                     <TextView style="@style/ActionCardText" android:text="Track Leave Request"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            <androidx.cardview.widget.CardView style="@style/ActionCard">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardLeavePolicy"
+                style="@style/ActionCard"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHeight_default="wrap"
+                app:layout_constraintStart_toEndOf="@+id/cardTrackLeave"
+                app:layout_constraintTop_toTopOf="parent">
+
                 <LinearLayout style="@style/ActionCardContent">
                     <ImageView style="@style/ActionCardIcon" android:src="@drawable/ic_leave_policy"/>
                     <TextView style="@style/ActionCardText" android:text="Leave Policy"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-        </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </LinearLayout>
 </ScrollView>
