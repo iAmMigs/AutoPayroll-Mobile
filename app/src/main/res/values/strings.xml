@@ -11,4 +11,17 @@
         <item>Bereavement Leave</item>
     </string-array>
 
+    <string-array name="attendance_sub_types">
+        <item>Present</item>
+        <item>Absent</item>
+        <item>Late</item>
+    </string-array>
+
+    <!-- Add this new array for Other sub-types -->
+    <string-array name="other_sub_types">
+        <item>Overtime</item>
+        <item>Holiday Pay</item>
+        <item>Missed Attendance Log (in or out)</item>
+    </string-array>
+
 </resources>

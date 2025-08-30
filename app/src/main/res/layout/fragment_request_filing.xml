@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".creditAdjustment.RequestFilingFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/backButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back_arrow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@android:color/black" />
+
+        <TextView
+            android:id="@+id/headerTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Request Filing"
+            android:textColor="@android:color/black"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/backButton"
+            app:layout_constraintStart_toEndOf="@id/backButton"
+            app:layout_constraintTop_toTopOf="@id/backButton" />
+
+        <TextView
+            android:id="@+id/adjustmentTypeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Adjustment Type"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/headerTitle" />
+
+        <RadioGroup
+            android:id="@+id/adjustmentTypeRadioGroup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/adjustmentTypeLabel">
+
+            <RadioButton
+                android:id="@+id/radioLeave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Leave" />
+
+            <RadioButton
+                android:id="@+id/radioAttendance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Attendance Correction" />
+
+            <RadioButton
+                android:id="@+id/radioHoliday"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Other" />
+        </RadioGroup>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/subTypeLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Adjustment Sub-type"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/adjustmentTypeRadioGroup">
+
+            <AutoCompleteTextView
+                android:id="@+id/subTypeAutoComplete"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/affectedDateLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Affected Date"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/subTypeLayout"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/startDateLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:hint="Start"
+            app:endIconDrawable="@drawable/ic_calendar"
+            app:endIconMode="custom"
+            app:layout_constraintEnd_toStartOf="@id/endDateLayout"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/affectedDateLabel">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/startDateEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/endDateLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:hint="End"
+            app:endIconDrawable="@drawable/ic_calendar"
+            app:endIconMode="custom"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/startDateLayout"
+            app:layout_constraintTop_toBottomOf="@id/affectedDateLabel">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/endDateEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/hoursLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Number of Hours (Optional)"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/startDateLayout"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/hoursLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Hours"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/hoursLabel">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/hoursEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/reasonLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Reason for Adjustment"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/hoursLayout" />
+
+        <EditText
+            android:id="@+id/reasonEditText"
+            android:layout_width="0dp"
+            android:layout_height="200dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/rounded_corner_text_bg"
+            android:gravity="top|start"
+            android:hint="Enter details..."
+            android:inputType="textMultiLine"
+            android:padding="12dp"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/reasonLabel" />
+
+        <LinearLayout
+            android:id="@+id/attachmentLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/reasonEditText">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_attachment" />
+
+            <TextView
+                android:id="@+id/attachmentTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Attach Image / File" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/sendButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send"
+            app:icon="@drawable/ic_send"
+            app:iconSize="20dp"
+            app:layout_constraintBottom_toBottomOf="@id/attachmentLayout"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/attachmentLayout" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

@@ -14,19 +14,15 @@ import com.google.android.material.button.MaterialButton
 
 class TrackLeaveFragment : Fragment() {
 
-    private lateinit var leaveListRecyclerView: RecyclerView
     private lateinit var trackLeaveAdapter: TrackLeaveAdapter
-    private lateinit var backButton: ImageView
-    private lateinit var statusFilterButton: MaterialButton
 
-    // Create a master list of all leave requests
+    // The data list now includes the extra details for the preview screen
     private val allLeaveRequests = listOf(
-        LeaveRequestItem("July 7, 2025", "LR0001", LeaveStatus.Pending),
-        LeaveRequestItem("July 8, 2025", "LR0002", LeaveStatus.Revision),
-        LeaveRequestItem("July 9, 2025", "LR0003", LeaveStatus.Rejected),
-        LeaveRequestItem("July 10, 2025", "LR0004", LeaveStatus.Approved),
-        LeaveRequestItem("July 11, 2025", "LR0005", LeaveStatus.Approved),
-        LeaveRequestItem("July 12, 2025", "LR0006", LeaveStatus.Pending)
+        LeaveRequestItem("June 15 - 20, 2025", "LR0001", LeaveStatus.Approved, "Bereavement Leave", "5 days", "Leave approved. Credits deducted."),
+        LeaveRequestItem("July 8, 2025", "LR0002", LeaveStatus.Revision, "Sick Leave", "1 day", "Please provide a medical certificate."),
+        LeaveRequestItem("July 9, 2025", "LR0003", LeaveStatus.Rejected, "Vacation Leave", "3 days", "Request conflicts with a major project deadline."),
+        LeaveRequestItem("July 10, 2025", "LR0004", LeaveStatus.Approved, "Official Business", "1 day", "Approved."),
+        LeaveRequestItem("July 12, 2025", "LR0006", LeaveStatus.Pending, "Vacation Leave", "2 days", "Pending supervisor approval.")
     )
 
     override fun onCreateView(
@@ -39,17 +35,24 @@ class TrackLeaveFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize Views
-        backButton = view.findViewById(R.id.backButton)
-        statusFilterButton = view.findViewById(R.id.statusFilterButton)
-        leaveListRecyclerView = view.findViewById(R.id.leaveListRecyclerView)
+        val backButton: ImageView = view.findViewById(R.id.backButton)
+        val statusFilterButton: MaterialButton = view.findViewById(R.id.statusFilterButton)
+        val leaveListRecyclerView: RecyclerView = view.findViewById(R.id.leaveListRecyclerView)
 
-        // Setup RecyclerView
         leaveListRecyclerView.layoutManager = LinearLayoutManager(context)
-        trackLeaveAdapter = TrackLeaveAdapter(allLeaveRequests)
+
+        // Correctly create the adapter, passing the list and the click handler logic
+        trackLeaveAdapter = TrackLeaveAdapter(allLeaveRequests) { clickedRequest ->
+            val detailsFragment = LeaveDetailsFragment.newInstance(clickedRequest)
+
+            parentFragmentManager.beginTransaction().apply {
+                replace(R.id.nav_host_fragment, detailsFragment)
+                addToBackStack(null)
+                commit()
+            }
+        }
         leaveListRecyclerView.adapter = trackLeaveAdapter
 
-        // Setup Listeners
         backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
@@ -59,6 +62,7 @@ class TrackLeaveFragment : Fragment() {
         }
     }
 
+    // This function was missing
     private fun showFilterMenu(anchor: View) {
         val popup = PopupMenu(context, anchor)
         popup.menuInflater.inflate(R.menu.status_filter_menu, popup.menu)

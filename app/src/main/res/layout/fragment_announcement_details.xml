@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
+        <ImageView
+            android:id="@+id/backButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back_arrow"
+            app:tint="@android:color/black" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Announcement"
+            android:textColor="@android:color/black"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/detailTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Salary Disbursement"
+        android:textColor="@android:color/black"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/detailDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="August 15, 2025"
+        android:textSize="14sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="#E0E0E0" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Message"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/detailMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:lineSpacingExtra="6dp"
+        android:text="Your payroll for August 1–15 has been processed and credited on August 16, 2025. Please check your account to confirm. For any concerns, kindly contact HR/Accounting"
+        android:textColor="@android:color/black"
+        android:textSize="16sp" />
+</LinearLayout>

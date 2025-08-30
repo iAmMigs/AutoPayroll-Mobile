@@ -50,6 +50,14 @@ class MenuFragment : Fragment() {
                 .commit() // Does not add to the back stack, as requested
         }
 
+
+        binding.btnPayrollCredit.setOnClickListener {
+            // This code now perfectly matches the logic from your NavbarActivity's replaceFragment function.
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.nav_host_fragment, com.example.autopayroll_mobile.creditAdjustment.PayrollCreditFragment()) // Uses your container ID
+                .commit() // Does not add to the back stack, as requested
+        }
+
         // TODO: Add listeners for your other buttons here using the same pattern.
     }
 

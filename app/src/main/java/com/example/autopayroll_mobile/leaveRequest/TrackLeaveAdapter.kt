@@ -9,8 +9,11 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.autopayroll_mobile.R
 
-class TrackLeaveAdapter(private var leaveRequests: List<LeaveRequestItem>) :
-    RecyclerView.Adapter<TrackLeaveAdapter.LeaveViewHolder>() {
+// MODIFIED: The constructor now accepts a function to handle clicks
+class TrackLeaveAdapter(
+    private var leaveRequests: List<LeaveRequestItem>,
+    private val onItemClicked: (LeaveRequestItem) -> Unit
+) : RecyclerView.Adapter<TrackLeaveAdapter.LeaveViewHolder>() {
 
     class LeaveViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val dateTextView: TextView = itemView.findViewById(R.id.dateTextView)
@@ -29,19 +32,17 @@ class TrackLeaveAdapter(private var leaveRequests: List<LeaveRequestItem>) :
         holder.dateTextView.text = request.date
         holder.idTextView.text = request.id
 
-        // Set the status text and background based on the enum
         holder.statusTextView.text = request.status.name
         holder.statusTextView.background = getStatusDrawable(request.status, holder.itemView.context)
 
-        // Set an on-click listener for the entire row
+        // The click listener now calls the function that was passed in
         holder.itemView.setOnClickListener {
-            // TODO: Handle click event, e.g., navigate to a details fragment
+            onItemClicked(request)
         }
     }
 
     override fun getItemCount() = leaveRequests.size
 
-    // Helper function to get the correct drawable for each status
     private fun getStatusDrawable(status: LeaveStatus, context: Context) = when (status) {
         LeaveStatus.Pending -> ContextCompat.getDrawable(context, R.drawable.status_chip_pending)
         LeaveStatus.Revision -> ContextCompat.getDrawable(context, R.drawable.status_chip_revision)
@@ -49,7 +50,6 @@ class TrackLeaveAdapter(private var leaveRequests: List<LeaveRequestItem>) :
         LeaveStatus.Approved -> ContextCompat.getDrawable(context, R.drawable.status_chip_approved)
     }
 
-    // Function to update the list when filtering
     fun filterList(filteredList: List<LeaveRequestItem>) {
         leaveRequests = filteredList
         notifyDataSetChanged()
