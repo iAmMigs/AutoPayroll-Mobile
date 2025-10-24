@@ -17,6 +17,7 @@
         android:contentDescription="Application Logo"
         android:src="@drawable/autopayrolltitle" />
 
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -40,12 +41,12 @@
             android:labelFor="@+id/EmailInput" />
 
         <EditText
-            android:id="@+id/EmailInput"
+            android:id="@+id/LoginInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:background="@drawable/rounded_corner_text_bg"
-            android:inputType="textEmailAddress"
+            android:inputType="text"
             android:padding="16dp"
             android:textColor="@color/text_primary"
             android:textSize="20sp" />
@@ -98,5 +99,12 @@
             android:textStyle="bold" />
 
     </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
 
 </RelativeLayout>

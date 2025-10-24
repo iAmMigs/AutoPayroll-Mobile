@@ -58,7 +58,7 @@ class MenuFragment : Fragment() {
                 .commit() // Does not add to the back stack, as requested
         }
 
-        // TODO: Add listeners for your other buttons here using the same pattern.
+        // TODO: Settings and HELP.
     }
 
     override fun onDestroyView() {

@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.autopayroll_mobile.MenuFragment
 import com.example.autopayroll_mobile.R
 
 // An enum to represent the possible credit statuses
@@ -42,7 +43,10 @@ class PayrollCreditFragment : Fragment() {
         // Back button navigation
         backButton.setOnClickListener {
             // This will take the user to the previous screen on the back stack
-            parentFragmentManager.popBackStack()
+            parentFragmentManager.beginTransaction().apply {
+                replace(R.id.nav_host_fragment,MenuFragment()) // Replace with your main container ID
+                commit()
+            }
         }
 
         // Placeholder for navigating to the filing screen

@@ -1,3 +1,4 @@
+// In file: com/example/autopayroll_mobile/DashboardFragment.kt
 package com.example.autopayroll_mobile
 
 import android.os.Bundle
@@ -5,55 +6,85 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import com.example.autopayroll_mobile.utils.SessionManager
+import org.json.JSONObject
+import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [DashboardFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class DashboardFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private lateinit var empNameTextView: TextView
+    private lateinit var empIDTextView: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_dashboard, container, false)
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment DashboardFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            DashboardFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        empNameTextView = view.findViewById(R.id.EmpName)
+        empIDTextView = view.findViewById(R.id.EmpID)
+
+        // 1. Get the session manager
+        val sessionManager = SessionManager(requireActivity())
+
+        // 2. Get the logged-in user's ID
+        val employeeId = sessionManager.getEmployeeId()
+
+        if (employeeId != null) {
+            // 3. If ID exists, fetch this user's details
+            fetchEmployeeData(employeeId)
+        } else {
+            // This case shouldn't happen, but good to have
+            empNameTextView.text = "Error: Not logged in"
+            empIDTextView.text = "N/A"
+            // You might want to navigate back to LoginActivity here
+        }
+    }
+
+    /**
+     * Fetches the full employee details from the server using their ID.
+     */
+    private fun fetchEmployeeData(employeeId: String) {
+        // Set loading text
+        empNameTextView.text = "Loading..."
+        empIDTextView.text = employeeId
+
+        Thread {
+            try {
+                // 4. Use the new endpoint: GET /api/employees/{id}
+                val url = URL("https://autopayroll.org/api/employees/$employeeId")
+                val connection = url.openConnection() as HttpsURLConnection
+
+                // A GET request is the default, so we just check the response
+                if (connection.responseCode == 200) {
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    val userObject = JSONObject(response)
+
+                    // 5. Parse the user's details
+                    val firstName = userObject.getString("first_name")
+                    val lastName = userObject.getString("last_name")
+
+                    // 6. Update the UI on the main thread
+                    activity?.runOnUiThread {
+                        empNameTextView.text = "$firstName $lastName"
+                        empIDTextView.text = employeeId
+                    }
+                } else {
+                    activity?.runOnUiThread {
+                        empNameTextView.text = "Error loading data"
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                activity?.runOnUiThread {
+                    empNameTextView.text = "Network error"
                 }
             }
+        }.start()
     }
 }

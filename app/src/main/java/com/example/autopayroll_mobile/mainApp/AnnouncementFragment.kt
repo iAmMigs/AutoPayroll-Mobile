@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile // Use your package name
+package com.example.autopayroll_mobile
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -14,7 +14,7 @@ class AnnouncementFragment : Fragment() {
 
     private lateinit var announcementAdapter: AnnouncementAdapter
 
-    // Create a master list of all announcements (placeholders)
+    //TODO: Announcements taken from API?
     private val allAnnouncements = listOf(
         AnnouncementItem(R.drawable.ic_payroll, "Salary Disbursement", "Your payroll for August 1-15, has been processed...", "Aug. 15, 2025", AnnouncementCategory.Payroll),
         AnnouncementItem(R.drawable.ic_admin, "Follow-Up", "Hi Nicho, natapos mo na ba lampasuhin yang third floor?", "Aug. 14, 2025", AnnouncementCategory.Admin),
@@ -33,7 +33,6 @@ class AnnouncementFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize Views
-        val backButton: ImageView = view.findViewById(R.id.backButton)
         val tabLayout: TabLayout = view.findViewById(R.id.tabLayout)
         val recyclerView: RecyclerView = view.findViewById(R.id.announcementRecyclerView)
 
@@ -53,11 +52,6 @@ class AnnouncementFragment : Fragment() {
             }
         }
         recyclerView.adapter = announcementAdapter
-
-        // Setup Listeners
-        backButton.setOnClickListener {
-            parentFragmentManager.popBackStack() // Or navigate to your main menu
-        }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {

@@ -11,23 +11,18 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="16dp">
-        <ImageView
-            android:id="@+id/backButton"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_back_arrow"
-            app:tint="@android:color/black" />
+        android:gravity="center" android:orientation="horizontal"
+        android:padding="26dp"
+        android:background="@color/deep_indigo_bottom_nav"
+        >
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Announcement"
-            android:textColor="@android:color/black"
+            android:text="General Announcements"
+            android:textColor="@color/bottom_nav_item_color_selector"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            />
     </LinearLayout>
 
     <com.google.android.material.tabs.TabLayout

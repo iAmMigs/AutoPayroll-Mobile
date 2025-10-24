@@ -53,6 +53,7 @@
                     android:layout_centerVertical="true">
 
                     <TextView
+                        android:id="@+id/EmpName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Employee Name"
@@ -61,6 +62,7 @@
                         android:textColor="@color/text_primary"/>
 
                     <TextView
+                        android:id="@+id/EmpID"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="EMPXXXX"

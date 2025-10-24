@@ -3,20 +3,28 @@ package com.example.autopayroll_mobile.auth
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Patterns // For email validation
+import android.util.Log // Import Log
+import android.util.Patterns // Import Patterns
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.utils.SessionManager
+import org.json.JSONObject
+import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var emailInput: EditText
+    private lateinit var userLoginInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var loginButton: Button
     private lateinit var forgotPasswordButton: Button
+    private lateinit var loadingIndicator: ProgressBar
 
     companion object {
         const val EXTRA_VERIFICATION_REASON = "com.example.autopayroll_mobile.auth.VERIFICATION_REASON"
@@ -24,28 +32,32 @@ class LoginActivity : AppCompatActivity() {
         const val REASON_LOGIN_VERIFICATION = "login_verification"
     }
 
-    // Modern way to handle Activity Results for verification
     private val verificationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // This result comes from verificationActivity when login OTP is successful
-            // and DashboardActivity has been launched.
-            // Now, we can safely finish loginActivity.
             finish()
         }
-        // You could also handle RESULT_CANCELED or other results if needed
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.login_page)
 
-        emailInput = findViewById(R.id.EmailInput)
+        // Make sure these IDs match your login_page.xml
+        userLoginInput = findViewById(R.id.LoginInput) // Changed from EmailInput
         passwordInput = findViewById(R.id.PassInput)
         loginButton = findViewById(R.id.loginButton)
         forgotPasswordButton = findViewById(R.id.forgotPassButton)
+        loadingIndicator = findViewById(R.id.loadingIndicator)
 
         loginButton.setOnClickListener {
-            handleLogin()
+            //handleLogin()
+
+
+            //skip login
+            val intent = Intent(this, VerificationActivity::class.java)
+            intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
+            verificationLauncher.launch(intent)
+
         }
 
         forgotPasswordButton.setOnClickListener {
@@ -54,21 +66,18 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun handleLogin() {
-        val email = emailInput.text.toString().trim()
+        val emailOrUsername = userLoginInput.text.toString().trim()
         val password = passwordInput.text.toString().trim()
 
-        if (email.isEmpty()) {
-            emailInput.error = "Email is required"
-            emailInput.requestFocus()
-            return
-        }
+        // Log the input value before validation
+        Log.d("LoginActivity", "Input value: '$emailOrUsername'")
 
-        // Standard email validation
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.error = "Enter a valid email address"
-            emailInput.requestFocus()
+        if (emailOrUsername.isEmpty()) {
+            userLoginInput.error = "Email or Username is required"
+            userLoginInput.requestFocus()
             return
         }
+        // Ensure no Patterns.EMAIL_ADDRESS.matcher check exists here
 
         if (password.isEmpty()) {
             passwordInput.error = "Password is required"
@@ -76,39 +85,120 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // For now, if fields are filled and email is valid, proceed to OTP verification
-        Toast.makeText(this, "Credentials entered. Proceeding to OTP verification.", Toast.LENGTH_SHORT).show()
-        // It's generally better to clear fields *after* a successful operation or if explicitly navigating away permanently.
-        // Let's hold off on clearing fields here for now, in case OTP is cancelled and user returns.
+        authenticateUserOnline(emailOrUsername, password)
+    }
 
-        val intent = Intent(this, VerificationActivity::class.java)
-        intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
-        // Start verificationActivity expecting a result
-        verificationLauncher.launch(intent)
+    private fun authenticateUserOnline(loginIdentifier: String, pass: String) {
+        loadingIndicator.visibility = View.VISIBLE
+        loginButton.isEnabled = false
+
+        Thread {
+            // --- Request using "identifier" key ---
+            val requestBody = JSONObject().apply {
+                put("email", loginIdentifier)
+                put("password", pass)
+            }
+            // --------------------------------------
+
+            var loginSuccess = false
+            var connectionError = false
+            var errorMessage: String? = "Invalid credentials. Please try again."
+            var employeeId: String? = null
+            // ## ADDED LOGGING VARIABLES ##
+            var serverResponseCode = -1
+            var serverSuccessResponse: String? = null
+            var serverErrorResponse: String? = null
+            var exceptionMessage: String? = null
+
+            try {
+                val url = URL("https://autopayroll.org/api/employee/login")
+                val connection = url.openConnection() as HttpsURLConnection
+
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+
+                connection.outputStream.use { os ->
+                    val input = requestBody.toString().toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                serverResponseCode = connection.responseCode // Log the code
+                if (serverResponseCode == HttpsURLConnection.HTTP_OK) {
+                    serverSuccessResponse = connection.inputStream.bufferedReader().use { it.readText() } // Log success response
+                    val userFound = JSONObject(serverSuccessResponse)
+
+                    // Make sure "employee_id" is the correct key from your backend
+                    employeeId = userFound.optString("employee_id", null)
+
+                    if (employeeId != null) {
+                        loginSuccess = true
+                    } else {
+                        errorMessage = "Login successful, but server did not return an employee ID."
+                        connectionError = true
+                    }
+
+                } else {
+                    connectionError = true
+                    serverErrorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() } // Log error response
+                    if (serverErrorResponse != null) {
+                        try { // Try parsing error JSON safely
+                            val errorObject = JSONObject(serverErrorResponse)
+                            errorMessage = errorObject.optString("message", errorMessage)
+                        } catch (jsonE: Exception) {
+                            Log.w("LoginActivity", "Failed to parse error response JSON: $serverErrorResponse")
+                            // Keep default error message or use raw response
+                        }
+                    } else {
+                        errorMessage = "Server error: $serverResponseCode" // Default if no error body
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                exceptionMessage = e.localizedMessage ?: "Unknown exception" // Log exception
+                errorMessage = "A network or data error occurred."
+                connectionError = true
+            }
+
+            // ## ADD LOGGING BEFORE UI UPDATE ##
+            Log.d("LoginActivity", "Network call finished.")
+            Log.d("LoginActivity", "Response Code: $serverResponseCode")
+            Log.d("LoginActivity", "Success Response Body: $serverSuccessResponse")
+            Log.d("LoginActivity", "Error Response Body: $serverErrorResponse")
+            Log.d("LoginActivity", "Exception: $exceptionMessage")
+            Log.d("LoginActivity", "Final errorMessage: $errorMessage")
+            Log.d("LoginActivity", "Final employeeId: $employeeId")
+            Log.d("LoginActivity", "Final loginSuccess: $loginSuccess")
+            Log.d("LoginActivity", "Final connectionError: $connectionError")
+
+            runOnUiThread {
+                loadingIndicator.visibility = View.GONE
+                loginButton.isEnabled = true
+
+                if (loginSuccess && employeeId != null) {
+                    Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show()
+
+                    val sessionManager = SessionManager(this)
+                    sessionManager.saveSession(employeeId) // No !! needed
+
+                    val intent = Intent(this, VerificationActivity::class.java)
+                    intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
+                    verificationLauncher.launch(intent)
+                } else {
+                    if (errorMessage == null) { // Provide a default error if none was set
+                        errorMessage = "Login failed. Please check credentials."
+                    }
+                    // This Toast will display the actual error message
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
     }
 
     private fun handleForgotPassword() {
-        // Clear fields before navigating (optional, but can be good UX)
-        // clearInputFields() // You can decide if you want to clear fields here
-
         val intent = Intent(this, VerificationActivity::class.java)
         intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_FORGOT_PASSWORD)
-        // For "Forgot Password", we might not need a result back in the same way as login,
-        // as its flow leads to resetPassword and then typically back to login.
         startActivity(intent)
     }
-
-    private fun clearInputFields() {
-        emailInput.text.clear()
-        passwordInput.text.clear()
-        emailInput.error = null
-        passwordInput.error = null
-    }
-
-    // This function is not directly used for navigation in the current flow but good to keep
-    // private fun isValidCredentials(email: String, password: String): Boolean {
-    // return email == "test@example.com" && password == "password123"
-    // }
-
-    // --- Lifecycle methods (optional) ---
 }
