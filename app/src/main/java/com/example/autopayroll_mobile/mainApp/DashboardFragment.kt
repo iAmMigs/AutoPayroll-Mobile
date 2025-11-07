@@ -1,21 +1,24 @@
-// In file: com/example/autopayroll_mobile/DashboardFragment.kt
 package com.example.autopayroll_mobile
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
+import com.example.autopayroll_mobile.data.model.Company // Import Company
+import com.example.autopayroll_mobile.data.model.Employee // Import Employee
+import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
-import org.json.JSONObject
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+import kotlinx.coroutines.launch
 
 class DashboardFragment : Fragment() {
 
     private lateinit var empNameTextView: TextView
     private lateinit var empIDTextView: TextView
+    private lateinit var empJobPositionTextView: TextView // The TextView for the job/company
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -26,65 +29,72 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Initialize all your TextViews
         empNameTextView = view.findViewById(R.id.EmpName)
         empIDTextView = view.findViewById(R.id.EmpID)
+        empJobPositionTextView = view.findViewById(R.id.empJobPosition) // Initialize the job TextView
 
-        // 1. Get the session manager
         val sessionManager = SessionManager(requireActivity())
-
-        // 2. Get the logged-in user's ID
         val employeeId = sessionManager.getEmployeeId()
 
         if (employeeId != null) {
-            // 3. If ID exists, fetch this user's details
-            fetchEmployeeData(employeeId)
+            // If the user is logged in, start fetching their data
+            fetchEmployeeAndCompanyData(employeeId)
         } else {
-            // This case shouldn't happen, but good to have
+            // Handle the case where the user is not logged in
             empNameTextView.text = "Error: Not logged in"
             empIDTextView.text = "N/A"
-            // You might want to navigate back to LoginActivity here
+            empJobPositionTextView.text = "Please log in"
         }
     }
 
     /**
-     * Fetches the full employee details from the server using their ID.
+     * Fetches employee data first, then uses that data to fetch company data.
      */
-    private fun fetchEmployeeData(employeeId: String) {
-        // Set loading text
+    private fun fetchEmployeeAndCompanyData(employeeId: String) {
+        // Set initial loading text
         empNameTextView.text = "Loading..."
         empIDTextView.text = employeeId
+        empJobPositionTextView.text = "Loading..."
 
-        Thread {
+        val apiService = ApiClient.getClient(requireContext())
+
+        // Start a coroutine for the background network calls
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // 4. Use the new endpoint: GET /api/employees/{id}
-                val url = URL("https://autopayroll.org/api/employees/$employeeId")
-                val connection = url.openConnection() as HttpsURLConnection
+                // --- First API Call: Get Employee Data ---
+                val employee = apiService.getEmployeeProfile(employeeId)
 
-                // A GET request is the default, so we just check the response
-                if (connection.responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val userObject = JSONObject(response)
+                // Update UI with the data we have so far
+                empNameTextView.text = "${employee.firstName} ${employee.lastName}"
+                empIDTextView.text = employee.employeeId
 
-                    // 5. Parse the user's details
-                    val firstName = userObject.getString("first_name")
-                    val lastName = userObject.getString("last_name")
+                val jobPosition = employee.jobPosition
+                empJobPositionTextView.text = "$jobPosition • Loading company..." // Placeholder
 
-                    // 6. Update the UI on the main thread
-                    activity?.runOnUiThread {
-                        empNameTextView.text = "$firstName $lastName"
-                        empIDTextView.text = employeeId
-                    }
-                } else {
-                    activity?.runOnUiThread {
-                        empNameTextView.text = "Error loading data"
-                    }
+                // --- Second API Call: Get Company Data ---
+                try {
+                    val company = apiService.getCompany(employee.companyId)
+                    val companyName = company.companyName
+
+                    // Final UI Update with both pieces of data
+                    empJobPositionTextView.text = "$jobPosition • $companyName"
+
+                } catch (companyError: Exception) {
+                    // Handle error if *only* the company fetch fails
+                    Log.e("DashboardFragment", "Error fetching company data", companyError)
+                    empJobPositionTextView.text = "$jobPosition • Unknown Company"
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                activity?.runOnUiThread {
-                    empNameTextView.text = "Network error"
-                }
+
+            } catch (employeeError: Exception) {
+                // Handle error if the *first* (employee) fetch fails
+                employeeError.printStackTrace()
+                Log.e("DashboardFragment", "Error fetching employee data", employeeError)
+                empNameTextView.text = "Error loading data"
+                empIDTextView.text = "N/A"
+                empJobPositionTextView.text = "Error"
             }
-        }.start()
+        }
     }
 }

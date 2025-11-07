@@ -1,10 +1,11 @@
 package com.example.autopayroll_mobile.auth
 
 import android.app.Activity
+import android.content.Context // ## IMPORTED FOR SHAREDPREFS ##
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log // Import Log
-import android.util.Patterns // Import Patterns
+import android.util.Log
+import android.util.Patterns
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -17,6 +18,10 @@ import com.example.autopayroll_mobile.utils.SessionManager
 import org.json.JSONObject
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
+import androidx.lifecycle.lifecycleScope
+import com.example.autopayroll_mobile.data.model.LoginRequest
+import com.example.autopayroll_mobile.network.ApiClient
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
@@ -30,6 +35,10 @@ class LoginActivity : AppCompatActivity() {
         const val EXTRA_VERIFICATION_REASON = "com.example.autopayroll_mobile.auth.VERIFICATION_REASON"
         const val REASON_FORGOT_PASSWORD = "forgot_password"
         const val REASON_LOGIN_VERIFICATION = "login_verification"
+
+        // ## ADDED CONSTANTS FOR TOKEN SAVING ##
+        const val PREFS_NAME = "com.example.autopayroll_mobile.PREFS"
+        const val AUTH_TOKEN = "AUTH_TOKEN"
     }
 
     private val verificationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -43,21 +52,14 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.login_page)
 
         // Make sure these IDs match your login_page.xml
-        userLoginInput = findViewById(R.id.LoginInput) // Changed from EmailInput
+        userLoginInput = findViewById(R.id.LoginInput)
         passwordInput = findViewById(R.id.PassInput)
         loginButton = findViewById(R.id.loginButton)
         forgotPasswordButton = findViewById(R.id.forgotPassButton)
         loadingIndicator = findViewById(R.id.loadingIndicator)
 
         loginButton.setOnClickListener {
-            //handleLogin()
-
-
-            //skip login
-            val intent = Intent(this, VerificationActivity::class.java)
-            intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
-            verificationLauncher.launch(intent)
-
+            handleLogin()
         }
 
         forgotPasswordButton.setOnClickListener {
@@ -69,7 +71,6 @@ class LoginActivity : AppCompatActivity() {
         val emailOrUsername = userLoginInput.text.toString().trim()
         val password = passwordInput.text.toString().trim()
 
-        // Log the input value before validation
         Log.d("LoginActivity", "Input value: '$emailOrUsername'")
 
         if (emailOrUsername.isEmpty()) {
@@ -77,7 +78,6 @@ class LoginActivity : AppCompatActivity() {
             userLoginInput.requestFocus()
             return
         }
-        // Ensure no Patterns.EMAIL_ADDRESS.matcher check exists here
 
         if (password.isEmpty()) {
             passwordInput.error = "Password is required"
@@ -92,108 +92,41 @@ class LoginActivity : AppCompatActivity() {
         loadingIndicator.visibility = View.VISIBLE
         loginButton.isEnabled = false
 
-        Thread {
-            // --- Request using "identifier" key ---
-            val requestBody = JSONObject().apply {
-                put("email", loginIdentifier)
-                put("password", pass)
-            }
-            // --------------------------------------
+        // Create the request object
+        val loginRequest = LoginRequest(identifier = loginIdentifier, password = pass)
 
-            var loginSuccess = false
-            var connectionError = false
-            var errorMessage: String? = "Invalid credentials. Please try again."
-            var employeeId: String? = null
-            // ## ADDED LOGGING VARIABLES ##
-            var serverResponseCode = -1
-            var serverSuccessResponse: String? = null
-            var serverErrorResponse: String? = null
-            var exceptionMessage: String? = null
+        // Get the API service from your ApiClient
+        val apiService = ApiClient.getClient(this)
 
+        // Launch a coroutine on the main thread
+        // Retrofit handles background work automatically
+        lifecycleScope.launch {
             try {
-                val url = URL("https://autopayroll.org/api/employee/login")
-                val connection = url.openConnection() as HttpsURLConnection
+                // This one line makes the network call and parses the JSON
+                val response = apiService.login(loginRequest)
 
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.setRequestProperty("Accept", "application/json")
-                connection.doOutput = true
+                // Success! Save the session
+                val sessionManager = SessionManager(this@LoginActivity)
+                sessionManager.saveSession(response.employee_id, response.token)
 
-                connection.outputStream.use { os ->
-                    val input = requestBody.toString().toByteArray(Charsets.UTF_8)
-                    os.write(input, 0, input.size)
-                }
+                Toast.makeText(this@LoginActivity, "Login Successful!", Toast.LENGTH_SHORT).show()
 
-                serverResponseCode = connection.responseCode // Log the code
-                if (serverResponseCode == HttpsURLConnection.HTTP_OK) {
-                    serverSuccessResponse = connection.inputStream.bufferedReader().use { it.readText() } // Log success response
-                    val userFound = JSONObject(serverSuccessResponse)
+                // Proceed to verification
+                val intent = Intent(this@LoginActivity, VerificationActivity::class.java)
+                intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
+                verificationLauncher.launch(intent)
 
-                    // Make sure "employee_id" is the correct key from your backend
-                    employeeId = userFound.optString("employee_id", null)
-
-                    if (employeeId != null) {
-                        loginSuccess = true
-                    } else {
-                        errorMessage = "Login successful, but server did not return an employee ID."
-                        connectionError = true
-                    }
-
-                } else {
-                    connectionError = true
-                    serverErrorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() } // Log error response
-                    if (serverErrorResponse != null) {
-                        try { // Try parsing error JSON safely
-                            val errorObject = JSONObject(serverErrorResponse)
-                            errorMessage = errorObject.optString("message", errorMessage)
-                        } catch (jsonE: Exception) {
-                            Log.w("LoginActivity", "Failed to parse error response JSON: $serverErrorResponse")
-                            // Keep default error message or use raw response
-                        }
-                    } else {
-                        errorMessage = "Server error: $serverResponseCode" // Default if no error body
-                    }
-                }
             } catch (e: Exception) {
-                e.printStackTrace()
-                exceptionMessage = e.localizedMessage ?: "Unknown exception" // Log exception
-                errorMessage = "A network or data error occurred."
-                connectionError = true
-            }
+                // Handle errors (e.g., wrong password, no internet)
+                Log.e("LoginActivity", "Login failed", e)
+                Toast.makeText(this@LoginActivity, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
 
-            // ## ADD LOGGING BEFORE UI UPDATE ##
-            Log.d("LoginActivity", "Network call finished.")
-            Log.d("LoginActivity", "Response Code: $serverResponseCode")
-            Log.d("LoginActivity", "Success Response Body: $serverSuccessResponse")
-            Log.d("LoginActivity", "Error Response Body: $serverErrorResponse")
-            Log.d("LoginActivity", "Exception: $exceptionMessage")
-            Log.d("LoginActivity", "Final errorMessage: $errorMessage")
-            Log.d("LoginActivity", "Final employeeId: $employeeId")
-            Log.d("LoginActivity", "Final loginSuccess: $loginSuccess")
-            Log.d("LoginActivity", "Final connectionError: $connectionError")
-
-            runOnUiThread {
+            } finally {
+                // This runs whether the try or catch block finished
                 loadingIndicator.visibility = View.GONE
                 loginButton.isEnabled = true
-
-                if (loginSuccess && employeeId != null) {
-                    Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show()
-
-                    val sessionManager = SessionManager(this)
-                    sessionManager.saveSession(employeeId) // No !! needed
-
-                    val intent = Intent(this, VerificationActivity::class.java)
-                    intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
-                    verificationLauncher.launch(intent)
-                } else {
-                    if (errorMessage == null) { // Provide a default error if none was set
-                        errorMessage = "Login failed. Please check credentials."
-                    }
-                    // This Toast will display the actual error message
-                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
-                }
             }
-        }.start()
+        }
     }
 
     private fun handleForgotPassword() {

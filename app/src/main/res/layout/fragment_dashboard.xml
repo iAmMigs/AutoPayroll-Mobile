@@ -71,21 +71,13 @@
                         android:layout_marginTop="4dp"/>
 
                     <TextView
+                        android:id="@+id/empJobPosition"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Janitor  •  FEU Institute of Technology"
+                        android:text="Loading..."
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"/>
-
                 </LinearLayout>
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/notificationicon"
-                    android:layout_alignParentTop="true"
-                    android:layout_alignParentEnd="true"
-                    android:contentDescription="Notifications" />
 
             </RelativeLayout>
 
