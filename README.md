@@ -14,8 +14,6 @@
 
 <br />
 
-![visits](https://visit-counter.vercel.app/counter.png?page=https%3A%2F%2Fgithub.com%2FiAmMigs%2FAutoPayroll-Mobile&s=40&c=00ff00&bg=00000000&no=2&ff=digi&tb=Visitor+Count%3A+&ta=)
-
 Time Spent Developing: [![wakatime](https://wakatime.com/badge/user/fe86aec1-b572-4bf9-bf34-8015a3695a2c/project/d7a49781-81b4-45bf-9f33-87934ac751e4.svg)](https://wakatime.com/badge/user/fe86aec1-b572-4bf9-bf34-8015a3695a2c/project/d7a49781-81b4-45bf-9f33-87934ac751e4)
 
 | Developer | GitHub                                    | Facebook                                    |
