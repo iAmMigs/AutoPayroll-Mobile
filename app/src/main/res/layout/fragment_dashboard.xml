@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".DashboardFragment"
-    android:background="#EEEEEE"
+    android:background="@android:color/white"
     android:scrollbars="none">
 
     <LinearLayout
@@ -87,7 +87,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="15dp"
-            app:cardBackgroundColor="@android:color/white"
+            app:cardBackgroundColor="@color/card_surface"
+            app:cardElevation="@dimen/cardview_default_elevation"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -114,7 +115,7 @@
                             android:layout_height="wrap_content"
                             android:text="Regular"
                             android:textSize="14sp"
-                            android:textColor="@color/text_primary"/>
+                            android:textColor="@color/active"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
