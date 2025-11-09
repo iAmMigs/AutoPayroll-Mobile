@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-parcelize")
+    alias(libs.plugins.kotlin.compose) // <-- ## ADD THIS LINE ##
 }
 
 android {
@@ -31,13 +32,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
-        viewBinding = true
-    }
-
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    // ## THIS IS THE FIX ##
+    buildFeatures {
+        viewBinding = true
+        compose = true // 1. You MUST enable compose
+    }
+
 }
 
 dependencies {
@@ -66,6 +70,29 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
     implementation("com.google.code.gson:gson:2.9.0") //QR JSON parsing
+
+    // ## START OF FIX ##
+    // Define versions
+    val lifecycle_version = "2.8.0"
+    val compose_bom_version = "2024.05.00"
+    val activity_compose_version = "1.9.0"
+
+    // ViewModel for state management
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
+    // LiveData/StateFlow integration with Compose
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version")
+    // ViewModel integration with Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
+
+    // Jetpack Compose UI
+    implementation(platform("androidx.compose:compose-bom:$compose_bom_version"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:$activity_compose_version")
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
