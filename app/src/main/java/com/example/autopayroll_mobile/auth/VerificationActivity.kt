@@ -108,7 +108,6 @@ class VerificationActivity : AppCompatActivity() {
                 if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
                     if (currentOtpBox.text.isEmpty() && prevOtpBox != null) {
                         prevOtpBox.requestFocus()
-                        // No need to clear text here, as it's already empty and focus is moving
                         return@OnKeyListener true
                     }
                 }

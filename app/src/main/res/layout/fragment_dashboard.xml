@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".DashboardFragment"
-    android:background="#EEEEEE"
+    android:background="@android:color/white"
     android:scrollbars="none">
 
     <LinearLayout
@@ -53,6 +53,7 @@
                     android:layout_centerVertical="true">
 
                     <TextView
+                        android:id="@+id/EmpName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Employee Name"
@@ -61,6 +62,7 @@
                         android:textColor="@color/text_primary"/>
 
                     <TextView
+                        android:id="@+id/EmpID"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="EMPXXXX"
@@ -69,21 +71,13 @@
                         android:layout_marginTop="4dp"/>
 
                     <TextView
+                        android:id="@+id/empJobPosition"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Janitor  •  FEU Institute of Technology"
+                        android:text="Loading..."
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"/>
-
                 </LinearLayout>
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/notificationicon"
-                    android:layout_alignParentTop="true"
-                    android:layout_alignParentEnd="true"
-                    android:contentDescription="Notifications" />
 
             </RelativeLayout>
 
@@ -93,7 +87,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="15dp"
-            app:cardBackgroundColor="@android:color/white"
+            app:cardBackgroundColor="@color/card_surface"
+            app:cardElevation="@dimen/cardview_default_elevation"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -120,7 +115,7 @@
                             android:layout_height="wrap_content"
                             android:text="Regular"
                             android:textSize="14sp"
-                            android:textColor="@color/text_primary"/>
+                            android:textColor="@color/active"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

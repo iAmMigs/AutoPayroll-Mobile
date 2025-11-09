@@ -119,7 +119,7 @@ class FileLeave : Fragment() {
 
     private fun openImagePicker() {
         val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.type = "*/*" // <-- Change this line from "image/*"
+        intent.type = "*/*"
         pickImageLauncher.launch(intent)
     }
 
@@ -128,7 +128,7 @@ class FileLeave : Fragment() {
             .setTitle("Confirmation")
             .setMessage("Are all details correct?")
             .setPositiveButton("Yes") { dialog, which ->
-                // TODO: Handle the 'Yes' action (e.g., send data to server)
+                // TODO: Confirmation and POST
                 dialog.dismiss()
             }
             .setNegativeButton("No") { dialog, which ->

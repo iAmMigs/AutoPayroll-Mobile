@@ -25,6 +25,8 @@
                 android:id="@+id/backButton"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 android:src="@drawable/ic_back_arrow"
                 app:tint="#333333" />
             <TextView

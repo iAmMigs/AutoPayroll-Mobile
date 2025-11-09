@@ -104,24 +104,7 @@
                 android:textAllCaps="false"
                 android:textColor="#333333"
                 android:textSize="16sp" />
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"/>
 
-            <Button
-                android:id="@+id/btnNotifications"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="start|center_vertical"
-                android:padding="16dp"
-                android:text="Notifications"
-                android:textAllCaps="false"
-                android:textColor="#333333"
-                android:textSize="16sp" />
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

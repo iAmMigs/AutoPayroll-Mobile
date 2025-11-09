@@ -1,48 +1,62 @@
 package com.example.autopayroll_mobile.auth
 
 import android.app.Activity
+import android.content.Context // ## IMPORTED FOR SHAREDPREFS ##
 import android.content.Intent
 import android.os.Bundle
-import android.util.Patterns // For email validation
+import android.util.Log
+import android.util.Patterns
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.utils.SessionManager
+import org.json.JSONObject
+import java.net.URL
+import javax.net.ssl.HttpsURLConnection
+import androidx.lifecycle.lifecycleScope
+import com.example.autopayroll_mobile.data.model.LoginRequest
+import com.example.autopayroll_mobile.network.ApiClient
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var emailInput: EditText
+    private lateinit var userLoginInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var loginButton: Button
     private lateinit var forgotPasswordButton: Button
+    private lateinit var loadingIndicator: ProgressBar
 
     companion object {
         const val EXTRA_VERIFICATION_REASON = "com.example.autopayroll_mobile.auth.VERIFICATION_REASON"
         const val REASON_FORGOT_PASSWORD = "forgot_password"
         const val REASON_LOGIN_VERIFICATION = "login_verification"
+
+        // ## ADDED CONSTANTS FOR TOKEN SAVING ##
+        const val PREFS_NAME = "com.example.autopayroll_mobile.PREFS"
+        const val AUTH_TOKEN = "AUTH_TOKEN"
     }
 
-    // Modern way to handle Activity Results for verification
     private val verificationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // This result comes from verificationActivity when login OTP is successful
-            // and DashboardActivity has been launched.
-            // Now, we can safely finish loginActivity.
             finish()
         }
-        // You could also handle RESULT_CANCELED or other results if needed
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.login_page)
 
-        emailInput = findViewById(R.id.EmailInput)
+        // Make sure these IDs match your login_page.xml
+        userLoginInput = findViewById(R.id.LoginInput)
         passwordInput = findViewById(R.id.PassInput)
         loginButton = findViewById(R.id.loginButton)
         forgotPasswordButton = findViewById(R.id.forgotPassButton)
+        loadingIndicator = findViewById(R.id.loadingIndicator)
 
         loginButton.setOnClickListener {
             handleLogin()
@@ -54,19 +68,14 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun handleLogin() {
-        val email = emailInput.text.toString().trim()
+        val emailOrUsername = userLoginInput.text.toString().trim()
         val password = passwordInput.text.toString().trim()
 
-        if (email.isEmpty()) {
-            emailInput.error = "Email is required"
-            emailInput.requestFocus()
-            return
-        }
+        Log.d("LoginActivity", "Input value: '$emailOrUsername'")
 
-        // Standard email validation
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.error = "Enter a valid email address"
-            emailInput.requestFocus()
+        if (emailOrUsername.isEmpty()) {
+            userLoginInput.error = "Email or Username is required"
+            userLoginInput.requestFocus()
             return
         }
 
@@ -76,39 +85,53 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // For now, if fields are filled and email is valid, proceed to OTP verification
-        Toast.makeText(this, "Credentials entered. Proceeding to OTP verification.", Toast.LENGTH_SHORT).show()
-        // It's generally better to clear fields *after* a successful operation or if explicitly navigating away permanently.
-        // Let's hold off on clearing fields here for now, in case OTP is cancelled and user returns.
+        authenticateUserOnline(emailOrUsername, password)
+    }
 
-        val intent = Intent(this, VerificationActivity::class.java)
-        intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
-        // Start verificationActivity expecting a result
-        verificationLauncher.launch(intent)
+    private fun authenticateUserOnline(loginIdentifier: String, pass: String) {
+        loadingIndicator.visibility = View.VISIBLE
+        loginButton.isEnabled = false
+
+        // Create the request object
+        val loginRequest = LoginRequest(identifier = loginIdentifier, password = pass)
+
+        // Get the API service from your ApiClient
+        val apiService = ApiClient.getClient(this)
+
+        // Launch a coroutine on the main thread
+        // Retrofit handles background work automatically
+        lifecycleScope.launch {
+            try {
+                // This one line makes the network call and parses the JSON
+                val response = apiService.login(loginRequest)
+
+                // Success! Save the session
+                val sessionManager = SessionManager(this@LoginActivity)
+                sessionManager.saveSession(response.employee_id, response.token)
+
+                Toast.makeText(this@LoginActivity, "Login Successful!", Toast.LENGTH_SHORT).show()
+
+                // Proceed to verification
+                val intent = Intent(this@LoginActivity, VerificationActivity::class.java)
+                intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
+                verificationLauncher.launch(intent)
+
+            } catch (e: Exception) {
+                // Handle errors (e.g., wrong password, no internet)
+                Log.e("LoginActivity", "Login failed", e)
+                Toast.makeText(this@LoginActivity, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
+
+            } finally {
+                // This runs whether the try or catch block finished
+                loadingIndicator.visibility = View.GONE
+                loginButton.isEnabled = true
+            }
+        }
     }
 
     private fun handleForgotPassword() {
-        // Clear fields before navigating (optional, but can be good UX)
-        // clearInputFields() // You can decide if you want to clear fields here
-
         val intent = Intent(this, VerificationActivity::class.java)
         intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_FORGOT_PASSWORD)
-        // For "Forgot Password", we might not need a result back in the same way as login,
-        // as its flow leads to resetPassword and then typically back to login.
         startActivity(intent)
     }
-
-    private fun clearInputFields() {
-        emailInput.text.clear()
-        passwordInput.text.clear()
-        emailInput.error = null
-        passwordInput.error = null
-    }
-
-    // This function is not directly used for navigation in the current flow but good to keep
-    // private fun isValidCredentials(email: String, password: String): Boolean {
-    // return email == "test@example.com" && password == "password123"
-    // }
-
-    // --- Lifecycle methods (optional) ---
 }
