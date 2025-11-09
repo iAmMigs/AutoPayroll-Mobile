@@ -24,9 +24,9 @@
         <item name="colorOnError">@color/background</item>             <!-- #FDFCF9 on red -->
 
         <!-- Status bar color for Light Theme. -->
-        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/background</item>
         <!-- For light status bar icons on light backgrounds (if status bar is light): -->
-        <!-- <item name="android:windowLightStatusBar" tools:targetApi="m">true</item> -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
 
         <!-- Text Colors -->
         <item name="android:textColorPrimary">@color/text_primary</item>
