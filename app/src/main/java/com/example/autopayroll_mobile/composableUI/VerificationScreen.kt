@@ -2,6 +2,7 @@ package com.example.autopayroll_mobile.composableUI
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -15,6 +16,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedTextField
 
 @Composable
 fun VerificationScreen(
@@ -28,9 +31,9 @@ fun VerificationScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.weight(0.5f))
         Image(
             painter = painterResource(id = R.drawable.autopayrolltitle),
             contentDescription = "Application Logo",
@@ -75,6 +78,7 @@ fun VerificationScreen(
                     .weight(1f)
                     .height(55.dp)
                     .padding(end = 8.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0))
             ) {
                 Text(text = "Cancel", color = Color.Black)
@@ -85,7 +89,8 @@ fun VerificationScreen(
                     .weight(1f)
                     .height(55.dp)
                     .padding(start = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107))
             ) {
                 Text(text = "Verify", color = Color.Black)
             }
@@ -124,6 +129,7 @@ fun OtpTextField(
                         value = char,
                         onValueChange = {},
                         readOnly = true,
+                        shape = RoundedCornerShape(8.dp),
                         textStyle = LocalTextStyle.current.copy(
                             textAlign = TextAlign.Center,
                             fontSize = 20.sp
