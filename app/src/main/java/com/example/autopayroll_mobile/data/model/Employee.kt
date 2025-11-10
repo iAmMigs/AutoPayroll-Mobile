@@ -4,6 +4,12 @@ import com.google.gson.annotations.SerializedName
 
 data class Employee(
     @SerializedName("employee_id") val employeeId: String,
+
+    // --- THIS IS THE NEW FIELD ---
+    // It matches the 'company' key from your EmployeeController
+    @SerializedName("company") val companyName: String,
+    // ----------------------------
+
     @SerializedName("profile_photo") val profilePhoto: String?,
     @SerializedName("first_name") val firstName: String,
     @SerializedName("middle_name") val middleName: String?,

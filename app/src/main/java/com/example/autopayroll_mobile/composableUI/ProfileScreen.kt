@@ -57,7 +57,7 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
         }
     } else if (uiState.employee != null) {
         val employee = uiState.employee!!
-        val company = uiState.company
+        // val company = uiState.company // <-- This line is removed.
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,7 +89,11 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("${employee.firstName} ${employee.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("${employee.jobPosition} • ${company?.companyName ?: "Unknown Company"}", fontSize = 14.sp)
+
+                    // --- THIS IS THE FIX ---
+                    // We now get the company name from the employee object directly.
+                    // Your server already provides "N/A" as a default, so no placeholder is needed.
+                    Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
@@ -121,6 +125,8 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
         }
     }
 }
+
+// ... (The rest of your file remains unchanged) ...
 
 @Composable
 fun InfoCard(title: String, icon: Int, employee: Employee) {

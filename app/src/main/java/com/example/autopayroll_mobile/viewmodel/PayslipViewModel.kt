@@ -4,6 +4,8 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+// Import the Employee model, which is what getEmployeeProfile returns
+import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.models.Payslip
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
@@ -30,6 +32,11 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
         fetchData()
     }
 
+    // You can call this from your UI to refresh
+    fun refreshData() {
+        fetchData()
+    }
+
     private fun fetchData() {
         val employeeId = sessionManager.getEmployeeId()
 
@@ -42,53 +49,42 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
+        // Set initial loading state
+        _uiState.value = PayslipUiState(isLoading = true)
+
         viewModelScope.launch {
             try {
-                // First API Call: Get Employee
-                val employee = apiService.getEmployeeProfile(employeeId)
+                // --- THIS IS THE FIX ---
 
-                // Dummy payslip data for now
+                // 1. Call the correct function (no ID needed)
+                val employee: Employee = apiService.getEmployeeProfile()
+
+                // Dummy payslip data (as in original file)
                 val payslips = listOf(
                     Payslip("July 16 - 31, 2025", "5,456.15", "Processing"),
                     Payslip("July 1 - 15, 2025", "5,456.15", "Completed"),
                     Payslip("June 16 - 30, 2025", "5,456.15", "Completed"),
                     Payslip("June 1 - 15, 2025", "5,456.15", "Completed")
                 )
-                
-                // Update state with partial data
+
+                // 2. Update the UI state ONCE with all data.
+                // We get employee.companyName directly from the employee object.
                 _uiState.value = PayslipUiState(
-                    isLoading = true, // Still loading company
+                    isLoading = false,
                     employeeName = "${employee.firstName} ${employee.lastName}",
-                    jobAndCompany = "${employee.jobPosition} • Loading company...",
+                    jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
                     payslips = payslips
                 )
 
-                // Second API Call: Get Company
-                try {
-                    val company = apiService.getCompany(employee.companyId)
+                // 3. The second API call for getCompany() is completely removed.
 
-                    // Final Success Update
-                    _uiState.value = PayslipUiState(
-                        isLoading = false,
-                        employeeName = "${employee.firstName} ${employee.lastName}",
-                        jobAndCompany = "${employee.jobPosition} • ${company.companyName}",
-                        payslips = payslips
-                    )
-                } catch (companyError: Exception) {
-                    Log.e("PayslipViewModel", "Error fetching company", companyError)
-                    // Error on second call
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        jobAndCompany = "${employee.jobPosition} • Unknown Company"
-                    )
-                }
-            } catch (employeeError: Exception) {
-                Log.e("PayslipViewModel", "Error fetching employee", employeeError)
+            } catch (e: Exception) {
+                Log.e("PayslipViewModel", "Error fetching data", e)
                 // Error on first call
                 _uiState.value = PayslipUiState(
                     isLoading = false,
                     employeeName = "Error loading data",
-                    jobAndCompany = "Error"
+                    jobAndCompany = "Error: ${e.message}"
                 )
             }
         }
