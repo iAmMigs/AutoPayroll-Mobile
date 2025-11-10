@@ -13,9 +13,7 @@ class SessionManager(context: Context) {
         const val KEY_AUTH_TOKEN = "auth_token" // Add key for the token
     }
 
-    /**
-     * Saves all session data (ID and Token) at once.
-     */
+
     fun saveSession(employeeId: String, token: String) {
         val editor = prefs.edit()
         editor.putString(KEY_EMPLOYEE_ID, employeeId)
@@ -23,23 +21,16 @@ class SessionManager(context: Context) {
         editor.apply()
     }
 
-    /**
-     * Retrieves the logged-in user's ID.
-     */
     fun getEmployeeId(): String? {
         return prefs.getString(KEY_EMPLOYEE_ID, null)
     }
 
-    /**
-     * Retrieves the user's auth token.
-     */
+
     fun getToken(): String? {
         return prefs.getString(KEY_AUTH_TOKEN, null)
     }
 
-    /**
-     * Clears the session (for logout).
-     */
+
     fun clearSession() {
         val editor = prefs.edit()
         editor.clear()

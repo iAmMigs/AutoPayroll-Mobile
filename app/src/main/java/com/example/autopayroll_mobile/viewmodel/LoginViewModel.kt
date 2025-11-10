@@ -1,7 +1,6 @@
 package com.example.autopayroll_mobile.viewmodel
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
@@ -54,6 +53,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private fun authenticateUserOnline(loginIdentifier: String, pass: String) {
         _isLoading.value = true
         val loginRequest = LoginRequest(identifier = loginIdentifier, password = pass)
+
         val apiService = ApiClient.getClient(getApplication<Application>().applicationContext)
 
         viewModelScope.launch {

@@ -2,6 +2,7 @@ package com.example.autopayroll_mobile.network
 
 import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.data.model.EmployeeApiResponse
+import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.model.ClockInOutRequest
 import com.example.autopayroll_mobile.data.model.ClockInOutResponse
 import com.example.autopayroll_mobile.data.model.LoginRequest
@@ -17,7 +18,7 @@ import retrofit2.http.POST
 interface ApiService {
 
     @POST("api/employee/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponse
+    suspend fun login(@Body loginRequest: LoginRequest): LoginResponse
 
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit> // Added the missing logout endpoint
@@ -25,7 +26,7 @@ interface ApiService {
     // --- THIS IS THE MAIN FIX ---
     // The server uses the token to find the user, not an ID in the URL.
     @GET("api/employee/profile")
-    suspend fun getEmployeeProfile(): Employee // No parameter needed
+    suspend fun getEmployeeProfile(): Employee
 
     // This endpoint wasn't provided, so I'm leaving it as-is
     @GET("api/employees")
@@ -39,4 +40,7 @@ interface ApiService {
 
     @POST("api/attendance/clock-out")
     suspend fun clockOut(@Body request: ClockInOutRequest): ClockInOutResponse
+
+    @GET("api/payroll/view")
+    suspend fun getPayrolls(): PayrollResponse
 }

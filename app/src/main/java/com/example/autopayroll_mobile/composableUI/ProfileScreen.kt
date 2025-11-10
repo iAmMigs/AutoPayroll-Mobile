@@ -74,6 +74,7 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Profile Info
+            // Profile Info
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val painter = rememberAsyncImagePainter(
                     model = employee.profilePhoto ?: R.drawable.profiledefault
@@ -89,10 +90,6 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("${employee.firstName} ${employee.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-
-                    // --- THIS IS THE FIX ---
-                    // We now get the company name from the employee object directly.
-                    // Your server already provides "N/A" as a default, so no placeholder is needed.
                     Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -102,8 +99,11 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
                     )
+
                 ) {
+
                     Text("Edit")
+
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))

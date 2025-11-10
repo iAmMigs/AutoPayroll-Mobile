@@ -1,5 +1,6 @@
 package com.example.autopayroll_mobile.composableUI
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,10 +17,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,9 +59,32 @@ fun PayslipScreen(viewModel: PayslipViewModel) {
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
             )
+
+            // UPDATED LAZYCOLUMN: Handles Loading, Error, and Success states
             LazyColumn {
-                items(uiState.payslips) { payslip ->
-                    PayslipItem(payslip = payslip)
+
+                if (uiState.isLoading) {
+                    // Show 5 placeholder cards while loading
+                    items(5) {
+                        PayslipItemPlaceholder()
+                    }
+                } else if (uiState.listErrorMessage != null) {
+                    // Show the error message if loading is done AND there's an error
+                    item {
+                        Text(
+                            text = uiState.listErrorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    // Show the real payslip items when loading is done and no error
+                    items(uiState.payslips) { payslip ->
+                        PayslipItem(payslip = payslip)
+                    }
                 }
             }
         }
@@ -129,22 +156,80 @@ fun PayslipItem(payslip: Payslip) {
     }
 }
 
-@Preview(showBackground = true)
+// --- NEW PLACEHOLDER COMPOSABLE ---
 @Composable
-fun PayslipScreenPreview() {
-    AutoPayrollMobileTheme {
-        Box(modifier = Modifier.background(Color.White)) {
-            // Dummy data for preview
-            val dummyUiState = PayslipUiState(
-                employeeName = "Marc Jurell Afable",
-                jobAndCompany = "Janitor - Wilson Trading Inc",
-                payslips = listOf(
-                    Payslip("July 16 - 31, 2025", "5,456.15", "Processing"),
-                    Payslip("July 1 - 15, 2025", "5,456.15", "Completed")
+fun PayslipItemPlaceholder() {
+    val shimmerBrush = shimmerBrush()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Placeholder for Date Range
+                Box(
+                    modifier = Modifier
+                        .height(20.dp)
+                        .width(150.dp)
+                        .background(shimmerBrush)
                 )
+                // Placeholder for Net Amount
+                Box(
+                    modifier = Modifier
+                        .height(16.dp)
+                        .width(100.dp)
+                        .background(shimmerBrush)
+                )
+            }
+            // Placeholder for Status
+            Box(
+                modifier = Modifier
+                    .height(20.dp)
+                    .width(80.dp)
+                    .background(shimmerBrush)
             )
-           // A full preview requires a ViewModel instance.
-           // For a static preview, we can build the UI with dummy data.
         }
     }
+}
+
+// --- NEW SHIMMER BRUSH COMPOSABLE ---
+@Composable
+fun shimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush {
+    if (!showShimmer) {
+        return Brush.linearGradient(
+            colors = listOf(Color.LightGray.copy(alpha = 0.6f), Color.LightGray.copy(alpha = 0.6f)),
+        )
+    }
+
+    val shimmerColors = listOf(
+        Color.LightGray.copy(alpha = 0.6f),
+        Color.LightGray.copy(alpha = 0.2f),
+        Color.LightGray.copy(alpha = 0.6f),
+    )
+
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnimation = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = targetValue,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_anim"
+    )
+
+    return Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset.Zero,
+        end = Offset(x = translateAnimation.value, y = translateAnimation.value)
+    )
 }

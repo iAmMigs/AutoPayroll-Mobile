@@ -4,16 +4,12 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-// Import our updated Employee data class
 import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.network.ApiClient
-// SessionManager is no longer needed here to get the ID
-// import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-// This data class holds all the data for your screen
 data class DashboardUiState(
     val isLoading: Boolean = true,
     val employeeName: String = "Loading...",
