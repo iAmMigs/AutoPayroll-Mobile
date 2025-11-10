@@ -80,6 +80,9 @@ dependencies {
     // Gson
     implementation("com.google.code.gson:gson:2.9.0")
 
+    // Compose Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
     // --- Corrected Jetpack Compose & Lifecycle Dependencies ---
 
     // Define versions
