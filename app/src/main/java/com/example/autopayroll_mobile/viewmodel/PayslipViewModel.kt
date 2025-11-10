@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 // Import your new API models
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.model.Employee
-import com.example.autopayroll_mobile.models.Payslip
+import com.example.autopayroll_mobile.data.model.Payslip
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 data class PayslipUiState(
     val isLoading: Boolean = true,
@@ -39,6 +42,23 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshData() {
         fetchData()
+    }
+
+    private fun formatApiDate(apiDate: String): String {
+        return try {
+            // 1. Define the format of the output, e.g., "September 20, 2025"
+            val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
+
+            // 2. Parse the input string (e.g., "2025-09-20T16:00:00.000000Z")
+            val dateTime = OffsetDateTime.parse(apiDate)
+
+            // 3. Format it into the new, clean string
+            dateTime.format(outputFormatter)
+        } catch (e: Exception) {
+            // If parsing fails, just return the original (or "Invalid Date")
+            Log.e("PayslipViewModel", "Error parsing date: $apiDate", e)
+            "Invalid Date"
+        }
     }
 
     private fun fetchData() {
@@ -75,7 +95,9 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                 val payrollResponse = apiService.getPayrolls() // <-- This will still fail with 404
                 val realPayslips = payrollResponse.data.map { apiPayroll ->
                     Payslip(
-                        dateRange = apiPayroll.payDate, // TODO: Fix date range
+                        // --- THIS IS THE CHANGE ---
+                        dateRange = formatApiDate(apiPayroll.payDate),
+                        // --- END OF CHANGE ---
                         netAmount = "₱${apiPayroll.netPay}",
                         status = apiPayroll.status.replaceFirstChar { it.uppercase() }
                     )

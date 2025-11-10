@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.models
+package com.example.autopayroll_mobile.data.model
 
 data class Payslip(
     val dateRange: String,

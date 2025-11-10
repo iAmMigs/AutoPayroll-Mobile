@@ -28,7 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.models.Payslip
+import com.example.autopayroll_mobile.data.model.Payslip
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.PayslipUiState
 import com.example.autopayroll_mobile.viewmodel.PayslipViewModel
@@ -130,7 +130,10 @@ fun PayslipItem(payslip: Payslip) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier

@@ -35,5 +35,6 @@ data class Employee(
     @SerializedName("id_barangay") val idBarangay: String?,
     @SerializedName("id_city") val idCity: String?,
     @SerializedName("id_province") val idProvince: String?,
-    @SerializedName("id_country") val idCountry: String?
+    @SerializedName("id_country") val idCountry: String?,
+    @SerializedName("religion_name") val religion: String?
 )
