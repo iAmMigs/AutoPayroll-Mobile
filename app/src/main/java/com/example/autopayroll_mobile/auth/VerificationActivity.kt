@@ -33,7 +33,9 @@ class VerificationActivity : ComponentActivity() {
                         verificationViewModel.verifyOtp(otp)
                     },
                     onCancel = {
-                        setResult(Activity.RESULT_CANCELED)
+                        val intent = Intent(this, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
                         finish()
                     },
                     onResend = {

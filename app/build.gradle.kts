@@ -106,6 +106,9 @@ dependencies {
     implementation("androidx.activity:activity-compose:$activity_compose_version")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    //Icons
+    implementation("androidx.compose.material:material-icons-extended")
+
     // Tooling for debugging and inspection
     debugImplementation(libs.androidx.compose.ui.tooling)
 

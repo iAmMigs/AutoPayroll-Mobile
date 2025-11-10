@@ -1,6 +1,7 @@
 package com.example.autopayroll_mobile.composableUI
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -8,16 +9,22 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 
 @Composable
 fun VerificationScreen(
@@ -69,7 +76,9 @@ fun VerificationScreen(
         }
         Spacer(modifier = Modifier.weight(1f))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 80.dp), // Increased bottom padding
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
@@ -98,6 +107,7 @@ fun VerificationScreen(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun OtpTextField(
     modifier: Modifier = Modifier,
@@ -105,8 +115,11 @@ fun OtpTextField(
     otpCount: Int = 6,
     onOtpTextChange: (String, Boolean) -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     BasicTextField(
-        modifier = modifier,
+        modifier = modifier.focusRequester(focusRequester),
         value = otpText,
         onValueChange = {
             if (it.length <= otpCount) {
@@ -115,21 +128,31 @@ fun OtpTextField(
         },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         decorationBox = {
-            Row(horizontalArrangement = Arrangement.Center) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.clickable {
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                }
+            ) {
                 repeat(otpCount) { index ->
                     val char = when {
                         index >= otpText.length -> ""
                         else -> otpText[index].toString()
                     }
-                    val isFocused = otpText.length == index
                     OutlinedTextField(
                         modifier = Modifier
                             .width(50.dp)
                             .padding(2.dp),
                         value = char,
                         onValueChange = {},
+                        enabled = false, // <--- Important: Makes the field not intercept clicks
                         readOnly = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        ),
                         textStyle = LocalTextStyle.current.copy(
                             textAlign = TextAlign.Center,
                             fontSize = 20.sp
@@ -139,4 +162,16 @@ fun OtpTextField(
             }
         }
     )
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun VerificationScreenPreview() {
+    AutoPayrollMobileTheme {
+        VerificationScreen(onVerify = {}, onCancel = {}, onResend = {})
+    }
 }
