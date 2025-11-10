@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile
+package com.example.autopayroll_mobile.mainApp
 
 import android.Manifest
 import android.content.Context
@@ -16,6 +16,11 @@ import androidx.camera.core.ExperimentalGetImage
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
+import com.example.autopayroll_mobile.AnnouncementFragment
+import com.example.autopayroll_mobile.DashboardFragment
+import com.example.autopayroll_mobile.MenuFragment
+import com.example.autopayroll_mobile.PayslipFragment
+import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.databinding.NavbarmainBinding
 import com.example.autopayroll_mobile.mainApp.QrScannerFragment
 

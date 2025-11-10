@@ -43,7 +43,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".NavbarActivity"
+            android:name=".mainApp.NavbarActivity"
             android:exported="false" />
 
     </application>
