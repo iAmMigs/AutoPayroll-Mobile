@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_dashboard"> <!-- Or your start destination -->
+
+    <!-- Your existing fragments -->
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="com.example.autopayroll_mobile.DashboardFragment"
+        android:label="Dashboard" />
+
+    <fragment
+        android:id="@+id/navigation_announcement"
+        android:name="com.example.autopayroll_mobile.AnnouncementFragment"
+        android:label="Announcements" >
+
+        <!-- This is the ACTION to go from list to detail -->
+        <action
+            android:id="@+id/action_announcement_to_detail"
+            app:destination="@id/navigation_announcement_detail" />
+
+    </fragment>
+
+    <!-- ... other fragments ... -->
+
+    <!-- This is the NEW fragment -->
+    <fragment
+        android:id="@+id/navigation_announcement_detail"
+        android:name="com.example.autopayroll_mobile.AnnouncementDetailHostFragment"
+        android:label="Announcement Details" >
+
+        <!-- This is the ARGUMENT that creates the Args class -->
+        <argument
+            android:name="announcementId"
+            app:argType="string" />
+
+    </fragment>
+
+</navigation>

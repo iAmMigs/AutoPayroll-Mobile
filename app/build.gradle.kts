@@ -4,6 +4,9 @@ plugins {
     id("kotlin-parcelize")
     // The kotlin-compose plugin is necessary for Jetpack Compose
     alias(libs.plugins.kotlin.compose)
+    id("androidx.navigation.safeargs.kotlin")
+
+
 }
 
 android {
@@ -112,6 +115,10 @@ dependencies {
     //Icons
     implementation("androidx.compose.material:material-icons-extended")
 
+    //Nav
+    implementation(libs.navigation.compose)
+    implementation(libs.navigation.fragment.ktx)
+
     // Tooling for debugging and inspection
     debugImplementation(libs.androidx.compose.ui.tooling)
 
@@ -119,4 +126,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+
 }

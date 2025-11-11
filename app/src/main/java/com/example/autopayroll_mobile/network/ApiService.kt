@@ -18,7 +18,8 @@ import com.example.autopayroll_mobile.data.model.Company // This was commented o
 //import com.example.autopayroll_mobile.data.model.AdjustmentRequest // TODO: Create data class AdjustmentRequest
 //import com.example.autopayroll_mobile.data.model.AdjustmentRequestResponse // TODO: Create data class AdjustmentRequestResponse
 //import com.example.autopayroll_mobile.data.model.AdjustmentRequestStatus // TODO: Create data class AdjustmentRequestStatus
-//import com.example.autopayroll_mobile.data.model.Announcement // TODO: Create data class Announcement
+import com.example.autopayroll_mobile.data.model.Announcement
+import com.example.autopayroll_mobile.data.model.AnnouncementResponse
 //import com.example.autopayroll_mobile.data.model.AdjustmentType // TODO: Create data class AdjustmentType
 import retrofit2.Response
 import retrofit2.http.Body
@@ -98,10 +99,8 @@ interface ApiService {
 
     // --- General Endpoints ---
 
-
-    // TODO: Wait Until Needed
-//    @GET("api/employee/announcements")
-//    suspend fun getAnnouncements(): List<Announcement> // Assuming it returns a list
+    @GET("api/employee/announcements")
+    suspend fun getAnnouncements(): AnnouncementResponse // Assuming it returns a list
     // TODO: Wait Until Needed
 //    @GET("api/companies")
 //    suspend fun getCompanies(): List<Company> // Assuming it returns a list
