@@ -14,9 +14,9 @@ import com.example.autopayroll_mobile.data.model.Company // This was commented o
 //import com.example.autopayroll_mobile.data.model.PasswordResetResponse // TODO: Create data class PasswordResetResponse
 //import com.example.autopayroll_mobile.data.model.LeaveRequest // TODO: Create data class LeaveRequest
 //import com.example.autopayroll_mobile.data.model.LeaveRequestResponse // TODO: Create data class LeaveRequestResponse
-//import com.example.autopayroll_mobile.data.model.LeaveRequestStatus // TODO: Create data class LeaveRequestStatus
-//import com.example.autopayroll_mobile.data.model.AdjustmentRequest // TODO: Create data class AdjustmentRequest
-//import com.example.autopayroll_mobile.data.model.AdjustmentRequestResponse // TODO: Create data class AdjustmentRequestResponse
+import com.example.autopayroll_mobile.data.model.LeaveRequestListResponse // ## NEW ##
+import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit // ## NEW ##
+import com.example.autopayroll_mobile.data.model.LeaveRequestSubmitResponse
 //import com.example.autopayroll_mobile.data.model.AdjustmentRequestStatus // TODO: Create data class AdjustmentRequestStatus
 import com.example.autopayroll_mobile.data.model.Announcement
 import com.example.autopayroll_mobile.data.model.AnnouncementResponse
@@ -71,15 +71,13 @@ interface ApiService {
 
     // --- Leave Request Endpoints ---
 
-    // TODO: Wait Until Needed
-//    @POST("api/employee/leave-request")
-//    suspend fun submitLeaveRequest(@Body request: LeaveRequest): LeaveRequestResponse
-    // TODO: Wait Until Needed
-//    @GET("api/employee/show/leave-request")
-//    suspend fun getLeaveRequests(): List<LeaveRequest> // Assuming it returns a list
-    // TODO: Wait Until Needed
-//    @GET("api/employee/track/leave-request")
-//    suspend fun trackLeaveRequests(): List<LeaveRequestStatus> // Assuming it returns a list
+    @POST("api/employee/leave-request")
+    suspend fun submitLeaveRequest(@Body request: LeaveRequestSubmit): LeaveRequestSubmitResponse
+
+    // ## UPDATED ##
+    @GET("api/employee/show/leave-request")
+    suspend fun getLeaveRequests(): LeaveRequestListResponse
+
 
 // --- Credit Adjustment Endpoints ---
     // TODO: Wait Until Needed

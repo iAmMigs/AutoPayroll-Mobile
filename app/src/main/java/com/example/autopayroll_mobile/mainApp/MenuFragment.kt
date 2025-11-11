@@ -9,15 +9,17 @@ import android.view.ViewGroup
 import com.example.autopayroll_mobile.databinding.FragmentMenuBinding
 import com.example.autopayroll_mobile.mainApp.ProfileFragment
 import com.example.autopayroll_mobile.auth.LoginActivity
-import com.example.autopayroll_mobile.leaveRequest.LeaveRequest
-import com.example.autopayroll_mobile.utils.SessionManager // ## 1. ADD THIS IMPORT ##
+// ## 1. REMOVE THE OLD IMPORT ##
+// import com.example.autopayroll_mobile.leaveRequest.LeaveRequest
+// ## 2. ADD THE NEW IMPORT ##
+import com.example.autopayroll_mobile.mainApp.LeaveModuleFragment
+import com.example.autopayroll_mobile.utils.SessionManager
 
 class MenuFragment : Fragment() {
 
     private var _binding: FragmentMenuBinding? = null
     private val binding get() = _binding!!
 
-    // ## 2. ADD A VARIABLE FOR THE SESSION MANAGER ##
     private lateinit var sessionManager: SessionManager
 
     override fun onCreateView(
@@ -26,7 +28,6 @@ class MenuFragment : Fragment() {
     ): View {
         _binding = FragmentMenuBinding.inflate(inflater, container, false)
 
-        // ## 3. INITIALIZE THE SESSION MANAGER ##
         sessionManager = SessionManager(requireContext())
 
         return binding.root
@@ -37,10 +38,8 @@ class MenuFragment : Fragment() {
 
         // --- Logout Button Listener (UPDATED) ---
         binding.logoutButton.setOnClickListener {
-            // ## 4. CLEAR THE SAVED TOKEN AND USER ID ##
             sessionManager.clearSession()
 
-            // This code correctly sends the user back to the login screen
             val intent = Intent(requireActivity(), LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
@@ -56,8 +55,9 @@ class MenuFragment : Fragment() {
 
         // --- Leave Request Button Listener ---
         binding.btnLeaveRequest.setOnClickListener {
+            // ## 3. UPDATE THIS BLOCK ##
             parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, LeaveRequest())
+                .replace(R.id.nav_host_fragment, LeaveModuleFragment()) // Use our new Fragment
                 .commit()
         }
 
