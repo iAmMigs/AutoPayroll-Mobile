@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
@@ -27,8 +28,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.autopayroll_mobile.data.model.ApiErrorResponse // Import error model
+import com.example.autopayroll_mobile.data.model.ApiErrorResponse
 import com.example.autopayroll_mobile.data.model.ClockInOutRequest
+import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.data.model.QRScanData
 import com.example.autopayroll_mobile.databinding.FragmentQrScannerBinding
 import com.example.autopayroll_mobile.network.ApiClient
@@ -41,11 +43,12 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.launch
-import retrofit2.HttpException // Import HttpException
+import retrofit2.HttpException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class QrScannerFragment : Fragment() { // <-- START OF CLASS
+@OptIn(ExperimentalGetImage::class)
+class QrScannerFragment : Fragment() {
 
     private var _binding: FragmentQrScannerBinding? = null
     private val binding get() = _binding!!
@@ -56,13 +59,14 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
-    // --- Variables to hold scanned data ---
     private var scannedQrData: QRScanData? = null
     private var currentLocation: Location? = null
     private var isRequestingLocationUpdates = false
-    private var isProcessingQr = false // Flag to prevent multiple scans
+    private var isProcessingQr = false
 
-    // Activity Result Launchers
+    // This is the variable for the frontend check
+    private var employeeProfile: Employee? = null
+
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) checkLocationPermissionAndStart()
@@ -74,6 +78,7 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
             if (isGranted) checkLocationEnabledAndStart()
             else showToast("Location permission is required for verification.")
         }
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -101,6 +106,9 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
 
         checkCameraPermission()
 
+        // This function will fetch the profile *and* start the camera after
+        fetchEmployeeProfile()
+
         binding.clockInButton.setOnClickListener {
             submitAttendance("clock-in")
         }
@@ -110,13 +118,12 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         }
     }
 
-    // --- (Permission check functions) ---
     private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                checkLocationPermissionAndStart() // Camera granted, check location
+                checkLocationPermissionAndStart()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
                 showPermissionRationaleDialog("Camera access is needed to scan QR codes.") {
@@ -134,7 +141,7 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
             ContextCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
-                checkLocationEnabledAndStart() // Location permission granted, check if enabled
+                checkLocationEnabledAndStart()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
                 showPermissionRationaleDialog("Precise location access is needed to verify your scan location.") {
@@ -150,10 +157,8 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
     private fun checkLocationEnabledAndStart() {
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            startCamera() // All checks passed, start camera
-            startLocationUpdates() // Start listening for location
+            // Good. Camera will be started by fetchEmployeeProfile().
         } else {
-            // Location is disabled, prompt user to enable it
             AlertDialog.Builder(requireContext())
                 .setMessage("Location services are disabled. Please enable location to proceed.")
                 .setPositiveButton("Open Settings") { _, _ ->
@@ -168,8 +173,35 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         }
     }
 
+    private fun fetchEmployeeProfile() {
+        // This function uses the AuthInterceptor, so the token MUST be valid
+        // for this to work.
+        showLoading("Getting user profile...")
 
-    @SuppressLint("MissingPermission") // Permissions are checked before calling
+        val apiService = ApiClient.getClient(requireContext())
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // This call requires a valid token from SessionManager
+                employeeProfile = apiService.getEmployeeProfile()
+                hideLoading()
+                binding.instructionTextView.visibility = View.VISIBLE
+                Log.d("QrScannerFragment", "Employee profile loaded. Company ID: ${employeeProfile?.companyId}")
+
+                // Now that the profile is loaded, we can start scanning.
+                startCamera()
+                startLocationUpdates()
+
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("QrScannerFragment", "Failed to get employee profile", e)
+                // This is a critical error. The user is likely not logged in.
+                showToast("Error: Could not load your profile. Please log out and back in.")
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         if (!isRequestingLocationUpdates) {
             val locationRequest = LocationRequest.create().apply {
@@ -196,7 +228,6 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         }
     }
 
-    // Helper function to stop the camera
     private fun stopCamera() {
         try {
             cameraProviderFuture.get()?.unbindAll()
@@ -205,13 +236,11 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         }
     }
 
-
-    @OptIn(ExperimentalGetImage::class)
     private fun startCamera() {
         binding.statusTextView.visibility = View.GONE
         binding.instructionTextView.visibility = View.VISIBLE
         resetButtonState()
-        isProcessingQr = false // Reset the scan flag
+        isProcessingQr = false
 
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -248,31 +277,57 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
     @ExperimentalGetImage
     private fun processImage(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
-        // Use the flag to prevent re-scanning
         if (mediaImage != null && !isProcessingQr) {
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
             barcodeScanner.process(image)
                 .addOnSuccessListener { barcodes ->
-                    // Check flag again
                     if (barcodes.isNotEmpty() && !isProcessingQr) {
-                        isProcessingQr = true // Set flag
+                        isProcessingQr = true
                         val barcode = barcodes.first()
                         val qrValue = barcode.rawValue
 
                         try {
-                            scannedQrData = Gson().fromJson(qrValue, QRScanData::class.java)
-                            activity?.runOnUiThread {
-                                binding.statusTextView.text = "QR Code Scanned!"
-                                binding.statusTextView.visibility = View.VISIBLE
-                                checkScanAndLocationReady()
+                            val qrData = Gson().fromJson(qrValue, QRScanData::class.java)
+
+                            // 1. Check if the profile is loaded
+                            if (employeeProfile == null) {
+                                activity?.runOnUiThread {
+                                    showToast("Your profile is still loading. Please try again.")
+                                    isProcessingQr = false // Unlock
+                                }
+                                return@addOnSuccessListener
                             }
+
+                            // 2. This is the check you wanted
+                            if (qrData.company_id == employeeProfile!!.companyId) {
+                                // SUCCESS: Company IDs match.
+                                scannedQrData = qrData
+                                activity?.runOnUiThread {
+                                    binding.statusTextView.text = "QR Code Validated!"
+                                    binding.statusTextView.visibility = View.VISIBLE
+                                    checkScanAndLocationReady()
+                                }
+                            } else {
+                                // FAILURE: Company IDs do NOT match.
+                                activity?.runOnUiThread {
+                                    showToast("Error: You are not assigned to this company.")
+                                    stopCamera()
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        startCamera()
+                                    }, 2000)
+                                }
+                            }
+
                         } catch (e: Exception) {
                             Log.e("QrScannerFragment", "Failed to parse QR JSON: $qrValue", e)
-                            activity?.runOnUiThread { showToast("Invalid QR Code. Scanning again...") }
-                            scannedQrData = null
-                            resetButtonState()
-                            isProcessingQr = false // Reset flag on parse error
+                            activity?.runOnUiThread {
+                                showToast("Invalid QR Code. Scanning again...")
+                                stopCamera()
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    startCamera()
+                                }, 2000)
+                            }
                         }
                     }
                 }
@@ -288,7 +343,6 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
     }
 
     private fun checkScanAndLocationReady() {
-        // This function is called by both QR scanner and Location callback
         if (scannedQrData != null && currentLocation != null) {
             activity?.runOnUiThread {
                 binding.statusTextView.text = "QR and Location acquired. Ready."
@@ -299,8 +353,8 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
                 binding.clockOutButton.isEnabled = true
 
                 binding.instructionTextView.visibility = View.GONE
-                stopCamera() // Stop scanning
-                stopLocationUpdates() // Stop location
+                stopCamera()
+                stopLocationUpdates()
             }
         }
     }
@@ -312,7 +366,6 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         binding.clockOutButton.isEnabled = false
     }
 
-    // This function has the new error handling
     private fun submitAttendance(action: String) {
         if (scannedQrData == null || currentLocation == null) {
             showToast("QR Code and location are required.")
@@ -333,18 +386,14 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // Call the correct endpoint
                 val response = if (action == "clock-in") {
                     apiService.clockIn(request)
                 } else {
                     apiService.clockOut(request)
                 }
-
-                // Handle success
                 hideLoading()
-                showToast(response.message) // Show success message from server
+                showToast(response.message)
 
-                // Reset for next scan
                 scannedQrData = null
                 currentLocation = null
                 resetButtonState()
@@ -352,33 +401,30 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
                 startLocationUpdates()
 
             } catch (e: Exception) {
-                // ## THIS IS THE FIX FOR ERROR HANDLING ##
                 hideLoading()
                 Log.e("QrScannerFragment", "API call failed", e)
 
-                // Default error message
                 var errorMessage = e.message ?: "An unknown error occurred"
 
-                // Check if this is an HTTP error from our server
                 if (e is HttpException) {
-                    try {
-                        // Read the raw error body
-                        val errorBody = e.response()?.errorBody()?.string()
-                        if (errorBody != null) {
-                            // Parse the JSON to get the "message" field
-                            val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
-                            errorMessage = errorResponse.message
+                    if (e.code() == 500) {
+                        // This will catch the 500 error from the log
+                        errorMessage = "A server error occurred. Please try again later."
+                    } else {
+                        try {
+                            val errorBody = e.response()?.errorBody()?.string()
+                            if (errorBody != null) {
+                                val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
+                                errorMessage = errorResponse.message
+                            }
+                        } catch (jsonError: Exception) {
+                            Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
                         }
-                    } catch (jsonError: Exception) {
-                        // Failed to parse the error
-                        Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
                     }
                 }
 
-                // Show the specific, helpful error message
                 showToast(errorMessage)
 
-                // Reset everything to allow the user to try again
                 scannedQrData = null
                 currentLocation = null
                 resetButtonState()
@@ -423,12 +469,14 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            // Reset to a clean state
-            scannedQrData = null
-            currentLocation = null
-            resetButtonState()
-            startCamera()
-            startLocationUpdates()
+            // Only start scanning if the profile is already loaded
+            if (employeeProfile != null) {
+                scannedQrData = null
+                currentLocation = null
+                resetButtonState()
+                startCamera()
+                startLocationUpdates()
+            }
         }
     }
 
@@ -443,5 +491,4 @@ class QrScannerFragment : Fragment() { // <-- START OF CLASS
         cameraExecutor.shutdown()
         _binding = null
     }
-
-} // <-- END OF CLASS
+}
