@@ -63,8 +63,6 @@ class QrScannerFragment : Fragment() {
     private var currentLocation: Location? = null
     private var isRequestingLocationUpdates = false
     private var isProcessingQr = false
-
-    // This is the variable for the frontend check
     private var employeeProfile: Employee? = null
 
     private val requestCameraPermissionLauncher =
@@ -105,8 +103,6 @@ class QrScannerFragment : Fragment() {
         }
 
         checkCameraPermission()
-
-        // This function will fetch the profile *and* start the camera after
         fetchEmployeeProfile()
 
         binding.clockInButton.setOnClickListener {
@@ -157,7 +153,7 @@ class QrScannerFragment : Fragment() {
     private fun checkLocationEnabledAndStart() {
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            // Good. Camera will be started by fetchEmployeeProfile().
+            // Good.
         } else {
             AlertDialog.Builder(requireContext())
                 .setMessage("Location services are disabled. Please enable location to proceed.")
@@ -174,28 +170,24 @@ class QrScannerFragment : Fragment() {
     }
 
     private fun fetchEmployeeProfile() {
-        // This function uses the AuthInterceptor, so the token MUST be valid
-        // for this to work.
         showLoading("Getting user profile...")
 
-        val apiService = ApiClient.getClient(requireContext())
+        // Use applicationContext to be consistent with ViewModels
+        val apiService = ApiClient.getClient(requireContext().applicationContext)
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // This call requires a valid token from SessionManager
                 employeeProfile = apiService.getEmployeeProfile()
                 hideLoading()
                 binding.instructionTextView.visibility = View.VISIBLE
                 Log.d("QrScannerFragment", "Employee profile loaded. Company ID: ${employeeProfile?.companyId}")
 
-                // Now that the profile is loaded, we can start scanning.
                 startCamera()
                 startLocationUpdates()
 
             } catch (e: Exception) {
                 hideLoading()
                 Log.e("QrScannerFragment", "Failed to get employee profile", e)
-                // This is a critical error. The user is likely not logged in.
                 showToast("Error: Could not load your profile. Please log out and back in.")
             }
         }
@@ -290,18 +282,15 @@ class QrScannerFragment : Fragment() {
                         try {
                             val qrData = Gson().fromJson(qrValue, QRScanData::class.java)
 
-                            // 1. Check if the profile is loaded
                             if (employeeProfile == null) {
                                 activity?.runOnUiThread {
                                     showToast("Your profile is still loading. Please try again.")
-                                    isProcessingQr = false // Unlock
+                                    isProcessingQr = false
                                 }
                                 return@addOnSuccessListener
                             }
 
-                            // 2. This is the check you wanted
                             if (qrData.company_id == employeeProfile!!.companyId) {
-                                // SUCCESS: Company IDs match.
                                 scannedQrData = qrData
                                 activity?.runOnUiThread {
                                     binding.statusTextView.text = "QR Code Validated!"
@@ -309,7 +298,6 @@ class QrScannerFragment : Fragment() {
                                     checkScanAndLocationReady()
                                 }
                             } else {
-                                // FAILURE: Company IDs do NOT match.
                                 activity?.runOnUiThread {
                                     showToast("Error: You are not assigned to this company.")
                                     stopCamera()
@@ -382,7 +370,8 @@ class QrScannerFragment : Fragment() {
             longitude = currentLocation!!.longitude
         )
 
-        val apiService = ApiClient.getClient(requireContext())
+        // Use applicationContext to be consistent
+        val apiService = ApiClient.getClient(requireContext().applicationContext)
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -408,7 +397,6 @@ class QrScannerFragment : Fragment() {
 
                 if (e is HttpException) {
                     if (e.code() == 500) {
-                        // This will catch the 500 error from the log
                         errorMessage = "A server error occurred. Please try again later."
                     } else {
                         try {
@@ -469,7 +457,6 @@ class QrScannerFragment : Fragment() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            // Only start scanning if the profile is already loaded
             if (employeeProfile != null) {
                 scannedQrData = null
                 currentLocation = null

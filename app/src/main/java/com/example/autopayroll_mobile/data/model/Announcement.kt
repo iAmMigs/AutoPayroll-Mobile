@@ -37,5 +37,7 @@ data class Announcement(
  * that holds the list of announcements.
  */
 data class AnnouncementResponse(
-    val data: List<Announcement>
+    // ## FIX: These now match the PHP controller ##
+    val success: Boolean,
+    val announcements: List<Announcement>
 )

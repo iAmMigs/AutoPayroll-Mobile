@@ -8,10 +8,10 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.AndroidViewModel // ## CHANGED ##
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.Announcement
-import com.example.autopayroll_mobile.network.ApiClient // ## CHANGED ##
+import com.example.autopayroll_mobile.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,10 +30,8 @@ data class AnnouncementUiItem(
     val icon: ImageVector
 )
 
-// ## CHANGED: Inherit from AndroidViewModel ##
 class AnnouncementViewModel(application: Application) : AndroidViewModel(application) {
 
-    // ## CHANGED: Get ApiService just like DashboardViewModel ##
     private val apiService = ApiClient.getClient(application.applicationContext)
 
     private val _isLoading = MutableStateFlow(true)
@@ -68,8 +66,15 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
             _isLoading.value = true
             try {
                 val response = apiService.getAnnouncements()
-                val uiItems = response.data.map { it.toUiItem() }
-                _allAnnouncements.value = uiItems
+
+                // ## FIX: Check the success flag and use .announcements ##
+                if (response.success) {
+                    val uiItems = response.announcements.map { it.toUiItem() }
+                    _allAnnouncements.value = uiItems
+                } else {
+                    _allAnnouncements.value = emptyList()
+                }
+
             } catch (e: Exception) {
                 Log.e("AnnouncementViewModel", "Failed to fetch announcements", e)
                 _allAnnouncements.value = emptyList()
@@ -83,7 +88,6 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
         _selectedCategory.value = category
     }
 
-    // ## NEW: Function to get a single item for the detail screen ##
     fun getAnnouncementById(id: String): AnnouncementUiItem? {
         return _allAnnouncements.value.find { it.id == id }
     }
