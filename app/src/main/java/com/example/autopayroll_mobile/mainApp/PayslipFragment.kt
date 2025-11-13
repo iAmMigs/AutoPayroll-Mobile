@@ -11,19 +11,23 @@ import com.example.autopayroll_mobile.composableUI.PayslipScreen
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.PayslipViewModel
 
+/**
+ * This is the host Fragment for your Payslip Composable UI.
+ */
 class PayslipFragment : Fragment() {
 
     private val viewModel: PayslipViewModel by viewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
                 AutoPayrollMobileTheme {
-                    PayslipScreen(viewModel = viewModel)
+                    PayslipScreen(
+                        viewModel = viewModel
+                    )
                 }
             }
         }

@@ -9,11 +9,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+// import androidx.compose.material.icons.automirrored.filled.ArrowBack // No longer needed
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,64 +28,76 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.data.model.Payslip
-import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.PayslipUiState
 import com.example.autopayroll_mobile.viewmodel.PayslipViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PayslipScreen(viewModel: PayslipViewModel) {
+fun PayslipScreen(
+    viewModel: PayslipViewModel
+    // <-- 1. REMOVED onBack PARAMETER
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Payroll") },
-                navigationIcon = {
-                    IconButton(onClick = { /* Handle back press */ }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Payroll") }
+                // <-- 2. REMOVED navigationIcon PARAMETER
             )
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             EmployeeHeader(uiState)
             HorizontalDivider()
-            Text(
-                text = "My Pay Slips",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                modifier = Modifier.padding(16.dp)
-            )
 
-            // UPDATED LAZYCOLUMN: Handles Loading, Error, and Success states
-            LazyColumn {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "My Pay Slips",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+                YearFilterDropdown(
+                    selectedYear = uiState.selectedYear,
+                    availableYears = uiState.availableYears,
+                    onYearSelected = { year ->
+                        viewModel.onYearSelected(year)
+                    }
+                )
+            }
 
+            LazyColumn(
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
                 if (uiState.isLoading) {
-                    // Show 5 placeholder cards while loading
                     items(5) {
                         PayslipItemPlaceholder()
                     }
                 } else if (uiState.listErrorMessage != null) {
-                    // Show the error message if loading is done AND there's an error
                     item {
+                        val isError = uiState.listErrorMessage!!.startsWith("Error")
+                        val message = uiState.listErrorMessage!!
+
                         Text(
-                            text = uiState.listErrorMessage!!,
-                            color = MaterialTheme.colorScheme.error,
+                            text = message,
+                            color = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(top = 32.dp),
                             textAlign = TextAlign.Center
                         )
                     }
                 } else {
-                    // Show the real payslip items when loading is done and no error
                     items(uiState.payslips) { payslip ->
                         PayslipItem(payslip = payslip)
                     }
@@ -90,6 +106,47 @@ fun PayslipScreen(viewModel: PayslipViewModel) {
         }
     }
 }
+
+// ... (Rest of the file is unchanged) ...
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun YearFilterDropdown(
+    selectedYear: Int,
+    availableYears: List<Int>,
+    onYearSelected: (Int) -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedButton(
+            onClick = { isExpanded = true },
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(selectedYear.toString())
+            Icon(
+                Icons.Default.ArrowDropDown,
+                contentDescription = "Select Year"
+            )
+        }
+
+        DropdownMenu(
+            expanded = isExpanded,
+            onDismissRequest = { isExpanded = false }
+        ) {
+            availableYears.forEach { year ->
+                DropdownMenuItem(
+                    text = { Text(year.toString()) },
+                    onClick = {
+                        onYearSelected(year)
+                        isExpanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun EmployeeHeader(uiState: PayslipUiState) {
@@ -128,11 +185,9 @@ fun PayslipItem(payslip: Payslip) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-
         colors = CardDefaults.cardColors(containerColor = Color.White),
-
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -148,9 +203,9 @@ fun PayslipItem(payslip: Payslip) {
             }
             Text(
                 text = payslip.status,
-                color = when (payslip.status) {
-                    "Processing" -> Color(0xFFFFA500) // Orange
-                    "Completed" -> Color(0xFF4CAF50) // Green
+                color = when (payslip.status.lowercase()) {
+                    "processing" -> Color(0xFFFFA500) // Orange
+                    "completed" -> Color(0xFF4CAF50) // Green
                     else -> Color.Black
                 },
                 fontWeight = FontWeight.SemiBold
@@ -159,14 +214,13 @@ fun PayslipItem(payslip: Payslip) {
     }
 }
 
-// --- NEW PLACEHOLDER COMPOSABLE ---
 @Composable
 fun PayslipItemPlaceholder() {
     val shimmerBrush = shimmerBrush()
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -178,14 +232,12 @@ fun PayslipItemPlaceholder() {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Placeholder for Date Range
                 Box(
                     modifier = Modifier
                         .height(20.dp)
                         .width(150.dp)
                         .background(shimmerBrush)
                 )
-                // Placeholder for Net Amount
                 Box(
                     modifier = Modifier
                         .height(16.dp)
@@ -193,7 +245,6 @@ fun PayslipItemPlaceholder() {
                         .background(shimmerBrush)
                 )
             }
-            // Placeholder for Status
             Box(
                 modifier = Modifier
                     .height(20.dp)
@@ -204,7 +255,6 @@ fun PayslipItemPlaceholder() {
     }
 }
 
-// --- NEW SHIMMER BRUSH COMPOSABLE ---
 @Composable
 fun shimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush {
     if (!showShimmer) {

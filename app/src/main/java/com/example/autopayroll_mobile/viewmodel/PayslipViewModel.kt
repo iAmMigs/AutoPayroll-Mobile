@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-// Import your new API models
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.data.model.Payslip
@@ -15,26 +14,35 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException // <-- ADD THIS IMPORT
 import java.time.OffsetDateTime
+import java.time.Year // <-- ADD THIS IMPORT
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// --- 1. UPDATE YOUR UISTATE ---
 data class PayslipUiState(
     val isLoading: Boolean = true,
     val employeeName: String = "Loading...",
     val jobAndCompany: String = "Loading...",
-    val payslips: List<Payslip> = emptyList(),
-    val listErrorMessage: String? = null // <-- ADD THIS NEW FIELD
+    val payslips: List<Payslip> = emptyList(), // This will be the FILTERED list
+    val listErrorMessage: String? = null,
+    // --- ADD THESE NEW FIELDS ---
+    val allPayslips: List<Payslip> = emptyList(), // This is the MASTER list
+    val availableYears: List<Int> = emptyList(),
+    val selectedYear: Int = Year.now().value // Default to current year
 )
 
 class PayslipViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application.applicationContext)
-    // Make sure your ApiClient.getClient() returns the ApiService interface
     private val apiService = ApiClient.getClient(application.applicationContext)
 
     private val _uiState = MutableStateFlow(PayslipUiState())
     val uiState: StateFlow<PayslipUiState> = _uiState.asStateFlow()
+
+    // Formatter for display, e.g., "September 20, 2025"
+    private val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
 
     init {
         fetchData()
@@ -44,42 +52,46 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
         fetchData()
     }
 
+    // --- 2. ADD THIS NEW FUNCTION FOR FILTERING ---
+    fun onYearSelected(year: Int) {
+        // Filter the master list to create the new displayed list
+        val filtered = _uiState.value.allPayslips.filter { it.year == year }
+        _uiState.update {
+            it.copy(
+                selectedYear = year,
+                payslips = filtered,
+                // Show a message if the filtered list is empty
+                listErrorMessage = if (filtered.isEmpty()) "No payslips found for $year." else null
+            )
+        }
+    }
+
     private fun formatApiDate(apiDate: String): String {
         return try {
-            // 1. Define the format of the output, e.g., "September 20, 2025"
-            val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
-
-            // 2. Parse the input string (e.g., "2025-09-20T16:00:00.000000Z")
             val dateTime = OffsetDateTime.parse(apiDate)
-
-            // 3. Format it into the new, clean string
             dateTime.format(outputFormatter)
         } catch (e: Exception) {
-            // If parsing fails, just return the original (or "Invalid Date")
             Log.e("PayslipViewModel", "Error parsing date: $apiDate", e)
             "Invalid Date"
         }
     }
 
+    // --- 3. THIS IS THE UPDATED FETCHDATA FUNCTION ---
     private fun fetchData() {
-        // Set initial loading state
         _uiState.update { it.copy(isLoading = true, listErrorMessage = null) }
 
         viewModelScope.launch {
-            // --- PART 1: Fetch Employee (and update header) ---
+            // --- PART 1: Fetch Employee (Unchanged) ---
             try {
                 val employee = apiService.getEmployeeProfile()
-                // Success: Update the header UI immediately
                 _uiState.update {
                     it.copy(
                         employeeName = "${employee.firstName} ${employee.lastName}",
                         jobAndCompany = "${employee.jobPosition} • ${employee.companyName}"
-                        // Note: isLoading is still true until the list loads
                     )
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching employee profile", e)
-                // Failed: Show error just for the header
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -87,39 +99,60 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                         jobAndCompany = "Error: ${e.message}"
                     )
                 }
-                return@launch // Stop if the profile fails
+                return@launch
             }
 
-            // --- PART 2: Fetch Payrolls (and update list) ---
+            // --- PART 2: Fetch Payrolls (Updated) ---
             try {
-                val payrollResponse = apiService.getPayrolls() // <-- This will still fail with 404
+                val payrollResponse = apiService.getPayrolls()
+
                 val realPayslips = payrollResponse.data.map { apiPayroll ->
+                    val dateTime = OffsetDateTime.parse(apiPayroll.payDate)
                     Payslip(
-                        // --- THIS IS THE CHANGE ---
-                        dateRange = formatApiDate(apiPayroll.payDate),
-                        // --- END OF CHANGE ---
+                        dateRange = dateTime.format(outputFormatter),
                         netAmount = "₱${apiPayroll.netPay}",
-                        status = apiPayroll.status.replaceFirstChar { it.uppercase() }
+                        status = apiPayroll.status.replaceFirstChar { it.uppercase() },
+                        year = dateTime.year
                     )
                 }
 
-                // Success: Update the list and set loading to false
+                val years = realPayslips.map { it.year }.distinct().sortedDescending()
+                val currentYear = years.firstOrNull() ?: Year.now().value
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        payslips = realPayslips,
+                        allPayslips = realPayslips,
+                        payslips = realPayslips.filter { it.year == currentYear },
+                        availableYears = years,
+                        selectedYear = currentYear,
+                        // This is the original "empty list" logic
                         listErrorMessage = if (realPayslips.isEmpty()) "No payslips found." else null
                     )
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching payrolls", e)
-                // Failed: The 404 error will be caught here
-                // Now we can show the error for the LIST, not the header
+
+                // ## THIS IS THE FIX ##
+                // We will now check the HTTP error code
+                val errorMessage = when (e) {
+                    is HttpException -> {
+                        when (e.code()) {
+                            // Treat 401 AND 404 as "No payslips found"
+                            401 -> "No payslips found."
+                            404 -> "No payslips found."
+                            else -> "Error loading payslips: ${e.message()}"
+                        }
+                    }
+                    else -> "An unexpected error occurred: ${e.message}"
+                }
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         payslips = emptyList(),
-                        listErrorMessage = "Error loading payslips: ${e.message}" // e.g., "Error... HTTP 404"
+                        allPayslips = emptyList(),
+                        listErrorMessage = errorMessage
                     )
                 }
             }
