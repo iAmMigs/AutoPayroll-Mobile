@@ -64,7 +64,8 @@ class MenuFragment : Fragment() {
         // --- Payroll Credit Button Listener ---
         binding.btnPayrollCredit.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, com.example.autopayroll_mobile.creditAdjustment.PayrollCreditFragment())
+                // ## UPDATE THIS LINE ##
+                .replace(R.id.nav_host_fragment, com.example.autopayroll_mobile.mainApp.AdjustmentModuleFragment())
                 .commit()
         }
 

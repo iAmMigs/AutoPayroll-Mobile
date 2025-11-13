@@ -69,10 +69,12 @@ fun LeaveModuleFormScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // 1. Leave Type Dropdown
+            // This line (74) was causing the error, but is now correct
+            // because the function below is also updated.
             LeaveTypeDropdown(
-                selectedType = uiState.formLeaveType,
-                leaveTypes = uiState.leaveTypes,
-                onTypeSelected = { viewModel.onLeaveTypeChanged(it) }
+                selectedType = uiState.formLeaveType, // e.g., "Sick Leave"
+                leaveTypes = uiState.leaveTypes,       // e.g., MapOf("sick" to "Sick Leave")
+                onTypeSelected = { viewModel.onLeaveTypeChanged(it) } // sends "Sick Leave"
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -123,11 +125,12 @@ fun LeaveModuleFormScreen(
     }
 }
 
+// ## THIS IS THE FIX ##
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveTypeDropdown(
     selectedType: String,
-    leaveTypes: List<String>,
+    leaveTypes: Map<String, String>, // ## FIX: Changed from List<String> to Map<String, String> ##
     onTypeSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -137,7 +140,7 @@ fun LeaveTypeDropdown(
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = selectedType,
+            value = selectedType, // This is the display name, e.g., "Sick Leave"
             onValueChange = {},
             readOnly = true,
             label = { Text("Leave Type") },
@@ -153,11 +156,12 @@ fun LeaveTypeDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            leaveTypes.forEach { type ->
+            // ## FIX: We iterate over the map's .values (the display names) ##
+            leaveTypes.values.forEach { displayName ->
                 DropdownMenuItem(
-                    text = { Text(type) },
+                    text = { Text(displayName) },
                     onClick = {
-                        onTypeSelected(type)
+                        onTypeSelected(displayName) // Send the display name to the ViewModel
                         expanded = false
                     }
                 )
@@ -166,6 +170,7 @@ fun LeaveTypeDropdown(
     }
 }
 
+// (DatePickerField composable is unchanged and correct)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerField(
@@ -204,17 +209,28 @@ fun DatePickerField(
         }
     }
 
-    OutlinedTextField(
-        value = date.ifEmpty { "Select a date" },
-        onValueChange = {},
-        label = { Text(label) },
-        readOnly = true,
-        trailingIcon = {
-            Icon(Icons.Default.DateRange, "Select Date")
-        },
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { showDialog = true },
-        shape = RoundedCornerShape(12.dp)
-    )
+            .clickable { showDialog = true }
+    ) {
+        OutlinedTextField(
+            value = date.ifEmpty { "Select a date" },
+            onValueChange = {},
+            label = { Text(label) },
+            trailingIcon = {
+                Icon(Icons.Default.DateRange, "Select Date")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            enabled = false,
+            readOnly = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+    }
 }

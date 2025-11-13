@@ -24,6 +24,7 @@ import com.example.autopayroll_mobile.viewmodel.LeaveModuleUiState
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.filteredRequests
 
+// (LeaveModuleListScreen, LeaveBalanceCard, and BalanceItem are unchanged)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveModuleListScreen(
@@ -33,8 +34,6 @@ fun LeaveModuleListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabItems = viewModel.tabItems
-
-    // This color is from your Figma
     val lightGrayBackground = Color(0xFFF6F5F2)
 
     Scaffold(
@@ -42,7 +41,6 @@ fun LeaveModuleListScreen(
             TopAppBar(
                 title = { Text("Leave Request") },
                 actions = {
-                    // Add the calendar button
                     IconButton(onClick = onCalendarClicked) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
@@ -60,7 +58,7 @@ fun LeaveModuleListScreen(
                 Icon(Icons.Default.Add, contentDescription = "File a Leave")
             }
         },
-        containerColor = lightGrayBackground // Set background color
+        containerColor = lightGrayBackground
     ) { paddingValues ->
 
         Column(
@@ -68,10 +66,8 @@ fun LeaveModuleListScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            // 1. Leave Balance Card
             LeaveBalanceCard(uiState = uiState)
 
-            // 2. Tab Row
             TabRow(
                 selectedTabIndex = tabItems.indexOf(uiState.selectedTab)
             ) {
@@ -84,7 +80,6 @@ fun LeaveModuleListScreen(
                 }
             }
 
-            // 3. List or Empty State
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 if (uiState.isLoading && uiState.allRequests.isEmpty()) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -112,7 +107,8 @@ fun LeaveBalanceCard(uiState: LeaveModuleUiState) {
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -124,9 +120,7 @@ fun LeaveBalanceCard(uiState: LeaveModuleUiState) {
                 count = uiState.leaveBalance.available,
                 label = "Available"
             )
-            // Vertical Divider
             Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color.LightGray))
-
             BalanceItem(
                 count = uiState.leaveBalance.used,
                 label = "Used"
@@ -151,6 +145,8 @@ fun BalanceItem(count: Int, label: String) {
     }
 }
 
+
+// ## THIS FUNCTION IS UPDATED ##
 @Composable
 fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewModel) {
     LazyColumn(
@@ -159,14 +155,16 @@ fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewMod
         items(requests, key = { it.id }) { request ->
             LeaveRequestItem(
                 request = request,
-                formattedDate = viewModel.formatListDate(request.createdAt)
+                // ## CHANGED: Pass the whole viewModel ##
+                viewModel = viewModel
             )
         }
     }
 }
 
+// ## THIS FUNCTION IS UPDATED ##
 @Composable
-fun LeaveRequestItem(request: LeaveRequest, formattedDate: String) {
+fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
     val statusColor = when (request.status.lowercase()) {
         "approved" -> Color(0xFF0A9396) // Greenish-Blue
         "declined" -> Color(0xFFAE2012) // Red
@@ -176,7 +174,8 @@ fun LeaveRequestItem(request: LeaveRequest, formattedDate: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -196,11 +195,14 @@ fun LeaveRequestItem(request: LeaveRequest, formattedDate: String) {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // ## FIX: Use the new formatter for start_date and end_date ##
             Text(
-                text = "${request.startDate} to ${request.endDate}",
+                text = "${viewModel.formatDisplayDate(request.startDate)} to ${viewModel.formatDisplayDate(request.endDate)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = request.reason,
@@ -208,8 +210,10 @@ fun LeaveRequestItem(request: LeaveRequest, formattedDate: String) {
                 maxLines = 2
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            // ## FIX: Use the new formatter for created_at ##
             Text(
-                text = "Filed on: $formattedDate",
+                text = "Filed on: ${viewModel.formatDisplayDate(request.createdAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray,
                 fontSize = 12.sp

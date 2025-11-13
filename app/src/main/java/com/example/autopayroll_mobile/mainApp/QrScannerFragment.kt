@@ -396,7 +396,7 @@ class QrScannerFragment : Fragment() {
                 var errorMessage = e.message ?: "An unknown error occurred"
 
                 if (e is HttpException) {
-                    if (e.code() == 500) {
+                    if (e.code() == 500) { // Replace para di http
                         errorMessage = "A server error occurred. Please try again later."
                     } else {
                         try {

@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-parcelize")
-    // The kotlin-compose plugin is necessary for Jetpack Compose
     alias(libs.plugins.kotlin.compose)
     id("androidx.navigation.safeargs.kotlin")
 
