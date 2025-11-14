@@ -1,45 +1,43 @@
 package com.example.autopayroll_mobile.data.model
 
 import com.example.autopayroll_mobile.data.model.AdjustmentRequest
-import com.example.autopayroll_mobile.data.model.AdjustmentRequestDetail
 import com.example.autopayroll_mobile.data.model.AdjustmentType
 import java.io.File
 
 /**
  * Represents the complete state for the entire Adjustment Module.
+ * UPDATED for new API.
  */
 data class AdjustmentModuleUiState(
     // --- Data States ---
-    val adjustmentTypes: List<AdjustmentType> = emptyList(),
-    val adjustmentRequests: List<AdjustmentRequest> = emptyList(),
-    val selectedRequestDetail: AdjustmentRequestDetail? = null,
+    val employeeId: String? = null, // For submitting the form
+    val adjustmentTypes: List<AdjustmentType> = emptyList(), // For the dropdown
+    val adjustmentRequests: List<AdjustmentRequest> = emptyList(), // Master list of all requests
+    val pendingRequests: List<AdjustmentRequest> = emptyList(), // For the hub count
+    val selectedRequest: AdjustmentRequest? = null, // The single request for the detail screen
 
     // --- Loading States ---
-    val isLoadingTypes: Boolean = false,
-    val isLoadingRequests: Boolean = false,
-    val isLoadingDetail: Boolean = false,
+    val isLoading: Boolean = true, // A single state for initial data load
+    val isLoadingTypes: Boolean = false, // For the dropdown spinner
     val isSubmitting: Boolean = false,
 
     // --- Error States ---
-    val typesError: String? = null,
-    val requestsError: String? = null,
-    val detailError: String? = null,
+    val pageError: String? = null, // For general load failures
     val submissionError: String? = null,
 
     // --- Form Input State ---
-    val formMainType: String = "Leave", // "Leave", "Attendance", or "Holiday"
+    val formMainType: String = "leave", // "leave", "attendance", "payroll"
     val formSubType: AdjustmentType? = null,
     val formStartDate: String = "",
     val formEndDate: String = "",
-    val formHours: String = "",
     val formReason: String = "",
-    val formAttachment: File? = null, // Store the selected file
+    val formAttachment: File? = null,
 
     // --- Submission State ---
     val submissionStatus: FormSubmissionStatus = FormSubmissionStatus.IDLE,
 
-    // ## NEW ##
-    val filterStatus: String = "All" // "All", "Pending", "Approved", "Rejected"
+    // --- Filter State ---
+    val filterStatus: String = "All"
 )
 
 /**

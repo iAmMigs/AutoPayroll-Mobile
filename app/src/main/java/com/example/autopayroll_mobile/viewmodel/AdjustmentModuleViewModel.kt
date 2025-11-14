@@ -9,7 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.AdjustmentModuleUiState
 import com.example.autopayroll_mobile.data.model.AdjustmentType
 import com.example.autopayroll_mobile.data.model.FormSubmissionStatus
+import com.example.autopayroll_mobile.data.model.AdjustmentSubmitResponse
 import com.example.autopayroll_mobile.network.ApiClient
+// ## 1. ADD THIS IMPORT ##
+import com.example.autopayroll_mobile.network.PublicApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +20,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -25,106 +27,135 @@ import java.io.FileOutputStream
 
 class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel(app) {
 
-    private val apiService = ApiClient.getClient(app.applicationContext)
+    // ## 2. CREATE TWO SEPARATE API SERVICES ##
+    // For routes that NEED an auth token
+    private val authService = ApiClient.getClient(app.applicationContext)
+    // For routes that MUST NOT have an auth token
+    private val publicService = PublicApiClient.getService()
 
     private val _uiState = MutableStateFlow(AdjustmentModuleUiState())
     val uiState: StateFlow<AdjustmentModuleUiState> = _uiState.asStateFlow()
 
     init {
-        // Load the initial data needed for the module
-        fetchAdjustmentTypes()
-        fetchAdjustmentRequests()
+        fetchInitialData()
     }
 
-    // --- Public API Call Functions ---
+    private fun fetchInitialData() {
+        Log.d("AdjVM", "Fetching initial data...")
+        _uiState.update { it.copy(isLoading = true, pageError = null) }
 
-    /**
-     * Fetches the list of adjustment "sub-types" for the form dropdown.
-     */
-    fun fetchAdjustmentTypes() {
-        Log.d("AdjVM", "Fetching adjustment types...")
-        _uiState.update { it.copy(isLoadingTypes = true, typesError = null) }
         viewModelScope.launch {
             try {
-                val response = apiService.getAdjustmentTypes()
-                _uiState.update {
-                    it.copy(
-                        isLoadingTypes = false,
-                        adjustmentTypes = response.data
-                    )
-                }
-                Log.d("AdjVM", "Fetched ${response.data.size} types")
+                // 1. Get Employee (uses AUTH service)
+                val employee = authService.getEmployeeProfile()
+                _uiState.update { it.copy(employeeId = employee.employeeId) }
+
+                // 2. Fetch all requests (uses AUTH service)
+                fetchAdjustmentRequests()
+
+                // 3. Fetch pending requests (uses AUTH service)
+                fetchPendingAdjustments()
+
+                // 4. Fetch default types (uses PUBLIC service)
+                fetchAdjustmentTypes(mainType = "leave", isInitialLoad = true)
+
             } catch (e: Exception) {
-                Log.e("AdjVM", "Error fetching types", e)
+                Log.e("AdjVM", "Error fetching initial data", e)
                 _uiState.update {
-                    it.copy(isLoadingTypes = false, typesError = "Failed to load types")
+                    it.copy(isLoading = false, pageError = "Failed to load data: ${e.message}")
                 }
             }
         }
     }
 
-    /**
-     * Fetches the list of all past requests for the "Track Request" screen.
-     */
-    fun fetchAdjustmentRequests() {
-        Log.d("AdjVM", "Fetching adjustment requests...")
-        _uiState.update { it.copy(isLoadingRequests = true, requestsError = null) }
+    private fun fetchAdjustmentRequests() {
         viewModelScope.launch {
             try {
-                val response = apiService.getAdjustmentRequests()
-                _uiState.update {
-                    it.copy(
-                        isLoadingRequests = false,
-                        adjustmentRequests = response.data
-                    )
+                // Use AUTH service
+                val response = authService.getAdjustmentRequests()
+                if (response.success) {
+                    _uiState.update {
+                        it.copy(adjustmentRequests = response.data)
+                    }
+                    Log.d("AdjVM", "Fetched ${response.data.size} total requests")
                 }
-                Log.d("AdjVM", "Fetched ${response.data.size} requests")
             } catch (e: Exception) {
-                Log.e("AdjVM", "Error fetching requests", e)
+                Log.e("AdjVM", "Error fetching adjustment requests", e)
                 _uiState.update {
-                    it.copy(isLoadingRequests = false, requestsError = "Failed to load requests")
+                    it.copy(pageError = "Failed to load request list: ${e.message}")
                 }
             }
         }
     }
 
-    /**
-     * Fetches the detailed information for a single, selected request.
-     */
-    fun fetchAdjustmentRequestDetail(requestId: Int) {
-        Log.d("AdjVM", "Fetching detail for request ID: $requestId")
-        _uiState.update { it.copy(isLoadingDetail = true, detailError = null, selectedRequestDetail = null) }
+    private fun fetchPendingAdjustments() {
         viewModelScope.launch {
             try {
-                val response = apiService.getAdjustmentRequestDetail(requestId)
-                _uiState.update {
-                    it.copy(
-                        isLoadingDetail = false,
-                        selectedRequestDetail = response.data
-                    )
+                // Use AUTH service
+                val response = authService.getPendingAdjustments()
+                if (response.success) {
+                    _uiState.update {
+                        it.copy(pendingRequests = response.data)
+                    }
+                    Log.d("AdjVM", "Fetched ${response.data.size} pending requests")
                 }
-                Log.d("AdjVM", "Fetched detail successfully")
             } catch (e: Exception) {
-                Log.e("AdjVM", "Error fetching detail", e)
-                _uiState.update {
-                    it.copy(isLoadingDetail = false, detailError = "Failed to load details")
-                }
+                Log.e("AdjVM", "Error fetching pending requests", e)
             }
         }
     }
 
-    /**
-     * Submits the new adjustment request form.
-     */
+    private fun fetchAdjustmentTypes(mainType: String, isInitialLoad: Boolean = false) {
+        Log.d("AdjVM", "Fetching types for: $mainType")
+        _uiState.update { it.copy(isLoadingTypes = true) }
+
+        viewModelScope.launch {
+            try {
+                // ## 3. USE THE PUBLIC SERVICE ##
+                val response = publicService.getAdjustmentTypes(mainType.lowercase())
+                if (response.success) {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingTypes = false,
+                            adjustmentTypes = response.data,
+                            isLoading = if (isInitialLoad) false else it.isLoading
+                        )
+                    }
+                    Log.d("AdjVM", "Fetched ${response.data.size} types for $mainType")
+                } else {
+                    handleTypeFetchError(mainType, response.message ?: "No types found", isInitialLoad)
+                }
+            } catch (e: Exception) {
+                Log.e("AdjVM", "Error fetching types for $mainType", e)
+                handleTypeFetchError(mainType, "Error: ${e.message}", isInitialLoad)
+            }
+        }
+    }
+
+    private fun handleTypeFetchError(mainType: String, message: String, isInitialLoad: Boolean) {
+        _uiState.update {
+            it.copy(
+                isLoadingTypes = false,
+                adjustmentTypes = emptyList(),
+                pageError = if (isInitialLoad) "Failed to load default types: $message" else it.pageError,
+                isLoading = if (isInitialLoad) false else it.isLoading
+            )
+        }
+    }
+
     fun submitAdjustmentRequest() {
+        val currentState = _uiState.value
+        val employeeId = currentState.employeeId
+        val subType = currentState.formSubType
+
         Log.d("AdjVM", "Submitting form...")
         _uiState.update { it.copy(isSubmitting = true, submissionError = null, submissionStatus = FormSubmissionStatus.IDLE) }
 
-        // Get the current state values
-        val currentState = _uiState.value
-
-        // --- Data Validation ---
-        if (currentState.formSubType == null || currentState.formStartDate.isBlank() || currentState.formEndDate.isBlank() || currentState.formReason.isBlank()) {
+        if (employeeId == null) {
+            _uiState.update { it.copy(isSubmitting = false, submissionError = "Employee ID not found. Cannot submit.") }
+            return
+        }
+        if (subType == null || currentState.formReason.isBlank()) {
             _uiState.update {
                 it.copy(isSubmitting = false, submissionError = "Please fill in all required fields.")
             }
@@ -133,60 +164,54 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
 
         viewModelScope.launch {
             try {
-                // --- 1. Prepare Text Data (as RequestBody) ---
-                val typePart = currentState.formMainType.toRequestBody("text/plain".toMediaTypeOrNull())
-                val subTypePart = currentState.formSubType.name.toRequestBody("text/plain".toMediaTypeOrNull())
-                val startDatePart = currentState.formStartDate.toRequestBody("text/plain".toMediaTypeOrNull())
-                val endDatePart = currentState.formEndDate.toRequestBody("text/plain".toMediaTypeOrNull())
+                val employeeIdPart = employeeId.toRequestBody("text/plain".toMediaTypeOrNull())
+                val mainTypePart = currentState.formMainType.toRequestBody("text/plain".toMediaTypeOrNull())
+                val subTypePart = subType.code.toRequestBody("text/plain".toMediaTypeOrNull())
                 val reasonPart = currentState.formReason.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                // Handle optional "hours" field
-                val hoursPart = if (currentState.formHours.isNotBlank()) {
-                    currentState.formHours.toRequestBody("text/plain".toMediaTypeOrNull())
-                } else {
-                    null // Send null if it's empty
-                }
+                val startDatePart = currentState.formStartDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val endDatePart = currentState.formEndDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                // --- 2. Prepare File Data (as MultipartBody.Part) ---
+                val affectedDatePart = null
+
                 val filePart = currentState.formAttachment?.let { file ->
                     val requestFile = file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
-                    MultipartBody.Part.createFormData("file", file.name, requestFile)
+                    MultipartBody.Part.createFormData("attachment", file.name, requestFile)
                 }
 
-                // --- 3. Make API Call ---
-                val response = apiService.submitAdjustmentRequest(
-                    adjustmentType = typePart,
-                    subType = subTypePart,
+                // ## 4. USE THE AUTH SERVICE ##
+                val response = authService.submitAdjustmentRequest(
+                    employeeId = employeeIdPart,
+                    mainType = mainTypePart,
+                    subtype = subTypePart,
                     startDate = startDatePart,
                     endDate = endDatePart,
+                    affectedDate = affectedDatePart,
                     reason = reasonPart,
-                    hours = hoursPart,
-                    file = filePart
+                    attachment = filePart
                 )
 
                 if (response.success) {
-                    Log.d("AdjVM", "Submission successful: ${response.message}")
+                    Log.d("AdjVM", "Submission successful")
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             submissionStatus = FormSubmissionStatus.SUCCESS
                         )
                     }
-                    // Refresh the list of requests
                     fetchAdjustmentRequests()
-                    // Clear the form
-                    clearForm()
+                    fetchPendingAdjustments()
                 } else {
-                    Log.w("AdjVM", "Submission failed: ${response.message}")
+                    val errorMsg = response.errors?.entries?.firstOrNull()?.value?.firstOrNull() ?: response.message ?: "Submission failed"
+                    Log.w("AdjVM", "Submission failed: $errorMsg")
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            submissionError = response.message,
+                            submissionError = errorMsg,
                             submissionStatus = FormSubmissionStatus.ERROR
                         )
                     }
                 }
-
             } catch (e: Exception) {
                 Log.e("AdjVM", "Error submitting form", e)
                 _uiState.update {
@@ -200,16 +225,25 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         }
     }
 
-
-    // --- Public Form State Update Functions ---
-
+    // --- Form State & Navigation Functions ---
     fun onMainTypeChanged(mainType: String) {
+        val apiMainType = mainType.lowercase()
         _uiState.update {
             it.copy(
-                formMainType = mainType,
-                formSubType = null // Reset sub-type when main type changes
+                formMainType = apiMainType,
+                formSubType = null
             )
         }
+        fetchAdjustmentTypes(apiMainType)
+    }
+
+    fun selectRequestById(requestId: String) {
+        val request = _uiState.value.adjustmentRequests.find { it.id == requestId }
+        _uiState.update { it.copy(selectedRequest = request) }
+    }
+
+    fun clearSelectedRequest() {
+        _uiState.update { it.copy(selectedRequest = null) }
     }
 
     fun onSubTypeChanged(subType: AdjustmentType) {
@@ -224,18 +258,10 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         _uiState.update { it.copy(formEndDate = date) }
     }
 
-    fun onHoursChanged(hours: String) {
-        _uiState.update { it.copy(formHours = hours) }
-    }
-
     fun onReasonChanged(reason: String) {
         _uiState.update { it.copy(formReason = reason) }
     }
 
-    /**
-     * Handles the file Uri received from the file picker.
-     * It copies the file to the app's cache to get a real File object.
-     */
     fun onAttachmentSelected(uri: Uri) {
         viewModelScope.launch {
             val file = copyUriToCache(uri)
@@ -247,37 +273,27 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         _uiState.update { it.copy(formAttachment = null) }
     }
 
-    /**
-     * Resets all form fields and the submission status.
-     */
     fun clearForm() {
         _uiState.update {
             it.copy(
-                formMainType = "Leave",
+                formMainType = "leave",
                 formSubType = null,
                 formStartDate = "",
                 formEndDate = "",
-                formHours = "",
                 formReason = "",
                 formAttachment = null,
                 submissionStatus = FormSubmissionStatus.IDLE,
                 submissionError = null
             )
         }
+        fetchAdjustmentTypes("leave")
     }
 
-    // ## NEW ##
     fun onFilterChanged(status: String) {
         _uiState.update { it.copy(filterStatus = status) }
     }
 
     // --- Helper Function ---
-
-    /**
-     * Copies a file from a content Uri (from the file picker) to our app's
-     * internal cache directory. This is necessary to convert a Uri into a File
-     * object that Retrofit can upload.
-     */
     private fun copyUriToCache(uri: Uri): File? {
         return try {
             val contentResolver = app.contentResolver

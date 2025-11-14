@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,20 +21,19 @@ import com.example.autopayroll_mobile.ui.theme.CardSurface
 import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.ui.theme.TextSecondary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-/**
- * Replaces `TrackAdjustmentFragment` and `TrackAdjustmentAdapter`
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdjustmentTrackScreen(
     uiState: AdjustmentModuleUiState,
-    viewModel: AdjustmentModuleViewModel, // We need this to call onFilterChanged
+    viewModel: AdjustmentModuleViewModel,
     onBack: () -> Unit,
-    onSelectRequest: (Int) -> Unit
+    onSelectRequest: (String) -> Unit // ## UPDATED ##: ID is now a String
 ) {
-    // --- State ---
-    // This derived state will automatically recalculate when the filter or list changes
+
     val filteredList by remember(uiState.adjustmentRequests, uiState.filterStatus) {
         derivedStateOf {
             if (uiState.filterStatus == "All") {
@@ -51,7 +50,7 @@ fun AdjustmentTrackScreen(
                 title = { Text("Track Adjustment Request") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -68,7 +67,6 @@ fun AdjustmentTrackScreen(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
         ) {
-            // --- Filter Button ---
             StatusFilterDropdown(
                 selectedStatus = uiState.filterStatus,
                 onStatusSelected = { newStatus ->
@@ -77,21 +75,18 @@ fun AdjustmentTrackScreen(
             )
 
             Spacer(Modifier.height(16.dp))
-
-            // --- List Header ---
             ListHeader()
 
-            // --- Loading and Error ---
-            if (uiState.isLoadingRequests) {
+            // ## UPDATED ##: Use the main 'isLoading' and 'pageError'
+            if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (uiState.requestsError != null) {
+            } else if (uiState.pageError != null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: ${uiState.requestsError}", color = Color.Red)
+                    Text("Error: ${uiState.pageError}", color = Color.Red)
                 }
             } else {
-                // --- The List ---
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -108,16 +103,13 @@ fun AdjustmentTrackScreen(
     }
 }
 
-/**
- * The dropdown menu for filtering by status
- */
 @Composable
 private fun StatusFilterDropdown(
     selectedStatus: String,
     onStatusSelected: (String) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    val filterOptions = listOf("All", "Pending", "Approved", "Rejected")
+    val filterOptions = listOf("All", "Pending", "Approved", "Rejected") // You can expand this
 
     Box {
         OutlinedButton(
@@ -144,9 +136,6 @@ private fun StatusFilterDropdown(
     }
 }
 
-/**
- * The "Date", "Type", "Status" header
- */
 @Composable
 private fun ListHeader() {
     Row(
@@ -162,14 +151,22 @@ private fun ListHeader() {
     }
 }
 
-/**
- * A single row in the list
- */
+// ## UPDATED ##: Formats the date string
 @Composable
 private fun AdjustmentRequestItem(
     request: AdjustmentRequest,
     onItemClick: () -> Unit
 ) {
+    // Formatter for the date
+    val displayDate = remember {
+        try {
+            val odt = OffsetDateTime.parse(request.dateSubmitted)
+            odt.format(DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
+        } catch (e: Exception) {
+            request.dateSubmitted // Fallback
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,19 +175,18 @@ private fun AdjustmentRequestItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = request.date,
+            text = displayDate,
             modifier = Modifier.weight(1.2f),
             color = TextSecondary
         )
         Text(
-            text = request.type,
+            text = request.type.replaceFirstChar { it.uppercase() },
             modifier = Modifier.weight(1f),
             color = TextSecondary
         )
         Box(
             modifier = Modifier.weight(1f)
         ) {
-            // Use the reusable StatusChip we created earlier
             StatusChip(status = request.status)
         }
     }

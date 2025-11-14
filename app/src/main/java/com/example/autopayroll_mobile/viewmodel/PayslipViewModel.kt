@@ -14,23 +14,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import retrofit2.HttpException // <-- ADD THIS IMPORT
+import retrofit2.HttpException
 import java.time.OffsetDateTime
-import java.time.Year // <-- ADD THIS IMPORT
+import java.time.Year
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// --- 1. UPDATE YOUR UISTATE ---
 data class PayslipUiState(
     val isLoading: Boolean = true,
     val employeeName: String = "Loading...",
     val jobAndCompany: String = "Loading...",
-    val payslips: List<Payslip> = emptyList(), // This will be the FILTERED list
+    val payslips: List<Payslip> = emptyList(),
     val listErrorMessage: String? = null,
-    // --- ADD THESE NEW FIELDS ---
-    val allPayslips: List<Payslip> = emptyList(), // This is the MASTER list
+    val allPayslips: List<Payslip> = emptyList(),
     val availableYears: List<Int> = emptyList(),
-    val selectedYear: Int = Year.now().value // Default to current year
+    val selectedYear: Int = Year.now().value
 )
 
 class PayslipViewModel(application: Application) : AndroidViewModel(application) {
@@ -41,26 +39,22 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(PayslipUiState())
     val uiState: StateFlow<PayslipUiState> = _uiState.asStateFlow()
 
-    // Formatter for display, e.g., "September 20, 2025"
     private val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
 
     init {
-        fetchData()
+        fetchData(initialLoad = true)
     }
 
     fun refreshData() {
-        fetchData()
+        fetchData(initialLoad = false)
     }
 
-    // --- 2. ADD THIS NEW FUNCTION FOR FILTERING ---
     fun onYearSelected(year: Int) {
-        // Filter the master list to create the new displayed list
         val filtered = _uiState.value.allPayslips.filter { it.year == year }
         _uiState.update {
             it.copy(
                 selectedYear = year,
                 payslips = filtered,
-                // Show a message if the filtered list is empty
                 listErrorMessage = if (filtered.isEmpty()) "No payslips found for $year." else null
             )
         }
@@ -76,12 +70,18 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // --- 3. THIS IS THE UPDATED FETCHDATA FUNCTION ---
-    private fun fetchData() {
-        _uiState.update { it.copy(isLoading = true, listErrorMessage = null) }
+    private fun fetchData(initialLoad: Boolean) {
+        // Only show loading if there's no data yet, or it's a full refresh.
+        // Don't set isLoading=true if we already have data and it's not an initial load/forced refresh
+        if (initialLoad || _uiState.value.allPayslips.isEmpty()) {
+            _uiState.update { it.copy(isLoading = true, listErrorMessage = null) }
+        } else {
+            _uiState.update { it.copy(listErrorMessage = null) } // Clear previous error messages
+        }
+
 
         viewModelScope.launch {
-            // --- PART 1: Fetch Employee (Unchanged) ---
+            // --- PART 1: Fetch Employee ---
             try {
                 val employee = apiService.getEmployeeProfile()
                 _uiState.update {
@@ -92,17 +92,20 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching employee profile", e)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        employeeName = "Error loading profile",
-                        jobAndCompany = "Error: ${e.message}"
+                // If there's an error, don't clear existing employee data if it's already there
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        // Only update isLoading to false if it was true due to this fetch
+                        isLoading = if (currentState.isLoading) false else currentState.isLoading,
+                        employeeName = if (currentState.employeeName == "Loading...") "Error loading profile" else currentState.employeeName,
+                        jobAndCompany = if (currentState.jobAndCompany == "Loading...") "Error: ${e.message}" else currentState.jobAndCompany,
+                        listErrorMessage = "Failed to load employee profile." // Set a specific error for employee
                     )
                 }
-                return@launch
+                // Don't return here, attempt to fetch payslips even if employee profile fails
             }
 
-            // --- PART 2: Fetch Payrolls (Updated) ---
+            // --- PART 2: Fetch Payrolls ---
             try {
                 val payrollResponse = apiService.getPayrolls()
 
@@ -126,35 +129,34 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                         payslips = realPayslips.filter { it.year == currentYear },
                         availableYears = years,
                         selectedYear = currentYear,
-                        // This is the original "empty list" logic
                         listErrorMessage = if (realPayslips.isEmpty()) "No payslips found." else null
                     )
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching payrolls", e)
 
-                // ## THIS IS THE FIX ##
-                // We will now check the HTTP error code
                 val errorMessage = when (e) {
                     is HttpException -> {
                         when (e.code()) {
-                            // Treat 401 AND 404 as "No payslips found"
-                            401 -> "No payslips found."
-                            404 -> "No payslips found."
+                            401, 404 -> "No payslips found."
                             else -> "Error loading payslips: ${e.message()}"
                         }
                     }
                     else -> "An unexpected error occurred: ${e.message}"
                 }
 
-                _uiState.update {
-                    it.copy(
+                _uiState.update { currentState ->
+                    currentState.copy(
                         isLoading = false,
-                        payslips = emptyList(),
-                        allPayslips = emptyList(),
+                        // Only clear payslips if there was no data before, or if the error is "No payslips found"
+                        payslips = if (currentState.allPayslips.isEmpty() || errorMessage == "No payslips found.") emptyList() else currentState.payslips,
+                        allPayslips = if (currentState.allPayslips.isEmpty() || errorMessage == "No payslips found.") emptyList() else currentState.allPayslips,
                         listErrorMessage = errorMessage
                     )
                 }
+            } finally {
+                // Ensure isLoading is false once all data fetching attempts are complete
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

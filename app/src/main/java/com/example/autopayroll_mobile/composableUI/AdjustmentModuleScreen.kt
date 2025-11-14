@@ -1,6 +1,5 @@
 package com.example.autopayroll_mobile.composableUI
 
-// ## 1. ADD THESE IMPORTS ##
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
@@ -24,7 +23,7 @@ object AdjustmentModuleDestinations {
     const val FILING_SCREEN = "filing"
     const val TRACK_LIST_SCREEN = "trackList"
     const val TRACK_DETAIL_SCREEN = "trackDetail"
-    const val REQUEST_ID_ARG = "requestId"
+    const val REQUEST_ID_ARG = "requestId" // ID is now a String
     val TRACK_DETAIL_ROUTE = "$TRACK_DETAIL_SCREEN/{$REQUEST_ID_ARG}"
 }
 
@@ -38,8 +37,7 @@ fun AdjustmentModuleScreen(
     NavHost(
         navController = navController,
         startDestination = AdjustmentModuleDestinations.HUB_SCREEN,
-
-        // ## 2. ADD THESE FOUR LINES TO REMOVE ANIMATIONS ##
+        // No animations
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
@@ -47,9 +45,6 @@ fun AdjustmentModuleScreen(
 
     ) {
 
-        /**
-         * Screen 1: The main hub
-         */
         composable(AdjustmentModuleDestinations.HUB_SCREEN) {
             AdjustmentHubScreen(
                 uiState = uiState,
@@ -60,34 +55,28 @@ fun AdjustmentModuleScreen(
                     navController.navigate(AdjustmentModuleDestinations.TRACK_LIST_SCREEN)
                 },
                 onBack = {
-                    // TODO: Tell the Fragment to go back to MenuFragment
+                    // TODO: Go back to MenuFragment
                 }
             )
         }
 
-        /**
-         * Screen 2: The "Request Filing" form
-         */
         composable(AdjustmentModuleDestinations.FILING_SCREEN) {
             AdjustmentFilingScreen(
                 uiState = uiState,
                 viewModel = viewModel,
                 onBack = {
-                    viewModel.clearForm() // Clear form when user backs out
+                    viewModel.clearForm()
                     navController.popBackStack()
                 }
             )
         }
 
-        /**
-         * Screen 3: The "Track Request" list
-         */
         composable(AdjustmentModuleDestinations.TRACK_LIST_SCREEN) {
             AdjustmentTrackScreen(
                 uiState = uiState,
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
-                onSelectRequest = { requestId ->
+                onSelectRequest = { requestId -> // requestId is a String
                     navController.navigate("${AdjustmentModuleDestinations.TRACK_DETAIL_SCREEN}/$requestId")
                 }
             )
@@ -95,19 +84,21 @@ fun AdjustmentModuleScreen(
 
         /**
          * Screen 4: The "Track Request Detail"
+         * ## UPDATED ##
          */
         composable(
             route = AdjustmentModuleDestinations.TRACK_DETAIL_ROUTE,
             arguments = listOf(navArgument(AdjustmentModuleDestinations.REQUEST_ID_ARG) {
-                type = NavType.IntType
+                type = NavType.StringType // ## CHANGED to StringType ##
             })
         ) { backStackEntry ->
-            val requestId = backStackEntry.arguments?.getInt(AdjustmentModuleDestinations.REQUEST_ID_ARG) ?: 0
+            // Get the request ID
+            val requestId = backStackEntry.arguments?.getString(AdjustmentModuleDestinations.REQUEST_ID_ARG) ?: ""
 
             AdjustmentDetailScreen(
                 uiState = uiState,
                 requestId = requestId,
-                viewModel = viewModel, // Pass the VM to fetch the detail
+                viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )
         }

@@ -3,7 +3,6 @@ package com.example.autopayroll_mobile.composableUI
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-// ## ADD THIS IMPORT ##
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,15 +30,10 @@ import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-// ## REMOVE THIS IMPORT (it was causing the error) ##
-// import androidx.compose.material3.OutlinedButtonDefaults
 
-/**
- * Replaces `RequestFilingFragment`.
- * This version matches the style of your LeaveModuleFormScreen.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdjustmentFilingScreen(
@@ -51,25 +45,30 @@ fun AdjustmentFilingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // --- Derived State for Form ---
-    val mainTypes = listOf("Leave", "Attendance", "Payroll")
+    // ## UPDATED ##
+    // These are the display names and their corresponding API keys
+    val mainTypesMap = mapOf(
+        "Leave" to "leave",
+        "Attendance" to "attendance",
+        "Payroll" to "payroll",
+        "Official Business" to "official_business"
+    )
 
-    val subTypeOptions by remember(uiState.adjustmentTypes, uiState.formMainType) {
+    val subTypeOptions by remember(uiState.adjustmentTypes) {
         derivedStateOf {
-            uiState.adjustmentTypes.filter {
-                it.mainType.equals(uiState.formMainType, ignoreCase = true)
-            }
+            uiState.adjustmentTypes
         }
     }
 
-    // --- ActivityResultLauncher for File Picker ---
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onAttachmentSelected(it) }
     }
 
-    // --- Handle Submission Status ---
+    val isReasonError = uiState.formReason.isBlank()
+    val isSubTypeError = uiState.formSubType == null
+
     LaunchedEffect(uiState.submissionStatus) {
         when (uiState.submissionStatus) {
             FormSubmissionStatus.SUCCESS -> {
@@ -79,7 +78,7 @@ fun AdjustmentFilingScreen(
                         withDismissAction = true
                     )
                 }
-                onBack() // Go back after success
+                onBack()
             }
             FormSubmissionStatus.ERROR -> {
                 scope.launch {
@@ -92,7 +91,7 @@ fun AdjustmentFilingScreen(
             FormSubmissionStatus.IDLE -> {}
         }
         if (uiState.submissionStatus != FormSubmissionStatus.IDLE) {
-            viewModel.clearForm() // Clears form and resets status
+            viewModel.clearForm()
         }
     }
 
@@ -120,36 +119,18 @@ fun AdjustmentFilingScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // --- 1. Adjustment Type (Radio Buttons) ---
-            Text(
-                "Adjustment Type",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                mainTypes.forEach { type ->
-                    Row(
-                        Modifier
-                            .selectable(
-                                selected = (uiState.formMainType == type),
-                                onClick = { viewModel.onMainTypeChanged(type) }
-                            )
-                            .padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (uiState.formMainType == type),
-                            onClick = { viewModel.onMainTypeChanged(type) }
-                        )
-                        Text(text = type, modifier = Modifier.padding(start = 4.dp))
-                    }
+
+            // --- 1. Adjustment Type (Dropdown) ---
+            // ## THIS IS THE NEW DROPDOWN ##
+            MainTypeDropdown(
+                label = "Adjustment Type",
+                options = mainTypesMap,
+                selectedApiKey = uiState.formMainType,
+                onOptionSelected = { apiKey ->
+                    viewModel.onMainTypeChanged(apiKey)
                 }
-            }
+            )
+
             Spacer(Modifier.height(16.dp))
 
             // --- 2. Sub Type (Dropdown) ---
@@ -157,8 +138,12 @@ fun AdjustmentFilingScreen(
                 options = subTypeOptions,
                 selectedOption = uiState.formSubType,
                 onOptionSelected = { viewModel.onSubTypeChanged(it) },
-                label = "Adjustment Sub-type"
+                label = "Adjustment Sub-type",
+                isLoading = uiState.isLoadingTypes,
+                isError = isSubTypeError && uiState.submissionError != null,
+                errorMessage = "Please select a sub-type"
             )
+
             Spacer(Modifier.height(16.dp))
 
             // --- 3. Affected Date (Pickers) ---
@@ -175,20 +160,7 @@ fun AdjustmentFilingScreen(
             )
             Spacer(Modifier.height(16.dp))
 
-            // --- 4. Number of Hours (Optional) ---
-            OutlinedTextField(
-                value = uiState.formHours,
-                onValueChange = { viewModel.onHoursChanged(it) },
-                label = { Text("Number of Hours (Optional)") },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(Modifier.height(16.dp))
-
-            // --- 5. Reason for Adjustment ---
+            // --- 4. Reason for Adjustment ---
             OutlinedTextField(
                 value = uiState.formReason,
                 onValueChange = { viewModel.onReasonChanged(it) },
@@ -196,11 +168,21 @@ fun AdjustmentFilingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = isReasonError && uiState.submissionError != null
             )
+            if (isReasonError && uiState.submissionError != null) {
+                Text(
+                    text = "Reason is required",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
 
-            // --- 6. Attachment ---
+            // --- 5. Attachment ---
             AttachmentButton(
                 fileName = uiState.formAttachment?.name,
                 onFilePick = { filePickerLauncher.launch("*/*") },
@@ -208,7 +190,7 @@ fun AdjustmentFilingScreen(
             )
             Spacer(Modifier.height(32.dp))
 
-            // --- 7. Send Button ---
+            // --- 6. Send Button ---
             Button(
                 onClick = { viewModel.submitAdjustmentRequest() },
                 enabled = !uiState.isSubmitting,
@@ -234,25 +216,26 @@ fun AdjustmentFilingScreen(
     }
 }
 
-/**
- * A reusable dropdown for the Sub-Type.
- */
+// ## NEW COMPOSABLE FOR MAIN TYPE DROPDOWN ##
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubTypeDropdown(
-    options: List<AdjustmentType>,
-    selectedOption: AdjustmentType?,
-    onOptionSelected: (AdjustmentType) -> Unit,
-    label: String
+private fun MainTypeDropdown(
+    label: String,
+    options: Map<String, String>, // <"Leave", "leave">
+    selectedApiKey: String,
+    onOptionSelected: (String) -> Unit // returns "leave"
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+
+    // Find the display name (e.g., "Leave") that matches the current API key (e.g., "leave")
+    val selectedDisplayName = options.entries.find { it.value == selectedApiKey }?.key ?: ""
 
     ExposedDropdownMenuBox(
         expanded = isExpanded,
         onExpandedChange = { isExpanded = !isExpanded }
     ) {
         OutlinedTextField(
-            value = selectedOption?.name ?: "",
+            value = selectedDisplayName,
             onValueChange = { },
             label = { Text(label) },
             readOnly = true,
@@ -268,11 +251,12 @@ private fun SubTypeDropdown(
             expanded = isExpanded,
             onDismissRequest = { isExpanded = false }
         ) {
-            options.forEach { option ->
+            // Iterate over the map entries
+            options.forEach { (displayName, apiKey) ->
                 DropdownMenuItem(
-                    text = { Text(option.name) },
+                    text = { Text(displayName) },
                     onClick = {
-                        onOptionSelected(option)
+                        onOptionSelected(apiKey) // Send the API key back
                         isExpanded = false
                     }
                 )
@@ -281,9 +265,69 @@ private fun SubTypeDropdown(
     }
 }
 
-/**
- * A custom button for handling file attachments.
- */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SubTypeDropdown(
+    options: List<AdjustmentType>,
+    selectedOption: AdjustmentType?,
+    onOptionSelected: (AdjustmentType) -> Unit,
+    label: String,
+    isLoading: Boolean,
+    isError: Boolean,
+    errorMessage: String
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column {
+        ExposedDropdownMenuBox(
+            expanded = isExpanded,
+            onExpandedChange = { !isLoading && !isError && it }
+        ) {
+            OutlinedTextField(
+                value = selectedOption?.name ?: "",
+                onValueChange = { },
+                label = { Text(label) },
+                readOnly = true,
+                trailingIcon = {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
+                    }
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                isError = isError
+            )
+            ExposedDropdownMenu(
+                expanded = isExpanded,
+                onDismissRequest = { isExpanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.name) },
+                        onClick = {
+                            onOptionSelected(option)
+                            isExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        if (isError) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
 @Composable
 private fun AttachmentButton(
     fileName: String?,
@@ -297,8 +341,6 @@ private fun AttachmentButton(
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = TextPrimary
         ),
-        // ## THIS IS THE FIX ##
-        // Replaced the error line with a manual BorderStroke
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Icon(
@@ -315,16 +357,12 @@ private fun AttachmentButton(
     }
 }
 
-/**
- * This is the DatePickerField composable, copied
- * EXACTLY from your LeaveModuleFormScreen.kt.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerField(
     label: String,
     date: String,
-    onDateSelected: (String) -> Unit // Returns "YYYY-MM-DD"
+    onDateSelected: (String) -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     var showDialog by remember { mutableStateOf(false) }
@@ -363,7 +401,12 @@ fun DatePickerField(
             .clickable { showDialog = true }
     ) {
         OutlinedTextField(
-            value = date.ifEmpty { "Select a date" },
+            value = if (date.isNotBlank()) {
+                try {
+                    LocalDate.parse(date, dateFormatter)
+                        .format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
+                } catch (e: Exception) { "" }
+            } else { "" },
             onValueChange = {},
             label = { Text(label) },
             trailingIcon = {

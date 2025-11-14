@@ -90,36 +90,26 @@ interface ApiService {
 @Multipart
 @POST("api/employee/credit-adjustment")
 suspend fun submitAdjustmentRequest(
-    @Part("adjustment_type") adjustmentType: RequestBody,
-    @Part("sub_type") subType: RequestBody,
-    @Part("start_date") startDate: RequestBody,
-    @Part("end_date") endDate: RequestBody,
-    @Part("reason") reason: RequestBody,
-    @Part("hours") hours: RequestBody?, // Nullable if not provided
-    @Part file: MultipartBody.Part?      // Nullable if no file
-): AdjustmentSubmitResponse
+    @Part("employee_id") employeeId: RequestBody,
+    @Part("main_type") mainType: RequestBody,
+    @Part("subtype") subtype: RequestBody,
+    @Part("start_date") startDate: RequestBody?,
+    @Part("end_date") endDate: RequestBody?,
+    @Part("affected_date") affectedDate: RequestBody?,
+    @Part("reason") reason: RequestBody?,
+    @Part attachment: MultipartBody.Part?
+): AdjustmentSubmitResponse // <-- This will now be resolved
 
-    /**
-     * Gets the list of all past adjustment requests for the tracking list.
-     * Corresponds to: GET /employee/show/adjustment-request
-     */
     @GET("api/employee/show/adjustment-request")
     suspend fun getAdjustmentRequests(): AdjustmentRequestListResponse
 
-    /**
-     * Gets the details for a SINGLE adjustment request.
-     * Corresponds to: GET /employee/track/adjustment-request
-     * We use @Query("id") to pass the ID, e.g., .../track/adjustment-request?id=123
-     */
-    @GET("api/employee/track/adjustment-request")
-    suspend fun getAdjustmentRequestDetail(@Query("id") requestId: Int): AdjustmentRequestDetailResponse
-
-    /**
-     * Gets the list of all available adjustment sub-types for the form dropdown.
-     * Corresponds to: GET /employee/credit-adjustment/types
-     */
     @GET("api/employee/credit-adjustment/types")
-    suspend fun getAdjustmentTypes(): AdjustmentTypesResponse
+    suspend fun getAdjustmentTypes(
+        @Query("main_type") mainType: String
+    ): AdjustmentTypesResponse
+
+    @GET("api/employee/track/adjustment-request")
+    suspend fun getPendingAdjustments(): AdjustmentRequestListResponse
 
 
 

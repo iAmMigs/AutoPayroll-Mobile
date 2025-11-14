@@ -127,12 +127,12 @@ fun AnnouncementCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            // Removed Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = item.displayDate,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Top)
+                modifier = Modifier.align(Alignment.Top).padding(start = 8.dp) // Added start padding
             )
         }
     }

@@ -127,7 +127,7 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
 
     private fun String.toFormattedDate(): String {
         return try {
-            val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
             val formatter = SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault())
             parser.parse(this)?.let { formatter.format(it) } ?: this
         } catch (e: Exception) {
