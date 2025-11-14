@@ -45,8 +45,6 @@ fun AdjustmentFilingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // ## UPDATED ##
-    // These are the display names and their corresponding API keys
     val mainTypesMap = mapOf(
         "Leave" to "leave",
         "Attendance" to "attendance",
@@ -121,7 +119,6 @@ fun AdjustmentFilingScreen(
         ) {
 
             // --- 1. Adjustment Type (Dropdown) ---
-            // ## THIS IS THE NEW DROPDOWN ##
             MainTypeDropdown(
                 label = "Adjustment Type",
                 options = mainTypesMap,
@@ -147,6 +144,25 @@ fun AdjustmentFilingScreen(
             Spacer(Modifier.height(16.dp))
 
             // --- 3. Affected Date (Pickers) ---
+            Text(
+                "For single-day requests:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            DatePickerField(
+                label = "Affected Date",
+                date = uiState.formAffectedDate,
+                onDateSelected = { viewModel.onAffectedDateChanged(it) } // ## UPDATED ##
+            )
+
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "For date-range requests:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
             DatePickerField(
                 label = "Start Date",
                 date = uiState.formStartDate,
@@ -216,7 +232,6 @@ fun AdjustmentFilingScreen(
     }
 }
 
-// ## NEW COMPOSABLE FOR MAIN TYPE DROPDOWN ##
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainTypeDropdown(
@@ -227,7 +242,6 @@ private fun MainTypeDropdown(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    // Find the display name (e.g., "Leave") that matches the current API key (e.g., "leave")
     val selectedDisplayName = options.entries.find { it.value == selectedApiKey }?.key ?: ""
 
     ExposedDropdownMenuBox(
@@ -251,12 +265,11 @@ private fun MainTypeDropdown(
             expanded = isExpanded,
             onDismissRequest = { isExpanded = false }
         ) {
-            // Iterate over the map entries
             options.forEach { (displayName, apiKey) ->
                 DropdownMenuItem(
                     text = { Text(displayName) },
                     onClick = {
-                        onOptionSelected(apiKey) // Send the API key back
+                        onOptionSelected(apiKey)
                         isExpanded = false
                     }
                 )
@@ -282,7 +295,11 @@ private fun SubTypeDropdown(
     Column {
         ExposedDropdownMenuBox(
             expanded = isExpanded,
-            onExpandedChange = { !isLoading && !isError && it }
+            onExpandedChange = {
+                if (!isLoading && !isError) {
+                    isExpanded = it
+                }
+            }
         ) {
             OutlinedTextField(
                 value = selectedOption?.name ?: "",

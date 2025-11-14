@@ -1,4 +1,3 @@
-// In file: com/example/autopayroll_mobile/utils/SessionManager.kt
 package com.example.autopayroll_mobile.utils
 
 import android.content.Context

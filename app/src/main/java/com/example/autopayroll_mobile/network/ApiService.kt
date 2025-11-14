@@ -7,17 +7,18 @@ import com.example.autopayroll_mobile.data.model.ClockInOutRequest
 import com.example.autopayroll_mobile.data.model.ClockInOutResponse
 import com.example.autopayroll_mobile.data.model.LoginRequest
 import com.example.autopayroll_mobile.data.model.LoginResponse
-import com.example.autopayroll_mobile.data.model.Company // This was commented out, but GET /companies will need it
+import com.example.autopayroll_mobile.data.model.Company
 //import com.example.autopayroll_mobile.data.model.Schedule // TODO: Create data class Schedule
 //import com.example.autopayroll_mobile.data.model.TodayAttendanceResponse // TODO: Create data class TodayAttendanceResponse
 //import com.example.autopayroll_mobile.data.model.PasswordResetRequest // TODO: Create data class PasswordResetRequest
 //import com.example.autopayroll_mobile.data.model.PasswordResetResponse // TODO: Create data class PasswordResetResponse
 //import com.example.autopayroll_mobile.data.model.LeaveRequest // TODO: Create data class LeaveRequest
 //import com.example.autopayroll_mobile.data.model.LeaveRequestResponse // TODO: Create data class LeaveRequestResponse
-import com.example.autopayroll_mobile.data.model.LeaveRequestListResponse // ## NEW ##
-import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit // ## NEW ##
+import com.example.autopayroll_mobile.data.model.LeaveRequestListResponse
+import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit
 import com.example.autopayroll_mobile.data.model.LeaveRequestSubmitResponse
-import com.example.autopayroll_mobile.data.model.AdjustmentRequestDetailResponse
+// ## REMOVED Obsolete Import ##
+// import com.example.autopayroll_mobile.data.model.AdjustmentRequestDetailResponse
 import com.example.autopayroll_mobile.data.model.AdjustmentRequestListResponse
 import com.example.autopayroll_mobile.data.model.AdjustmentSubmitResponse
 import com.example.autopayroll_mobile.data.model.AdjustmentTypesResponse
@@ -81,24 +82,26 @@ interface ApiService {
     @POST("api/employee/leave-request")
     suspend fun submitLeaveRequest(@Body request: LeaveRequestSubmit): LeaveRequestSubmitResponse
 
-    // ## UPDATED ##
     @GET("api/employee/show/leave-request")
     suspend fun getLeaveRequests(): LeaveRequestListResponse
 
+    @GET("api/employee/track/leave-request")
+    suspend fun getTrackedLeaveRequests(): LeaveRequestListResponse
 
-// --- Credit Adjustment Endpoints ---
-@Multipart
-@POST("api/employee/credit-adjustment")
-suspend fun submitAdjustmentRequest(
-    @Part("employee_id") employeeId: RequestBody,
-    @Part("main_type") mainType: RequestBody,
-    @Part("subtype") subtype: RequestBody,
-    @Part("start_date") startDate: RequestBody?,
-    @Part("end_date") endDate: RequestBody?,
-    @Part("affected_date") affectedDate: RequestBody?,
-    @Part("reason") reason: RequestBody?,
-    @Part attachment: MultipartBody.Part?
-): AdjustmentSubmitResponse // <-- This will now be resolved
+
+    // --- Credit Adjustment Endpoints ---
+    @Multipart
+    @POST("api/employee/credit-adjustment")
+    suspend fun submitAdjustmentRequest(
+        @Part("employee_id") employeeId: RequestBody,
+        @Part("main_type") mainType: RequestBody,
+        @Part("subtype") subtype: RequestBody,
+        @Part("start_date") startDate: RequestBody?,
+        @Part("end_date") endDate: RequestBody?,
+        @Part("affected_date") affectedDate: RequestBody?,
+        @Part("reason") reason: RequestBody?,
+        @Part attachment: MultipartBody.Part?
+    ): AdjustmentSubmitResponse
 
     @GET("api/employee/show/adjustment-request")
     suspend fun getAdjustmentRequests(): AdjustmentRequestListResponse
@@ -122,5 +125,5 @@ suspend fun submitAdjustmentRequest(
 //    suspend fun getCompanies(): List<Company> // Assuming it returns a list
     // TODO: Wait Until Needed
 //    @GET("api/schedules")
-//    suspend fun getSchedules(): List<Schedule> // Assuming it returns a list
+//    susWpend fun getSchedules(): List<Schedule> // Assuming it returns a list
 }

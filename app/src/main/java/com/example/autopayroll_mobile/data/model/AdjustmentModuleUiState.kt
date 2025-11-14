@@ -30,6 +30,7 @@ data class AdjustmentModuleUiState(
     val formSubType: AdjustmentType? = null,
     val formStartDate: String = "",
     val formEndDate: String = "",
+    val formAffectedDate: String = "", // ## NEWLY ADDED ##
     val formReason: String = "",
     val formAttachment: File? = null,
 

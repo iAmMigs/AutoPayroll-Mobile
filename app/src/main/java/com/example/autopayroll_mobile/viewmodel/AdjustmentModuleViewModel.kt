@@ -11,7 +11,6 @@ import com.example.autopayroll_mobile.data.model.AdjustmentType
 import com.example.autopayroll_mobile.data.model.FormSubmissionStatus
 import com.example.autopayroll_mobile.data.model.AdjustmentSubmitResponse
 import com.example.autopayroll_mobile.network.ApiClient
-// ## 1. ADD THIS IMPORT ##
 import com.example.autopayroll_mobile.network.PublicApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +26,7 @@ import java.io.FileOutputStream
 
 class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel(app) {
 
-    // ## 2. CREATE TWO SEPARATE API SERVICES ##
-    // For routes that NEED an auth token
     private val authService = ApiClient.getClient(app.applicationContext)
-    // For routes that MUST NOT have an auth token
     private val publicService = PublicApiClient.getService()
 
     private val _uiState = MutableStateFlow(AdjustmentModuleUiState())
@@ -105,15 +101,23 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         }
     }
 
+    // ## UPDATED WITH LOGGING ##
     private fun fetchAdjustmentTypes(mainType: String, isInitialLoad: Boolean = false) {
-        Log.d("AdjVM", "Fetching types for: $mainType")
+        val typeToQuery = mainType.lowercase()
+        Log.d("AdjVM", "Fetching types for: '$typeToQuery'") // Log what we are sending
         _uiState.update { it.copy(isLoadingTypes = true) }
 
         viewModelScope.launch {
             try {
-                // ## 3. USE THE PUBLIC SERVICE ##
-                val response = publicService.getAdjustmentTypes(mainType.lowercase())
+                val response = publicService.getAdjustmentTypes(typeToQuery)
+
+                // ## NEW LOGGING ##
+                // This log is critical. It will tell us exactly what the server is sending back.
+                Log.d("AdjVM", "Server response for '$typeToQuery': success=${response.success}, message=${response.message}")
+
                 if (response.success) {
+                    // ## NEW LOGGING ##
+                    Log.d("AdjVM", "Found ${response.data.size} sub-types.")
                     _uiState.update {
                         it.copy(
                             isLoadingTypes = false,
@@ -121,11 +125,11 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                             isLoading = if (isInitialLoad) false else it.isLoading
                         )
                     }
-                    Log.d("AdjVM", "Fetched ${response.data.size} types for $mainType")
                 } else {
                     handleTypeFetchError(mainType, response.message ?: "No types found", isInitialLoad)
                 }
             } catch (e: Exception) {
+                // This will catch network errors (like 422 Validation Error)
                 Log.e("AdjVM", "Error fetching types for $mainType", e)
                 handleTypeFetchError(mainType, "Error: ${e.message}", isInitialLoad)
             }
@@ -133,6 +137,8 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
     }
 
     private fun handleTypeFetchError(mainType: String, message: String, isInitialLoad: Boolean) {
+        // ## NEW LOGGING ##
+        Log.w("AdjVM", "handleTypeFetchError for '$mainType': $message")
         _uiState.update {
             it.copy(
                 isLoadingTypes = false,
@@ -172,21 +178,22 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                 val startDatePart = currentState.formStartDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val endDatePart = currentState.formEndDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                val affectedDatePart = null
+                // ## UPDATED ##
+                // Now reads from the state, sending null if blank
+                val affectedDatePart = currentState.formAffectedDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 val filePart = currentState.formAttachment?.let { file ->
                     val requestFile = file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("attachment", file.name, requestFile)
                 }
 
-                // ## 4. USE THE AUTH SERVICE ##
                 val response = authService.submitAdjustmentRequest(
                     employeeId = employeeIdPart,
                     mainType = mainTypePart,
                     subtype = subTypePart,
                     startDate = startDatePart,
                     endDate = endDatePart,
-                    affectedDate = affectedDatePart,
+                    affectedDate = affectedDatePart, // ## UPDATED ##
                     reason = reasonPart,
                     attachment = filePart
                 )
@@ -258,6 +265,11 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         _uiState.update { it.copy(formEndDate = date) }
     }
 
+    // ## NEWLY ADDED ##
+    fun onAffectedDateChanged(date: String) {
+        _uiState.update { it.copy(formAffectedDate = date) }
+    }
+
     fun onReasonChanged(reason: String) {
         _uiState.update { it.copy(formReason = reason) }
     }
@@ -280,6 +292,7 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                 formSubType = null,
                 formStartDate = "",
                 formEndDate = "",
+                formAffectedDate = "", // ## NEWLY ADDED ##
                 formReason = "",
                 formAttachment = null,
                 submissionStatus = FormSubmissionStatus.IDLE,
