@@ -26,7 +26,8 @@ object AdjustmentModuleDestinations {
 @Composable
 fun AdjustmentModuleScreen(
     viewModel: AdjustmentModuleViewModel = viewModel(),
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    onBackToMenu: () -> Unit // ## NEW: Callback from the hosting Fragment ##
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -52,6 +53,7 @@ fun AdjustmentModuleScreen(
                 },
                 onBack = {
                     // TODO: Go back to MenuFragment
+                    onBackToMenu() // ## UPDATED: Use the new callback ##
                 }
             )
         }

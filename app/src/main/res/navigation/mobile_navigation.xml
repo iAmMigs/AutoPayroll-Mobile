@@ -3,39 +3,96 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_dashboard"> <!-- Or your start destination -->
+    app:startDestination="@+id/navigation_dashboard"> <!-- This remains the start destination -->
 
-    <!-- Your existing fragments -->
+    <!-- Menu Fragment: The starting point for menu navigations -->
     <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="com.example.autopayroll_mobile.DashboardFragment"
-        android:label="Dashboard" />
+        android:id="@+id/navigation_menu"
+        android:name="com.example.autopayroll_mobile.mainApp.MenuFragment"
+        android:label="Menu">
 
+        <!-- Define all navigation actions FROM the MenuFragment -->
+        <action
+            android:id="@+id/action_menu_to_profile"
+            app:destination="@id/navigation_profile" />
+        <action
+            android:id="@+id/action_menu_to_leave"
+            app:destination="@id/navigation_leave" />
+        <action
+            android:id="@+id/action_menu_to_adjustment"
+            app:destination="@id/navigation_adjustment" />
+
+        <!-- Actions to other Compose-based Fragments (if directly accessible from Menu) -->
+        <action
+            android:id="@+id/action_menu_to_dashboard"
+            app:destination="@id/navigation_dashboard" />
+        <action
+            android:id="@+id/action_menu_to_announcement"
+            app:destination="@id/navigation_announcement" />
+        <action
+            android:id="@+id/action_menu_to_payslip"
+            app:destination="@id/navigation_payslip" />
+    </fragment>
+
+    <!-- Profile Fragment -->
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.autopayroll_mobile.mainApp.ProfileFragment"
+        android:label="Profile" />
+
+    <!-- Leave Module Fragment -->
+    <fragment
+        android:id="@+id/navigation_leave"
+        android:name="com.example.autopayroll_mobile.mainApp.LeaveModuleFragment"
+        android:label="Leave Request" />
+
+    <!-- Adjustment Module Fragment -->
+    <fragment
+        android:id="@+id/navigation_adjustment"
+        android:name="com.example.autopayroll_mobile.mainApp.AdjustmentModuleFragment"
+        android:label="Adjustment Request" />
+
+    <!-- Announcement Fragment -->
     <fragment
         android:id="@+id/navigation_announcement"
-        android:name="com.example.autopayroll_mobile.AnnouncementFragment"
-        android:label="Announcements" >
-
-        <!-- This is the ACTION to go from list to detail -->
+        android:name="com.example.autopayroll_mobile.mainApp.AnnouncementFragment"
+        android:label="Announcements">
+        <!-- Action to navigate from Announcements list to detail -->
         <action
             android:id="@+id/action_announcement_to_detail"
             app:destination="@id/navigation_announcement_detail" />
-
     </fragment>
 
-    <!-- ... other fragments ... -->
-
-    <!-- This is the NEW fragment -->
+    <!-- Announcement Detail Fragment -->
     <fragment
         android:id="@+id/navigation_announcement_detail"
-        android:name="com.example.autopayroll_mobile.AnnouncementDetailHostFragment"
-        android:label="Announcement Details" >
-
-        <!-- This is the ARGUMENT that creates the Args class -->
+        android:name="com.example.autopayroll_mobile.mainApp.AnnouncementDetailHostFragment"
+        android:label="Announcement Details">
+        <!-- Argument for passing announcement ID -->
         <argument
             android:name="announcementId"
             app:argType="string" />
+    </fragment>
 
+    <!-- Compose-based Dashboard Fragment -->
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="com.example.autopayroll_mobile.mainApp.DashboardFragment"
+        android:label="Dashboard">
+    </fragment>
+
+    <!-- Compose-based Payslip Fragment -->
+    <fragment
+        android:id="@+id/navigation_payslip"
+        android:name="com.example.autopayroll_mobile.mainApp.PayslipFragment"
+        android:label="Payslip" />
+
+    <fragment
+        android:id="@+id/navigation_qr_scanner"
+        android:name="com.example.autopayroll_mobile.mainApp.QrScannerFragment"
+        android:label="QR Scanner"
+        tools:layout="@layout/fragment_qr_scanner"> <!-- Correctly pointing to its XML layout -->
+        <!-- Define actions FROM QrScannerFragment if any -->
     </fragment>
 
 </navigation>

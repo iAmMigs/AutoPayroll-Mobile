@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUi
+package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable

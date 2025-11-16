@@ -23,6 +23,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
 
+// ## NEW: NavigationEvent definition ##
+sealed class AdjustmentNavigationEvent {
+    object NavigateBackToMenu : AdjustmentNavigationEvent()
+}
+
 class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val authService = ApiClient.getClient(app.applicationContext)
@@ -30,6 +35,10 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
 
     private val _uiState = MutableStateFlow(AdjustmentModuleUiState())
     val uiState: StateFlow<AdjustmentModuleUiState> = _uiState.asStateFlow()
+
+    // ## NEW: Back Navigation StateFlow ##
+    private val _navigationEvent = MutableStateFlow<AdjustmentNavigationEvent?>(null)
+    val navigationEvent: StateFlow<AdjustmentNavigationEvent?> = _navigationEvent.asStateFlow()
 
     init {
         fetchInitialData()
@@ -303,6 +312,16 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
 
     fun onFilterChanged(status: String) {
         _uiState.update { it.copy(filterStatus = status) }
+    }
+
+    // ## NEW: Function to trigger back navigation ##
+    fun navigateBackToMenu() {
+        _navigationEvent.value = AdjustmentNavigationEvent.NavigateBackToMenu
+    }
+
+    // ## FIX: Function to clear navigation event after it's handled (Missing in previous response) ##
+    fun onNavigationHandled() {
+        _navigationEvent.value = null
     }
 
     // --- Helper Function ---

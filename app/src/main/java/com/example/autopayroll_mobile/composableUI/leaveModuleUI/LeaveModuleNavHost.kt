@@ -1,7 +1,6 @@
-package com.example.autopayroll_mobile.composableUi
+package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
 import androidx.compose.runtime.Composable
-// import androidx.navigation.NavController // <-- REMOVED
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -16,7 +15,8 @@ private object LeaveModuleRoutes {
 
 @Composable
 fun LeaveModuleNavHost(
-    viewModel: LeaveModuleViewModel
+    viewModel: LeaveModuleViewModel,
+    onBackToMenu: () -> Unit
 ) {
     val internalNavController = rememberNavController()
 
@@ -33,7 +33,8 @@ fun LeaveModuleNavHost(
                 },
                 onCalendarClicked = {
                     internalNavController.navigate(LeaveModuleRoutes.CALENDAR)
-                }
+                },
+                onBackToMenu = onBackToMenu
             )
         }
 

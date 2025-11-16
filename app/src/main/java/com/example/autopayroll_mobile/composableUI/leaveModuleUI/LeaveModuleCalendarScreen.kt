@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUi
+package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

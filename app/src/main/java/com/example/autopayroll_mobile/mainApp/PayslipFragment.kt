@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy // Import this
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.autopayroll_mobile.composableUI.PayslipScreen
@@ -23,6 +24,9 @@ class PayslipFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
+            // ## FIX: Set the composition strategy for proper lifecycle management ##
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
             setContent {
                 AutoPayrollMobileTheme {
                     PayslipScreen(

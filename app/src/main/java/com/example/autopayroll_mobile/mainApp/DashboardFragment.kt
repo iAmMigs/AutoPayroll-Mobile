@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile
+package com.example.autopayroll_mobile.mainApp
 
 import android.os.Bundle
 import android.view.LayoutInflater

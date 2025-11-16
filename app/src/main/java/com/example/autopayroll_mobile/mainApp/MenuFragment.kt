@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile
+package com.example.autopayroll_mobile.mainApp
 
 import android.content.Intent
 import android.os.Bundle
@@ -8,11 +8,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController // Ensure this is imported
+import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.databinding.FragmentMenuBinding
-import com.example.autopayroll_mobile.mainApp.ProfileFragment
 import com.example.autopayroll_mobile.auth.LoginActivity
-// import com.example.autopayroll_mobile.leaveRequest.LeaveRequest // (Old import)
-import com.example.autopayroll_mobile.mainApp.LeaveModuleFragment
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.network.ApiService
 import com.example.autopayroll_mobile.utils.SessionManager
@@ -33,7 +32,7 @@ class MenuFragment : Fragment() {
         _binding = FragmentMenuBinding.inflate(inflater, container, false)
 
         sessionManager = SessionManager(requireContext())
-        apiService = ApiClient.getClient(requireContext().applicationContext)
+        apiService = ApiClient.getClient(requireContext().applicationContext) // Assuming ApiClient and ApiService are set up correctly
 
         return binding.root
     }
@@ -41,24 +40,17 @@ class MenuFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // --- Logout Button Listener (UPDATED) ---
+        // --- Logout Button Listener ---
         binding.logoutButton.setOnClickListener {
-
-            // Launch a coroutine in the fragment's lifecycle scope
             lifecycleScope.launch {
                 try {
-
                     apiService.logout()
                     Log.d("MenuFragment", "Server logout successful.")
-
                 } catch (e: Exception) {
-
                     Log.e("MenuFragment", "API logout failed, proceeding with local logout", e)
                 } finally {
-
                     if (isAdded && activity != null) {
                         sessionManager.clearSession()
-
                         val intent = Intent(requireActivity(), LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
@@ -70,29 +62,31 @@ class MenuFragment : Fragment() {
 
         // --- Profile Button Listener ---
         binding.btnProfile.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, ProfileFragment())
-                .commit()
+            // Uses the Navigation Component action defined in navigation.xml
+            findNavController().navigate(R.id.action_menu_to_profile)
         }
 
         // --- Leave Request Button Listener ---
         binding.btnLeaveRequest.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, LeaveModuleFragment()) // Use our new Fragment
-                .commit()
+            // Uses the Navigation Component action defined in navigation.xml
+            findNavController().navigate(R.id.action_menu_to_leave)
         }
 
         // --- Payroll Credit Button Listener ---
         binding.btnPayrollCredit.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, com.example.autopayroll_mobile.mainApp.AdjustmentModuleFragment())
-                .commit()
+            // Uses the Navigation Component action defined in navigation.xml
+            findNavController().navigate(R.id.action_menu_to_adjustment)
         }
+
+        // --- Navigating to other Compose-based Fragments (example) ---
+        // If you have buttons in your menu that should go directly to Dashboard,
+        // Announcements, or Payslip, uncomment and use these actions:
+
 
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null
+        _binding = null // Clean up the binding
     }
 }

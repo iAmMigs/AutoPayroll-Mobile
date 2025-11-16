@@ -4,12 +4,12 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-// import com.example.autopayroll_mobile.data.model.Company // No longer needed
 import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
@@ -19,10 +19,19 @@ data class ProfileUiState(
     val error: String? = null
 )
 
+// ## NEW: NavigationEvent definition ##
+sealed class ProfileNavigationEvent {
+    object NavigateBack : ProfileNavigationEvent()
+}
+
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState
+
+    // ## NEW: Back Navigation StateFlow ##
+    private val _navigationEvent = MutableStateFlow<ProfileNavigationEvent?>(null)
+    val navigationEvent: StateFlow<ProfileNavigationEvent?> = _navigationEvent.asStateFlow()
 
     private val sessionManager = SessionManager(application)
     // Get the apiService once
@@ -57,5 +66,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 _uiState.value = ProfileUiState(isLoading = false, error = "Failed to fetch employee data: ${e.message}")
             }
         }
+    }
+
+    // ## NEW: Function to trigger back navigation ##
+    fun navigateBack() {
+        _navigationEvent.value = ProfileNavigationEvent.NavigateBack
+    }
+
+    // ## NEW: Function to clear navigation event after it's handled ##
+    fun onNavigationHandled() {
+        _navigationEvent.value = null
     }
 }

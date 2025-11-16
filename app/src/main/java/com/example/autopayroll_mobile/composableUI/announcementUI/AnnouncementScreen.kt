@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUi
+package com.example.autopayroll_mobile.composableUI.announcementUI
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

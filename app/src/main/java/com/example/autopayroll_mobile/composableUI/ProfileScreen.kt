@@ -3,6 +3,7 @@ package com.example.autopayroll_mobile.composableUI
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable // ## NEW IMPORT ##
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,7 +56,10 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
-fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
+fun ProfileScreen(
+    profileViewModel: ProfileViewModel = viewModel(),
+    onBack: () -> Unit // ## NEW: Callback for back navigation ##
+) {
     val uiState by profileViewModel.uiState.collectAsState()
 
     if (uiState.isLoading) {
@@ -77,7 +81,11 @@ fun ProfileScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 .padding(16.dp)
         ) {
             // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                // ## NEW: Add clickable modifier to the Icon for back functionality ##
+                modifier = Modifier.clickable { onBack() }
+            ) {
                 Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)

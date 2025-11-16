@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUi
+package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,7 +30,8 @@ import com.example.autopayroll_mobile.viewmodel.filteredRequests
 fun LeaveModuleListScreen(
     viewModel: LeaveModuleViewModel,
     onFileLeaveClicked: () -> Unit,
-    onCalendarClicked: () -> Unit
+    onCalendarClicked: () -> Unit,
+    onBackToMenu: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabItems = viewModel.tabItems

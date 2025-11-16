@@ -195,6 +195,11 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         _navigationEvent.value = null
     }
 
+    // ## NEW: Function to trigger back navigation to the MenuFragment ##
+    fun navigateBackToMenu() {
+        _navigationEvent.value = NavigationEvent.NavigateBackToMenu
+    }
+
     // --- Date Formatting ---
 
     // ## 2. THIS FUNCTION IS THE FIX FOR THE TIME ##
@@ -230,7 +235,8 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
     }
 }
 
-// (NavigationEvent class is unchanged)
+// ## UPDATED: Add a dedicated back-to-menu event ##
 sealed class NavigationEvent {
-    object NavigateBack : NavigationEvent()
+    object NavigateBack : NavigationEvent() // Used for navigation *within* the module (e.g., Form -> List)
+    object NavigateBackToMenu : NavigationEvent() // Used for navigation *out* of the module (e.g., List -> Menu)
 }
