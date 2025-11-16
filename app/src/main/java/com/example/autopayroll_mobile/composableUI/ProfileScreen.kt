@@ -3,7 +3,7 @@ package com.example.autopayroll_mobile.composableUI
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable // ## NEW IMPORT ##
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,10 +55,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 
+// Define custom design colors here, matching the Dashboard/Menu aesthetic
+val AppBackground = Color(0xFFEEEEEE) // Light Gray (Darker Header Background)
+val CardSurface = Color.White // White (Lighter Content Background)
+val TextPrimary = Color(0xFF3C3C3C) // Assuming TextPrimary
+
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel(),
-    onBack: () -> Unit // ## NEW: Callback for back navigation ##
+    onBack: () -> Unit
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
 
@@ -72,29 +77,35 @@ fun ProfileScreen(
         }
     } else if (uiState.employee != null) {
         val employee = uiState.employee!!
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                // --- 1. CHANGE SCREEN BACKGROUND ---
-                .background(Color(0xFFF5F5F5)) // Light Gray Background
-                .padding(16.dp)
+                .background(AppBackground) // Outer background is the darker shade
         ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                // ## NEW: Add clickable modifier to the Icon for back functionality ##
-                modifier = Modifier.clickable { onBack() }
+            // --- 1. HEADER AREA (Darker BG) ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppBackground) // Ensure background is the darker shade
+                    .padding(horizontal = 16.dp) // Horizontal padding for the content
+                    .padding(bottom = 8.dp) // Margin separating it from the white area
             ) {
-                Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(24.dp))
+                // Header (Back button and title)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable { onBack() }
+                        .padding(top = 16.dp) // FIX: Add padding above the header content
+                ) {
+                    Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(24.dp)) // Space below the title
 
-            // Profile Info Column
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Row for Image and Name/Title
+                // Profile Info Column (Photo, Name, Edit Button)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -132,17 +143,15 @@ fun ProfileScreen(
                 // New Row just for the Button, aligned to the end
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End // Pushes button to the right
+                    horizontalArrangement = Arrangement.End
                 ) {
                     Button(
                         onClick = { /* TODO: Edit Profile */ },
                         colors = ButtonDefaults.buttonColors(
-                            // --- 2. CHANGE BUTTON COLOR ---
                             containerColor = Color(0xFFFBC02D), // Deeper Yellow
                             contentColor = Color.Black
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        // --- 3. ADD BUTTON SHADOW ---
                         elevation = ButtonDefaults.buttonElevation(
                             defaultElevation = 6.dp,
                             pressedElevation = 2.dp
@@ -151,26 +160,34 @@ fun ProfileScreen(
                         Text("Edit")
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp)) // Space above the white section
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // --- 2. CONTENT AREA (White BG) ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardSurface) // FIX: White background starts here
+                    .padding(horizontal = 16.dp) // Horizontal padding for the content area
+            ) {
+                // Personal Information
+                InfoCard("Personal Information", R.drawable.ic_personal_info, employee)
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 4. ADD SHAPE TO ALL CARDS ---
+                // Address Information
+                AddressCard("Address Information", employee)
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Personal Information
-            InfoCard("Personal Information", R.drawable.ic_personal_info, employee)
-            Spacer(modifier = Modifier.height(16.dp))
+                // Employment Overview
+                EmploymentCard("Employment Overview", employee)
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Address Information
-            AddressCard("Address Information", employee)
-            Spacer(modifier = Modifier.height(16.dp))
+                // Contact Information
+                ContactCard("Contact Information", employee)
 
-            // Employment Overview
-            EmploymentCard("Employment Overview", employee)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Contact Information
-            ContactCard("Contact Information", employee)
+                Spacer(modifier = Modifier.height(32.dp)) // Padding at the bottom
+            }
         }
     }
 }

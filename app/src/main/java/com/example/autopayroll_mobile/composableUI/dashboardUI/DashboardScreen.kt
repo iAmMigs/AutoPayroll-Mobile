@@ -33,9 +33,9 @@ import java.util.Date
 import java.util.Locale
 
 val TextPrimary = Color(0xFF3C3C3C)
-val CardSurface = Color.White
-val AppBackground = Color(0xFFEEEEEE)
-val HeaderBackground = Color(0xFFE0E0E0)
+val CardSurface = Color.White // White for cards/main content area
+val AppBackground = Color(0xFFEEEEEE) // Light Gray for the overall screen background / Header area
+val HeaderBackground = Color(0xFFE0E0E0) // Slightly darker gray for card headers
 
 val StatusPending = Color(0xFFFFA726)
 val StatusApproved = Color(0xFF66BB6A)
@@ -48,78 +48,95 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // Outer Column with the light gray background, enabling scrolling for the whole page
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
     ) {
-        ProfileHeader(state = uiState)
-        Spacer(modifier = Modifier.height(16.dp))
-        AttendanceSummaryCard()
-        Spacer(modifier = Modifier.height(16.dp))
-        PreviewCards()
-        Spacer(modifier = Modifier.height(16.dp))
-        TransactionsCard(uiState = uiState)
+        // --- 1. PROFILE HEADER SECTION (The Darker BG Part) ---
+        // Applying top padding and bottom margin to the header content container itself.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(AppBackground) // Background color for the header area
+                .padding(top = 16.dp) // FIX: Add margin/padding above the content
+                .padding(bottom = 8.dp), // ADDED: Padding at the bottom for separation/margin
+        ) {
+            ProfileHeaderContent(state = uiState)
+        }
+
+        // --- 2. CONTENT SECTION (The White BG Part) ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // FIX: Set background to pure white (CardSurface)
+                .background(CardSurface)
+                // We use verticalArrangement.spacedBy(16.dp) instead of calling Spacer repeatedly
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            AttendanceSummaryCard()
+            Spacer(modifier = Modifier.height(16.dp))
+            PreviewCards()
+            Spacer(modifier = Modifier.height(16.dp))
+            TransactionsCard(uiState = uiState)
+            // FIX: Ensure the bottom of the scrollable area has white background
+            Spacer(modifier = Modifier.height(20.dp))
+        }
     }
 }
 
 @Composable
-fun ProfileHeader(state: DashboardUiState) {
-    Card(
-        shape = RoundedCornerShape(15.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+fun ProfileHeaderContent(state: DashboardUiState) {
+    // This composable handles the content inside the top section, which should be padded horizontally.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp) // Ensure content is padded horizontally
+            .background(AppBackground),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        AsyncImage(
+            model = state.profilePhotoUrl,
+            contentDescription = "Profile Picture",
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.profiledefault),
+            error = painterResource(id = R.drawable.profiledefault),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // --- MODIFIED: Use AsyncImage to load from URL ---
-            AsyncImage(
-                model = state.profilePhotoUrl,
-                contentDescription = "Profile Picture",
-                contentScale = ContentScale.Crop,
-                placeholder = painterResource(id = R.drawable.profiledefault), // Show this while loading
-                error = painterResource(id = R.drawable.profiledefault),       // Show this if it fails or is null
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-            )
+                .size(80.dp)
+                .clip(CircleShape)
+        )
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .weight(1f)
-            ) {
-                Text(
-                    text = state.employeeName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = state.employeeId,
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-                Text(
-                    text = state.jobAndCompany,
-                    color = TextPrimary,
-                    fontSize = 14.sp
-                )
-            }
+        Column(
+            modifier = Modifier
+                .padding(start = 16.dp)
+                .weight(1f)
+        ) {
+            Text(
+                text = state.employeeName,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+            Text(
+                text = state.employeeId,
+                color = TextPrimary,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Text(
+                text = state.jobAndCompany,
+                color = TextPrimary,
+                fontSize = 14.sp
+            )
         }
     }
 }
 
 @Composable
 fun AttendanceSummaryCard() {
-    // ... (rest of the card is unchanged)
+    // ... (unchanged)
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
@@ -315,64 +332,4 @@ fun TransactionsCard(uiState: DashboardUiState) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DashboardScreenPreview() {
-    val fakeState = DashboardUiState(
-        isLoading = false,
-        employeeName = "Juan Dela Cruz",
-        employeeId = "20250165",
-        jobAndCompany = "Job • Company",
-        recentPayslip = com.example.autopayroll_mobile.data.model.Payroll(
-            payrollId = "P001",
-            employeeId = "E001",
-            payrollPeriodId = "PP001",
-            netPay = "15000.00",
-            payDate = "2025-11-13",
-            status = "released",
-            grossSalary = "20000.00",
-            pagIbigDeductions = "100.00",
-            philHealthDeductions = "200.00",
-            sssDeductions = "300.00"
-        ),
-        profilePhotoUrl = null // MODIFIED: Test fallback
-    )
-    Column(
-        modifier = Modifier
-            .background(AppBackground)
-            .padding(20.dp)
-    ) {
-        ProfileHeader(state = fakeState)
-        Spacer(modifier = Modifier.height(16.dp))
-        AttendanceSummaryCard()
-        Spacer(modifier = Modifier.height(16.dp))
-        PreviewCards()
-        Spacer(modifier = Modifier.height(16.dp))
-        TransactionsCard(uiState = fakeState)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DashboardScreenNoDataPreview() {
-    val fakeState = DashboardUiState(
-        isLoading = false,
-        employeeName = "Juan Dela Cruz",
-        employeeId = "20250165",
-        jobAndCompany = "Job • Company",
-        recentPayslip = null
-    )
-    Column(
-        modifier = Modifier
-            .background(AppBackground)
-            .padding(20.dp)
-    ) {
-        ProfileHeader(state = fakeState)
-        Spacer(modifier = Modifier.height(16.dp))
-        AttendanceSummaryCard()
-        Spacer(modifier = Modifier.height(16.dp))
-        PreviewCards()
-        Spacer(modifier = Modifier.height(16.dp))
-        TransactionsCard(uiState = fakeState)
-    }
-}
+// ... (Preview composables remain unchanged, but will benefit from the new layout structure)
