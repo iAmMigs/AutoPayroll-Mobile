@@ -42,6 +42,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.example.autopayroll_mobile.data.qrModule.TodayAttendanceResponse
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.util.concurrent.ExecutorService
@@ -64,6 +65,9 @@ class QrScannerFragment : Fragment() {
     private var isRequestingLocationUpdates = false
     private var isProcessingQr = false
     private var employeeProfile: Employee? = null
+
+    // NEW: Variable to hold today's actual attendance log
+    private var todayAttendanceLog: TodayAttendanceResponse? = null
 
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -103,14 +107,61 @@ class QrScannerFragment : Fragment() {
         }
 
         checkCameraPermission()
-        fetchEmployeeProfile()
+        fetchEmployeeProfileAndAttendance() // Combine profile and status fetching
 
         binding.clockInButton.setOnClickListener {
             submitAttendance("clock-in")
         }
 
+        // Clock Out Listener: Shows confirmation dialog first
         binding.clockOutButton.setOnClickListener {
-            submitAttendance("clock-out")
+            showClockOutConfirmationDialog()
+        }
+    }
+
+    // NEW: Function to check both profile and attendance status
+    private fun fetchEmployeeProfileAndAttendance() {
+        showLoading("Getting user profile and attendance status...")
+
+        val apiService = ApiClient.getClient(requireContext().applicationContext)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                employeeProfile = apiService.getEmployeeProfile()
+                todayAttendanceLog = apiService.getTodayAttendance()
+
+                hideLoading()
+
+                // Determine status and set message
+                val log = todayAttendanceLog?.data
+
+                if (log == null) {
+                    // No log found: Needs Clock In
+                    binding.instructionTextView.visibility = View.VISIBLE
+                    showToast("Ready to clock in.")
+                } else if (log.clock_out_time == null) {
+                    // Clock In exists, Clock Out is missing: Needs Clock Out
+                    binding.statusTextView.text = "You are currently clocked in."
+                    binding.statusTextView.visibility = View.VISIBLE
+                    binding.instructionTextView.visibility = View.VISIBLE // Keep instructions visible for scanning
+                } else {
+                    // Both exist: Completed
+                    binding.statusTextView.text = "You have already clocked out for today."
+                    binding.statusTextView.visibility = View.VISIBLE
+                    // Stop, no need to scan
+                    return@launch
+                }
+
+                Log.d("QrScannerFragment", "Attendance status loaded. Log: $log")
+
+                startCamera()
+                startLocationUpdates()
+
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("QrScannerFragment", "Failed to get initial data", e)
+                showToast("Error: Could not load data. Please check connection.")
+            }
         }
     }
 
@@ -153,7 +204,7 @@ class QrScannerFragment : Fragment() {
     private fun checkLocationEnabledAndStart() {
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            // Good.
+            // Location is enabled.
         } else {
             AlertDialog.Builder(requireContext())
                 .setMessage("Location services are disabled. Please enable location to proceed.")
@@ -169,32 +220,12 @@ class QrScannerFragment : Fragment() {
         }
     }
 
-    private fun fetchEmployeeProfile() {
-        showLoading("Getting user profile...")
-
-        // Use applicationContext to be consistent with ViewModels
-        val apiService = ApiClient.getClient(requireContext().applicationContext)
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                employeeProfile = apiService.getEmployeeProfile()
-                hideLoading()
-                binding.instructionTextView.visibility = View.VISIBLE
-                Log.d("QrScannerFragment", "Employee profile loaded. Company ID: ${employeeProfile?.companyId}")
-
-                startCamera()
-                startLocationUpdates()
-
-            } catch (e: Exception) {
-                hideLoading()
-                Log.e("QrScannerFragment", "Failed to get employee profile", e)
-                showToast("Error: Could not load your profile. Please log out and back in.")
-            }
-        }
-    }
+    // NOTE: Removed old fetchEmployeeProfile() as it's merged into fetchEmployeeProfileAndAttendance()
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
+        if (todayAttendanceLog?.data?.clock_out_time != null) return // Already completed, don't need location
+
         if (!isRequestingLocationUpdates) {
             val locationRequest = LocationRequest.create().apply {
                 priority = LocationRequest.PRIORITY_HIGH_ACCURACY
@@ -229,6 +260,9 @@ class QrScannerFragment : Fragment() {
     }
 
     private fun startCamera() {
+        // Only start camera if not already completed for the day
+        if (todayAttendanceLog?.data?.clock_out_time != null) return
+
         binding.statusTextView.visibility = View.GONE
         binding.instructionTextView.visibility = View.VISIBLE
         resetButtonState()
@@ -290,6 +324,16 @@ class QrScannerFragment : Fragment() {
                                 return@addOnSuccessListener
                             }
 
+                            // Check if user already completed the log (Clock Out exists)
+                            if (todayAttendanceLog?.data?.clock_out_time != null) {
+                                activity?.runOnUiThread {
+                                    binding.statusTextView.text = "Already clocked out today."
+                                    binding.statusTextView.visibility = View.VISIBLE
+                                }
+                                return@addOnSuccessListener
+                            }
+
+
                             if (qrData.company_id == employeeProfile!!.companyId) {
                                 scannedQrData = qrData
                                 activity?.runOnUiThread {
@@ -335,10 +379,26 @@ class QrScannerFragment : Fragment() {
             activity?.runOnUiThread {
                 binding.statusTextView.text = "QR and Location acquired. Ready."
                 binding.statusTextView.visibility = View.VISIBLE
-                binding.clockInButton.visibility = View.VISIBLE
-                binding.clockOutButton.visibility = View.VISIBLE
-                binding.clockInButton.isEnabled = true
-                binding.clockOutButton.isEnabled = true
+
+                // Determine if we show Clock In or Clock Out
+                val log = todayAttendanceLog?.data
+
+                if (log == null) {
+                    // Case 1: Needs Clock In (No log exists)
+                    binding.clockInButton.visibility = View.VISIBLE
+                    binding.clockInButton.isEnabled = true
+                    binding.clockOutButton.visibility = View.GONE
+                } else if (log.clock_out_time == null) {
+                    // Case 2: Needs Clock Out (Log exists, no clock_out_time)
+                    binding.clockInButton.visibility = View.GONE
+                    binding.clockOutButton.visibility = View.VISIBLE
+                    binding.clockOutButton.isEnabled = true
+                } else {
+                    // Case 3: Already Clocked Out (Should have been handled earlier, but for safety)
+                    resetButtonState()
+                    binding.statusTextView.text = "Already clocked out today."
+                    binding.statusTextView.visibility = View.VISIBLE
+                }
 
                 binding.instructionTextView.visibility = View.GONE
                 stopCamera()
@@ -354,9 +414,42 @@ class QrScannerFragment : Fragment() {
         binding.clockOutButton.isEnabled = false
     }
 
+    // NEW: Clock Out Confirmation Dialog
+    private fun showClockOutConfirmationDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Clock Out")
+            .setMessage("Are you sure you want to clock out?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                dialog.dismiss()
+                submitAttendance("clock-out")
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                dialog.dismiss()
+                // Keep buttons visible and ready after cancellation
+                binding.statusTextView.text = "Clock Out cancelled. Ready."
+                binding.statusTextView.visibility = View.VISIBLE
+            }
+            .show()
+    }
+
     private fun submitAttendance(action: String) {
         if (scannedQrData == null || currentLocation == null) {
             showToast("QR Code and location are required.")
+            return
+        }
+
+        // Final check for already clocked in/out status before API call
+        val log = todayAttendanceLog?.data
+        if (action == "clock-in" && log?.clock_in_time != null) {
+            showToast("Error: Already clocked in today.")
+            return
+        }
+        if (action == "clock-out" && log?.clock_out_time != null) {
+            showToast("Error: Already clocked out today.")
+            return
+        }
+        if (action == "clock-out" && log == null) {
+            showToast("Error: Cannot clock out without clocking in.")
             return
         }
 
@@ -370,7 +463,6 @@ class QrScannerFragment : Fragment() {
             longitude = currentLocation!!.longitude
         )
 
-        // Use applicationContext to be consistent
         val apiService = ApiClient.getClient(requireContext().applicationContext)
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -383,11 +475,8 @@ class QrScannerFragment : Fragment() {
                 hideLoading()
                 showToast(response.message)
 
-                scannedQrData = null
-                currentLocation = null
-                resetButtonState()
-                startCamera()
-                startLocationUpdates()
+                // On success, refetch status to update buttons and UI correctly
+                fetchEmployeeProfileAndAttendance()
 
             } catch (e: Exception) {
                 hideLoading()
@@ -396,28 +485,25 @@ class QrScannerFragment : Fragment() {
                 var errorMessage = e.message ?: "An unknown error occurred"
 
                 if (e is HttpException) {
-                    if (e.code() == 500) { // Replace para di http
-                        errorMessage = "A server error occurred. Please try again later."
-                    } else {
-                        try {
-                            val errorBody = e.response()?.errorBody()?.string()
-                            if (errorBody != null) {
-                                val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
-                                errorMessage = errorResponse.message
-                            }
-                        } catch (jsonError: Exception) {
-                            Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
+                    // The server returns 400 for already clocked in/out or geofence error (AttendanceController.php)
+                    try {
+                        val errorBody = e.response()?.errorBody()?.string()
+                        if (errorBody != null) {
+                            val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
+                            errorMessage = errorResponse.message
                         }
+                    } catch (jsonError: Exception) {
+                        Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
                     }
                 }
 
                 showToast(errorMessage)
 
+                // Reset state to force rescan after failed submission
                 scannedQrData = null
                 currentLocation = null
-                resetButtonState()
-                startCamera()
-                startLocationUpdates()
+                // Re-fetch status to ensure button visibility is correct after error
+                fetchEmployeeProfileAndAttendance()
             }
         }
     }
@@ -458,11 +544,7 @@ class QrScannerFragment : Fragment() {
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
             if (employeeProfile != null) {
-                scannedQrData = null
-                currentLocation = null
-                resetButtonState()
-                startCamera()
-                startLocationUpdates()
+                fetchEmployeeProfileAndAttendance()
             }
         }
     }

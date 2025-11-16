@@ -7,7 +7,7 @@ import com.example.autopayroll_mobile.data.qrModule.ClockInOutResponse
 import com.example.autopayroll_mobile.data.loginModule.LoginRequest
 import com.example.autopayroll_mobile.data.loginModule.LoginResponse
 //import com.example.autopayroll_mobile.data.model.Schedule // TODO: Create data class Schedule
-//import com.example.autopayroll_mobile.data.model.TodayAttendanceResponse // TODO: Create data class TodayAttendanceResponse
+import com.example.autopayroll_mobile.data.qrModule.TodayAttendanceResponse // ## NEW IMPORT (Assuming it's defined now) ##
 //import com.example.autopayroll_mobile.data.model.PasswordResetRequest // TODO: Create data class PasswordResetRequest
 //import com.example.autopayroll_mobile.data.model.PasswordResetResponse // TODO: Create data class PasswordResetResponse
 //import com.example.autopayroll_mobile.data.model.LeaveRequest // TODO: Create data class LeaveRequest
@@ -63,10 +63,9 @@ interface ApiService {
     @POST("api/attendance/clock-out")
     suspend fun clockOut(@Body request: ClockInOutRequest): ClockInOutResponse
 
-    // TODO: Wait Until Needed
-//    @GET("api/attendance/today")
-//    suspend fun getTodayAttendance(): TodayAttendanceResponse
-
+    // ## UNCOMMENTED/FIXED: Get Today's Attendance ##
+    @GET("api/attendance/today")
+    suspend fun getTodayAttendance(): TodayAttendanceResponse
 
 
     // --- Payroll Endpoint ---
@@ -122,5 +121,5 @@ interface ApiService {
 //    suspend fun getCompanies(): List<Company> // Assuming it returns a list
     // TODO: Wait Until Needed
 //    @GET("api/schedules")
-//    susWpend fun getSchedules(): List<Schedule> // Assuming it returns a list
+//    suspend fun getSchedules(): List<Schedule> // Assuming it returns a list
 }
