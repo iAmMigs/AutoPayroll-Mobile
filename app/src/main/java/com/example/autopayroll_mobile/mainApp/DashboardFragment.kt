@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.autopayroll_mobile.composableUI.DashboardScreen
+import com.example.autopayroll_mobile.composableUI.dashboardUI.DashboardScreen
 import com.example.autopayroll_mobile.viewmodel.DashboardViewModel
 
 class DashboardFragment : Fragment() {

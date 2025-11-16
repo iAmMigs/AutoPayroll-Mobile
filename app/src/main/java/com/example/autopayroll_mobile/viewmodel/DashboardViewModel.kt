@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.Employee
+import com.example.autopayroll_mobile.data.model.Payroll
+import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,57 +16,67 @@ data class DashboardUiState(
     val isLoading: Boolean = true,
     val employeeName: String = "Loading...",
     val employeeId: String = "...",
-    val jobAndCompany: String = "Loading..."
+    val jobAndCompany: String = "Loading...",
+    val recentPayslip: Payroll? = null,
+    val profilePhotoUrl: String? = null // ADDED: To hold the image URL
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
-    // private val sessionManager = SessionManager(application.applicationContext) // Not needed
     private val apiService = ApiClient.getClient(application.applicationContext)
+    private val baseUrl = "https://autopayroll.org" // Base URL for constructing image paths
 
-    // A "StateFlow" that the UI will listen to for changes
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
 
     init {
-        fetchData() // Fetch data as soon as the ViewModel is created
+        fetchData()
     }
 
-    // You can call this from your UI to refresh
     fun refreshData() {
         fetchData()
     }
 
     private fun fetchData() {
-        // Set state to loading
         _uiState.value = DashboardUiState(isLoading = true)
 
-        // Launch a coroutine in the ViewModel's own scope
         viewModelScope.launch {
             try {
-                // --- THIS IS THE SIMPLIFIED LOGIC ---
-
-                // 1. Call the new function. No ID is needed.
-                // The AuthInterceptor automatically adds the token.
                 val employee: Employee = apiService.getEmployeeProfile()
+                val payrollResponse: PayrollResponse = apiService.getPayrolls()
 
-                // 2. Update the UI state with all data at once.
-                // We can now use employee.companyName!
+                val mostRecentPayslip = payrollResponse.data
+                    .sortedByDescending { it.payDate }
+                    .firstOrNull()
+
+                // --- MODIFIED: Construct the full photo URL ---
+                val fullPhotoUrl = employee.profilePhoto?.let { path ->
+                    if (path.startsWith("http")) {
+                        path // It's already a full URL
+                    } else {
+                        // It's a relative path. Remove potential leading slash.
+                        "$baseUrl/" + path.removePrefix("/")
+                    }
+                }
+
                 _uiState.value = DashboardUiState(
                     isLoading = false,
                     employeeName = "${employee.firstName} ${employee.lastName}",
                     employeeId = employee.employeeId,
-                    jobAndCompany = "${employee.jobPosition} • ${employee.companyName}"
+                    jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
+                    recentPayslip = mostRecentPayslip,
+                    profilePhotoUrl = fullPhotoUrl // Set the URL here
                 )
 
             } catch (e: Exception) {
-                Log.e("DashboardViewModel", "Error fetching employee profile", e)
-                // Handle the error
+                Log.e("DashboardViewModel", "Error fetching dashboard data", e)
                 _uiState.value = DashboardUiState(
                     isLoading = false,
                     employeeName = "Error loading data",
                     employeeId = "N/A",
-                    jobAndCompany = "Error: ${e.message}"
+                    jobAndCompany = "Error: ${e.message}",
+                    recentPayslip = null,
+                    profilePhotoUrl = null // Ensure it's null on error
                 )
             }
         }

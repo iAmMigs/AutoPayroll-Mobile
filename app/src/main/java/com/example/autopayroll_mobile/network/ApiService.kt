@@ -4,8 +4,8 @@ import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutResponse
-import com.example.autopayroll_mobile.data.model.LoginRequest
-import com.example.autopayroll_mobile.data.model.LoginResponse
+import com.example.autopayroll_mobile.data.loginModule.LoginRequest
+import com.example.autopayroll_mobile.data.loginModule.LoginResponse
 //import com.example.autopayroll_mobile.data.model.Schedule // TODO: Create data class Schedule
 //import com.example.autopayroll_mobile.data.model.TodayAttendanceResponse // TODO: Create data class TodayAttendanceResponse
 //import com.example.autopayroll_mobile.data.model.PasswordResetRequest // TODO: Create data class PasswordResetRequest
@@ -40,8 +40,8 @@ interface ApiService {
     suspend fun login(@Body loginRequest: LoginRequest): LoginResponse
 
 
-    @POST("api/employee/{id}/logout")
-    suspend fun logout(@Path("id") employeeId: Int): Response<Unit>
+    @POST("api/employee/logout")
+    suspend fun logout(): Response<Unit>
 
     // TODO: Wait Until Needed
 //    @POST("api/employee/password-reset")

@@ -121,6 +121,9 @@ dependencies {
     // Tooling for debugging and inspection
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    //Coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

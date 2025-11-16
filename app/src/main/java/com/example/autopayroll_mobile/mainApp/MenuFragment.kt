@@ -2,18 +2,21 @@ package com.example.autopayroll_mobile
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.example.autopayroll_mobile.databinding.FragmentMenuBinding
 import com.example.autopayroll_mobile.mainApp.ProfileFragment
 import com.example.autopayroll_mobile.auth.LoginActivity
-// ## 1. REMOVE THE OLD IMPORT ##
-// import com.example.autopayroll_mobile.leaveRequest.LeaveRequest
-// ## 2. ADD THE NEW IMPORT ##
+// import com.example.autopayroll_mobile.leaveRequest.LeaveRequest // (Old import)
 import com.example.autopayroll_mobile.mainApp.LeaveModuleFragment
+import com.example.autopayroll_mobile.network.ApiClient
+import com.example.autopayroll_mobile.network.ApiService
 import com.example.autopayroll_mobile.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class MenuFragment : Fragment() {
 
@@ -21,6 +24,7 @@ class MenuFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var sessionManager: SessionManager
+    private lateinit var apiService: ApiService
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,6 +33,7 @@ class MenuFragment : Fragment() {
         _binding = FragmentMenuBinding.inflate(inflater, container, false)
 
         sessionManager = SessionManager(requireContext())
+        apiService = ApiClient.getClient(requireContext().applicationContext)
 
         return binding.root
     }
@@ -38,12 +43,29 @@ class MenuFragment : Fragment() {
 
         // --- Logout Button Listener (UPDATED) ---
         binding.logoutButton.setOnClickListener {
-            sessionManager.clearSession()
 
-            val intent = Intent(requireActivity(), LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            requireActivity().finish()
+            // Launch a coroutine in the fragment's lifecycle scope
+            lifecycleScope.launch {
+                try {
+
+                    apiService.logout()
+                    Log.d("MenuFragment", "Server logout successful.")
+
+                } catch (e: Exception) {
+
+                    Log.e("MenuFragment", "API logout failed, proceeding with local logout", e)
+                } finally {
+
+                    if (isAdded && activity != null) {
+                        sessionManager.clearSession()
+
+                        val intent = Intent(requireActivity(), LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        requireActivity().finish()
+                    }
+                }
+            }
         }
 
         // --- Profile Button Listener ---
@@ -55,7 +77,6 @@ class MenuFragment : Fragment() {
 
         // --- Leave Request Button Listener ---
         binding.btnLeaveRequest.setOnClickListener {
-            // ## 3. UPDATE THIS BLOCK ##
             parentFragmentManager.beginTransaction()
                 .replace(R.id.nav_host_fragment, LeaveModuleFragment()) // Use our new Fragment
                 .commit()
@@ -64,12 +85,10 @@ class MenuFragment : Fragment() {
         // --- Payroll Credit Button Listener ---
         binding.btnPayrollCredit.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                // ## UPDATE THIS LINE ##
                 .replace(R.id.nav_host_fragment, com.example.autopayroll_mobile.mainApp.AdjustmentModuleFragment())
                 .commit()
         }
 
-        // TODO: Settings and HELP.
     }
 
     override fun onDestroyView() {

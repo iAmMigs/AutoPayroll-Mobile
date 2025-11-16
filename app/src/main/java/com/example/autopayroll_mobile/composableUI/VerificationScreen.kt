@@ -1,10 +1,9 @@
 package com.example.autopayroll_mobile.composableUI
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,8 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,8 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.OutlinedTextFieldDefaults
 
 @Composable
 fun VerificationScreen(
@@ -115,55 +118,108 @@ fun OtpTextField(
     otpCount: Int = 6,
     onOtpTextChange: (String, Boolean) -> Unit
 ) {
-    val focusRequester = remember { FocusRequester() }
+    // A list to hold the individual digit values
+    val otpValues = remember { mutableStateListOf(*Array(otpCount) { "" }) }
+    // A list of focus requesters, one for each box
+    val focusRequesters = remember { List(otpCount) { FocusRequester() } }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    BasicTextField(
-        modifier = modifier.focusRequester(focusRequester),
-        value = otpText,
-        onValueChange = {
-            if (it.length <= otpCount) {
-                onOtpTextChange.invoke(it, it.length == otpCount)
-            }
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-        decorationBox = {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.clickable {
-                    focusRequester.requestFocus()
-                    keyboardController?.show()
-                }
-            ) {
-                repeat(otpCount) { index ->
-                    val char = when {
-                        index >= otpText.length -> ""
-                        else -> otpText[index].toString()
-                    }
-                    OutlinedTextField(
-                        modifier = Modifier
-                            .width(50.dp)
-                            .padding(2.dp),
-                        value = char,
-                        onValueChange = {},
-                        enabled = false, // <--- Important: Makes the field not intercept clicks
-                        readOnly = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center,
-                            fontSize = 20.sp
-                        )
-                    )
-                }
+    // This effect synchronizes the external otpText state with the internal list
+    // This is useful if the state is cleared from outside
+    LaunchedEffect(otpText) {
+        if (otpText.length <= otpCount && otpText != otpValues.joinToString("")) {
+            otpValues.forEachIndexed { index, _ ->
+                otpValues[index] = otpText.getOrNull(index)?.toString() ?: ""
             }
         }
-    )
+    }
+
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+    ) {
+        repeat(otpCount) { index ->
+            OutlinedTextField(
+                modifier = Modifier
+                    .width(50.dp)
+                    .padding(2.dp)
+                    .focusRequester(focusRequesters[index])
+                    .onKeyEvent { event ->
+                        // Handle backspace navigation
+                        if (event.key == Key.Backspace &&
+                            event.type == KeyEventType.KeyUp &&
+                            otpValues[index].isEmpty() &&
+                            index > 0
+                        ) {
+                            focusRequesters[index - 1].requestFocus()
+                            return@onKeyEvent true
+                        }
+                        false
+                    },
+                value = otpValues[index],
+                onValueChange = { newValue ->
+                    // Handle space key press to move next
+                    if (newValue.endsWith(" ")) {
+                        if (index < otpCount - 1) {
+                            focusRequesters[index + 1].requestFocus()
+                        }
+                        return@OutlinedTextField
+                    }
+
+                    // Filter to keep only the last digit entered
+                    val newChar = newValue.filter { it.isDigit() }.takeLast(1)
+
+                    if (otpValues[index] != newChar) {
+                        otpValues[index] = newChar
+
+                        // Re-calculate the full OTP string
+                        val fullOtp = otpValues.joinToString("")
+                        onOtpTextChange(fullOtp, fullOtp.length == otpCount)
+
+                        // Move focus to the next box if a digit was entered
+                        if (newChar.isNotEmpty() && index < otpCount - 1) {
+                            focusRequesters[index + 1].requestFocus()
+                        }
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = if (index == otpCount - 1) ImeAction.Done else ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        if (index < otpCount - 1) {
+                            focusRequesters[index + 1].requestFocus()
+                        }
+                    },
+                    onDone = {
+                        keyboardController?.hide()
+                        // Optionally, trigger verification here if otp is full
+                        // onVerify(otpValues.joinToString(""))
+                    }
+                ),
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp
+                ),
+                shape = RoundedCornerShape(8.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                )
+            )
+        }
+    }
+
+    // Request focus on the first empty box when the composable is first displayed
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        val firstEmpty = otpValues.indexOfFirst { it.isEmpty() }
+        if (firstEmpty != -1) {
+            focusRequesters[firstEmpty].requestFocus()
+        } else {
+            focusRequesters[0].requestFocus()
+        }
         keyboardController?.show()
     }
 }

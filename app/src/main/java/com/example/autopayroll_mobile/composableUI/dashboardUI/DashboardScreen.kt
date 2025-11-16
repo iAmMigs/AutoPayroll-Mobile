@@ -1,5 +1,8 @@
-package com.example.autopayroll_mobile.composableUI
+package com.example.autopayroll_mobile.composableUI.dashboardUI
 
+// Import the new Coil composable
+import coil.compose.AsyncImage
+// --- other imports ---
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,10 +28,19 @@ import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.viewmodel.DashboardUiState
 import com.example.autopayroll_mobile.viewmodel.DashboardViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 val TextPrimary = Color(0xFF3C3C3C)
 val CardSurface = Color.White
 val AppBackground = Color(0xFFEEEEEE)
+val HeaderBackground = Color(0xFFE0E0E0)
+
+val StatusPending = Color(0xFFFFA726)
+val StatusApproved = Color(0xFF66BB6A)
+val StatusRejected = Color(0xFFEF5350)
+val StatusDefault = Color(0xFF9E9E9E)
 
 @Composable
 fun DashboardScreen(
@@ -49,7 +61,7 @@ fun DashboardScreen(
         Spacer(modifier = Modifier.height(16.dp))
         PreviewCards()
         Spacer(modifier = Modifier.height(16.dp))
-        TransactionsCard()
+        TransactionsCard(uiState = uiState)
     }
 }
 
@@ -66,10 +78,13 @@ fun ProfileHeader(state: DashboardUiState) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.profiledefault),
+            // --- MODIFIED: Use AsyncImage to load from URL ---
+            AsyncImage(
+                model = state.profilePhotoUrl,
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.profiledefault), // Show this while loading
+                error = painterResource(id = R.drawable.profiledefault),       // Show this if it fails or is null
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
@@ -104,6 +119,7 @@ fun ProfileHeader(state: DashboardUiState) {
 
 @Composable
 fun AttendanceSummaryCard() {
+    // ... (rest of the card is unchanged)
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
@@ -131,6 +147,7 @@ fun AttendanceSummaryCard() {
 
 @Composable
 fun StatItem(title: String, value: String, modifier: Modifier = Modifier) {
+    // ... (unchanged)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -147,6 +164,7 @@ fun StatItem(title: String, value: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun PreviewCards() {
+    // ... (unchanged)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -166,6 +184,7 @@ fun PreviewCards() {
 
 @Composable
 fun PreviewCard(title: String, value: String, modifier: Modifier = Modifier) {
+    // ... (unchanged)
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(15.dp),
@@ -189,11 +208,23 @@ fun PreviewCard(title: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
+fun formatDate(dateString: String): String {
+    // ... (unchanged)
+    return try {
+        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val formatter = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
+        formatter.format(parser.parse(dateString) ?: Date())
+    } catch (e: Exception) {
+        dateString
+    }
+}
+
 @Composable
-fun TransactionsCard() {
+fun TransactionsCard(uiState: DashboardUiState) {
+    // ... (unchanged)
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Transactions",
+            text = "Most Recent Payslip",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF3C3C3C),
@@ -205,23 +236,79 @@ fun TransactionsCard() {
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(HeaderBackground)
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
                     Text(text = "Net Earning", fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
                     Text(text = "Pay Date", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = TextPrimary, modifier = Modifier.weight(1f))
                     Text(text = "Status", fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = TextPrimary, modifier = Modifier.weight(1f))
                 }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp),
+                        .height(134.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No transactions to show.",
-                        color = Color(0xFFA0A0A0),
-                        fontSize = 16.sp
-                    )
+                    when {
+                        uiState.isLoading -> {
+                            CircularProgressIndicator()
+                        }
+                        uiState.recentPayslip != null -> {
+                            val payslip = uiState.recentPayslip
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "₱${payslip.netPay}",
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = formatDate(payslip.payDate),
+                                    textAlign = TextAlign.Center,
+                                    color = TextPrimary,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 16.sp
+                                )
+                                val statusText = payslip.status.replaceFirstChar { it.uppercase() }
+                                val statusColor = when (payslip.status.toLowerCase(Locale.ROOT)) {
+                                    "pending" -> StatusPending
+                                    "released" -> StatusApproved
+                                    "rejected" -> StatusRejected
+                                    else -> StatusDefault
+                                }
+                                Text(
+                                    text = statusText,
+                                    textAlign = TextAlign.Center,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .align(Alignment.CenterVertically)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(statusColor)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = "No payslip to show.",
+                                color = Color(0xFFA0A0A0),
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -235,7 +322,20 @@ fun DashboardScreenPreview() {
         isLoading = false,
         employeeName = "Juan Dela Cruz",
         employeeId = "20250165",
-        jobAndCompany = "Job • Company"
+        jobAndCompany = "Job • Company",
+        recentPayslip = com.example.autopayroll_mobile.data.model.Payroll(
+            payrollId = "P001",
+            employeeId = "E001",
+            payrollPeriodId = "PP001",
+            netPay = "15000.00",
+            payDate = "2025-11-13",
+            status = "released",
+            grossSalary = "20000.00",
+            pagIbigDeductions = "100.00",
+            philHealthDeductions = "200.00",
+            sssDeductions = "300.00"
+        ),
+        profilePhotoUrl = null // MODIFIED: Test fallback
     )
     Column(
         modifier = Modifier
@@ -248,6 +348,31 @@ fun DashboardScreenPreview() {
         Spacer(modifier = Modifier.height(16.dp))
         PreviewCards()
         Spacer(modifier = Modifier.height(16.dp))
-        TransactionsCard()
+        TransactionsCard(uiState = fakeState)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenNoDataPreview() {
+    val fakeState = DashboardUiState(
+        isLoading = false,
+        employeeName = "Juan Dela Cruz",
+        employeeId = "20250165",
+        jobAndCompany = "Job • Company",
+        recentPayslip = null
+    )
+    Column(
+        modifier = Modifier
+            .background(AppBackground)
+            .padding(20.dp)
+    ) {
+        ProfileHeader(state = fakeState)
+        Spacer(modifier = Modifier.height(16.dp))
+        AttendanceSummaryCard()
+        Spacer(modifier = Modifier.height(16.dp))
+        PreviewCards()
+        Spacer(modifier = Modifier.height(16.dp))
+        TransactionsCard(uiState = fakeState)
     }
 }

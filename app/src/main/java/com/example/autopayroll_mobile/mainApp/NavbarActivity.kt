@@ -11,7 +11,10 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
-import androidx.appcompat.app.AppCompatActivity
+// ## MODIFIED ##
+// import androidx.appcompat.app.AppCompatActivity
+// Now extends BaseActivity to get inactivity timer
+import com.example.autopayroll_mobile.mainApp.BaseActivity
 import androidx.camera.core.ExperimentalGetImage
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -24,7 +27,9 @@ import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.databinding.NavbarmainBinding
 import com.example.autopayroll_mobile.mainApp.QrScannerFragment
 
-class NavbarActivity : AppCompatActivity() {
+// ## MODIFIED ##
+// class NavbarActivity : AppCompatActivity() {
+class NavbarActivity : BaseActivity() { // Now extends BaseActivity
 
     private lateinit var binding: NavbarmainBinding
     private var backPressedTime: Long = 0
@@ -47,7 +52,7 @@ class NavbarActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalGetImage::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(savedInstanceState) // This now calls BaseActivity.onCreate()
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -57,7 +62,7 @@ class NavbarActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this) {
             val twoSeconds = 2000
             if (backPressedTime + twoSeconds > System.currentTimeMillis()) {
-                finish()
+                finish() // This will trigger onDestroy and the isFinishing check
             } else {
                 Toast.makeText(this@NavbarActivity, "Click again to exit the app", Toast.LENGTH_SHORT).show()
             }
