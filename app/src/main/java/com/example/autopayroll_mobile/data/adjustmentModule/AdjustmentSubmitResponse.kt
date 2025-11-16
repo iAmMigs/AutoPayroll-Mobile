@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.AdjustmentModule
 
 /**
  * This wrapper class for the API response is UPDATED

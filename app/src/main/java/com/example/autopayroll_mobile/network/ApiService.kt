@@ -1,13 +1,11 @@
 package com.example.autopayroll_mobile.network
 
 import com.example.autopayroll_mobile.data.model.Employee
-import com.example.autopayroll_mobile.data.model.EmployeeApiResponse
 import com.example.autopayroll_mobile.data.model.PayrollResponse
-import com.example.autopayroll_mobile.data.model.ClockInOutRequest
-import com.example.autopayroll_mobile.data.model.ClockInOutResponse
+import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
+import com.example.autopayroll_mobile.data.qrModule.ClockInOutResponse
 import com.example.autopayroll_mobile.data.model.LoginRequest
 import com.example.autopayroll_mobile.data.model.LoginResponse
-import com.example.autopayroll_mobile.data.model.Company
 //import com.example.autopayroll_mobile.data.model.Schedule // TODO: Create data class Schedule
 //import com.example.autopayroll_mobile.data.model.TodayAttendanceResponse // TODO: Create data class TodayAttendanceResponse
 //import com.example.autopayroll_mobile.data.model.PasswordResetRequest // TODO: Create data class PasswordResetRequest
@@ -19,10 +17,9 @@ import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit
 import com.example.autopayroll_mobile.data.model.LeaveRequestSubmitResponse
 // ## REMOVED Obsolete Import ##
 // import com.example.autopayroll_mobile.data.model.AdjustmentRequestDetailResponse
-import com.example.autopayroll_mobile.data.model.AdjustmentRequestListResponse
-import com.example.autopayroll_mobile.data.model.AdjustmentSubmitResponse
-import com.example.autopayroll_mobile.data.model.AdjustmentTypesResponse
-import com.example.autopayroll_mobile.data.model.Announcement
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequestListResponse
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentSubmitResponse
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentTypesResponse
 import com.example.autopayroll_mobile.data.model.AnnouncementResponse
 import retrofit2.Response
 import retrofit2.http.Body

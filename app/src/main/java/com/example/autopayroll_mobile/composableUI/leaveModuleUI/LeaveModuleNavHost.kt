@@ -17,9 +17,7 @@ private object LeaveModuleRoutes {
 @Composable
 fun LeaveModuleNavHost(
     viewModel: LeaveModuleViewModel
-    // parentNavController: NavController // <-- REMOVED
 ) {
-    // This NavController is for navigating *between* the 3 screens below
     val internalNavController = rememberNavController()
 
     NavHost(

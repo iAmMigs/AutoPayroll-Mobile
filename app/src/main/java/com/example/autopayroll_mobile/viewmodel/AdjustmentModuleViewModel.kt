@@ -6,10 +6,9 @@ import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.autopayroll_mobile.data.model.AdjustmentModuleUiState
-import com.example.autopayroll_mobile.data.model.AdjustmentType
-import com.example.autopayroll_mobile.data.model.FormSubmissionStatus
-import com.example.autopayroll_mobile.data.model.AdjustmentSubmitResponse
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentType
+import com.example.autopayroll_mobile.data.AdjustmentModule.FormSubmissionStatus
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.network.PublicApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -292,7 +291,7 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                 formSubType = null,
                 formStartDate = "",
                 formEndDate = "",
-                formAffectedDate = "", // ## NEWLY ADDED ##
+                formAffectedDate = "",
                 formReason = "",
                 formAttachment = null,
                 submissionStatus = FormSubmissionStatus.IDLE,

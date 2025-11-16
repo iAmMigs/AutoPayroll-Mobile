@@ -29,9 +29,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.autopayroll_mobile.data.model.ApiErrorResponse
-import com.example.autopayroll_mobile.data.model.ClockInOutRequest
+import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
 import com.example.autopayroll_mobile.data.model.Employee
-import com.example.autopayroll_mobile.data.model.QRScanData
+import com.example.autopayroll_mobile.data.qrModule.QRScanData
 import com.example.autopayroll_mobile.databinding.FragmentQrScannerBinding
 import com.example.autopayroll_mobile.network.ApiClient
 import com.google.android.gms.location.*

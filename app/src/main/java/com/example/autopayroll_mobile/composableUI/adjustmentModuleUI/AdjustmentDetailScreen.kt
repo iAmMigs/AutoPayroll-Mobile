@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUI
+package com.example.autopayroll_mobile.composableUI.adjustmentModuleUI
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,8 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.autopayroll_mobile.data.model.AdjustmentModuleUiState
-import com.example.autopayroll_mobile.data.model.AdjustmentRequest
+import com.example.autopayroll_mobile.composableUI.StatusChip
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequest
 import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.ui.theme.TextSecondary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel

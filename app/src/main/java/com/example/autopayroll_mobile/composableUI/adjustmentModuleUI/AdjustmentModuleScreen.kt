@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUI
+package com.example.autopayroll_mobile.composableUI.adjustmentModuleUI
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -13,10 +13,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
-import com.example.autopayroll_mobile.composableUI.AdjustmentHubScreen
-import com.example.autopayroll_mobile.composableUI.AdjustmentTrackScreen
-import com.example.autopayroll_mobile.composableUI.AdjustmentFilingScreen
-import com.example.autopayroll_mobile.composableUI.AdjustmentDetailScreen
 
 object AdjustmentModuleDestinations {
     const val HUB_SCREEN = "hub"

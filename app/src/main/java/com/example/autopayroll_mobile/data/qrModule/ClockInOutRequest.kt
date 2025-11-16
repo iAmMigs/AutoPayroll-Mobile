@@ -1,5 +1,5 @@
 // In: data/model/ClockInOutRequest.kt
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.qrModule
 
 import com.google.gson.annotations.SerializedName
 

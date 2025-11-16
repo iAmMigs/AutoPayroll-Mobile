@@ -17,10 +17,6 @@ val StatusPending = Color(0xFFFFA000) // Orange
 val StatusApproved = Color(0xFF388E3C) // Green
 val StatusRejected = Color(0xFFD32F2F) // Red
 
-/**
- * A reusable Composable that displays a status chip based on the
- * text from the API.
- */
 @Composable
 fun StatusChip(status: String) {
     val (backgroundColor, textColor) = when (status.lowercase()) {

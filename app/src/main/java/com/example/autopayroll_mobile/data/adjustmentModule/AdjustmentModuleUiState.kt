@@ -1,7 +1,5 @@
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.AdjustmentModule
 
-import com.example.autopayroll_mobile.data.model.AdjustmentRequest
-import com.example.autopayroll_mobile.data.model.AdjustmentType
 import java.io.File
 
 /**

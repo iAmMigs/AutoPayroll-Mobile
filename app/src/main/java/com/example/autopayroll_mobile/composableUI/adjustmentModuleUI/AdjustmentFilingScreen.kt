@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.composableUI
+package com.example.autopayroll_mobile.composableUI.adjustmentModuleUI
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -7,7 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,16 +15,13 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.autopayroll_mobile.data.model.AdjustmentModuleUiState
-import com.example.autopayroll_mobile.data.model.AdjustmentType
-import com.example.autopayroll_mobile.data.model.FormSubmissionStatus
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
+import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentType
+import com.example.autopayroll_mobile.data.AdjustmentModule.FormSubmissionStatus
 import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
 import kotlinx.coroutines.launch
@@ -118,7 +114,6 @@ fun AdjustmentFilingScreen(
                 .verticalScroll(scrollState)
         ) {
 
-            // --- 1. Adjustment Type (Dropdown) ---
             MainTypeDropdown(
                 label = "Adjustment Type",
                 options = mainTypesMap,
@@ -130,7 +125,6 @@ fun AdjustmentFilingScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- 2. Sub Type (Dropdown) ---
             SubTypeDropdown(
                 options = subTypeOptions,
                 selectedOption = uiState.formSubType,
@@ -143,7 +137,6 @@ fun AdjustmentFilingScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- 3. Affected Date (Pickers) ---
             Text(
                 "For single-day requests:",
                 style = MaterialTheme.typography.bodySmall,

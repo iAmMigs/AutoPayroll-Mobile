@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.AdjustmentModule
 
 import com.google.gson.annotations.SerializedName
 

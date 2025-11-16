@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
-import com.example.autopayroll_mobile.composableUI.AdjustmentModuleScreen
+import com.example.autopayroll_mobile.composableUI.adjustmentModuleUI.AdjustmentModuleScreen
 
 /**
  * A "host" Fragment that replaces the old XML-based fragments.

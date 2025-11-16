@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.qrModule
 
 data class QrValidationResponse(
     // The server must return these three fields
