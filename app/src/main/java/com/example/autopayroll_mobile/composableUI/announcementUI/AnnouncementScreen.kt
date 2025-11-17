@@ -13,71 +13,96 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.viewmodel.AnnouncementUiItem
 import com.example.autopayroll_mobile.viewmodel.AnnouncementViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnnouncementScreen(
     viewModel: AnnouncementViewModel,
-    onAnnouncementClicked: (String) -> Unit // ## CHANGED: Pass the ID out
+    onAnnouncementClicked: (String) -> Unit
 ) {
     val announcements by viewModel.filteredAnnouncements.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val categories = viewModel.categories
     val isLoading by viewModel.isLoading.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Announcement") }
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-            TabRow(
-                selectedTabIndex = categories.indexOf(selectedCategory)
-            ) {
-                categories.forEach { category ->
-                    Tab(
-                        selected = category == selectedCategory,
-                        onClick = { viewModel.selectCategory(category) },
-                        text = { Text(category) }
-                    )
-                }
-            }
-
-            Box(
+    // Outer Box/Column to handle full screen and status bar padding
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+    ) {
+        Scaffold(
+            // Removed topBar parameter
+            containerColor = MaterialTheme.colorScheme.background // Ensure Scaffold uses theme background
+        ) { paddingValues ->
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(paddingValues)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else if (announcements.isEmpty()) {
-                    Text(
-                        text = "No announcements found.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(announcements, key = { it.id }) { item ->
-                            AnnouncementCard(
-                                item = item,
-                                onClick = {
-                                    // ## CHANGED: Call the lambda with the item's ID
-                                    onAnnouncementClicked(item.id)
-                                }
-                            )
+                // ADDED: Custom Title Header
+                Text(
+                    text = "Announcement",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 16.dp, bottom = 8.dp)
+                )
+
+                TabRow(
+                    selectedTabIndex = categories.indexOf(selectedCategory)
+                ) {
+                    categories.forEach { category ->
+                        Tab(
+                            selected = category == selectedCategory,
+                            onClick = { viewModel.selectCategory(category) },
+                            text = { Text(category) }
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp) // Removed vertical padding here, applied to the list
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else if (announcements.isEmpty()) {
+                        Text(
+                            text = "No announcements found.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 16.dp), // Added padding to list
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(announcements, key = { it.id }) { item ->
+                                AnnouncementCard(
+                                    item = item,
+                                    onClick = {
+                                        onAnnouncementClicked(item.id)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -86,7 +111,6 @@ fun AnnouncementScreen(
     }
 }
 
-// (AnnouncementCard composable is unchanged)
 @Composable
 fun AnnouncementCard(
     item: AnnouncementUiItem,
@@ -96,7 +120,8 @@ fun AnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        // FIX: Increased elevation from 2.dp to 4.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(

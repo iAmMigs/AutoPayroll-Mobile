@@ -48,53 +48,60 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Outer Column with the light gray background, enabling scrolling for the whole page
-    Column(
+    // Outer box to set the overall background color to WHITE (CardSurface) and handle insets
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppBackground)
-            .verticalScroll(rememberScrollState())
+            .background(CardSurface)
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // --- 1. PROFILE HEADER SECTION (The Darker BG Part) ---
-        // Applying top padding and bottom margin to the header content container itself.
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(AppBackground) // Background color for the header area
-                .padding(top = 16.dp) // FIX: Add margin/padding above the content
-                .padding(bottom = 8.dp), // ADDED: Padding at the bottom for separation/margin
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            ProfileHeaderContent(state = uiState)
-        }
+            // --- 1. PROFILE HEADER SECTION (Plain Column, White BG) ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardSurface)
+                    .padding(horizontal = 20.dp) // Apply horizontal padding here
+                    .padding(top = 16.dp) // Margin below the status bar
+                    .padding(bottom = 16.dp), // Padding at the bottom for separation/margin
+            ) {
+                // REMOVED: "Employee Dashboard" Title
 
-        // --- 2. CONTENT SECTION (The White BG Part) ---
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // FIX: Set background to pure white (CardSurface)
-                .background(CardSurface)
-                // We use verticalArrangement.spacedBy(16.dp) instead of calling Spacer repeatedly
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
-            AttendanceSummaryCard()
-            Spacer(modifier = Modifier.height(16.dp))
-            PreviewCards()
-            Spacer(modifier = Modifier.height(16.dp))
-            TransactionsCard(uiState = uiState)
-            // FIX: Ensure the bottom of the scrollable area has white background
-            Spacer(modifier = Modifier.height(20.dp))
+                ProfileHeaderContent(state = uiState)
+            }
+
+            // --- 2. CONTENT SECTION (The White BG Part) ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardSurface)
+                    .padding(horizontal = 20.dp) // Keep horizontal padding consistent
+                    .padding(top = 8.dp, bottom = 20.dp)
+            ) {
+                AttendanceSummaryCard()
+                Spacer(modifier = Modifier.height(32.dp)) // Increased spacing
+                PreviewCards()
+                Spacer(modifier = Modifier.height(32.dp)) // Increased spacing
+                TransactionsCard(uiState = uiState)
+                // Padding at the bottom for the scrolling content
+                Spacer(modifier = Modifier.height(40.dp)) // Increased final padding
+            }
         }
     }
 }
 
 @Composable
 fun ProfileHeaderContent(state: DashboardUiState) {
-    // This composable handles the content inside the top section, which should be padded horizontally.
+    // This composable handles the content inside the top section.
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp) // Ensure content is padded horizontally
-            .background(AppBackground),
+        // Removed horizontal padding here as it was applied to the parent Column
+        ,
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -123,7 +130,6 @@ fun ProfileHeaderContent(state: DashboardUiState) {
                 text = state.employeeId,
                 color = TextPrimary,
                 fontSize = 14.sp,
-                modifier = Modifier.padding(top = 4.dp)
             )
             Text(
                 text = state.jobAndCompany,
@@ -244,7 +250,7 @@ fun TransactionsCard(uiState: DashboardUiState) {
             text = "Most Recent Payslip",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF3C3C3C),
+            color = TextPrimary,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         Card(
@@ -331,5 +337,3 @@ fun TransactionsCard(uiState: DashboardUiState) {
         }
     }
 }
-
-// ... (Preview composables remain unchanged, but will benefit from the new layout structure)

@@ -54,6 +54,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 
 // Define custom design colors here, matching the Dashboard/Menu aesthetic
 val AppBackground = Color(0xFFEEEEEE) // Light Gray (Darker Header Background)
@@ -78,115 +81,114 @@ fun ProfileScreen(
     } else if (uiState.employee != null) {
         val employee = uiState.employee!!
 
-        Column(
+        // Outer Column/Box sets the entire background to WHITE and handles insets
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .background(AppBackground) // Outer background is the darker shade
+                .background(CardSurface) // Base background is White
+                .windowInsetsPadding(WindowInsets.statusBars) // Apply status bar padding
         ) {
-            // --- 1. HEADER AREA (Darker BG) ---
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AppBackground) // Ensure background is the darker shade
-                    .padding(horizontal = 16.dp) // Horizontal padding for the content
-                    .padding(bottom = 8.dp) // Margin separating it from the white area
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
             ) {
-                // Header (Back button and title)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                // --- 1. PROFILE HEADER SECTION (No Card, White Background) ---
+                Column(
                     modifier = Modifier
-                        .clickable { onBack() }
-                        .padding(top = 16.dp) // FIX: Add padding above the header content
+                        .fillMaxWidth()
+                        .background(CardSurface) // Explicitly set to White
+                        .padding(horizontal = 16.dp) // Horizontal padding for the content
+                        .padding(bottom = 24.dp) // Space before the first information card
                 ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.height(24.dp)) // Space below the title
-
-                // Profile Info Column (Photo, Name, Edit Button)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Box wrapper for Image to fix layout stretching
-                    Box(
+                    // Header (Back button and title)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray) // Placeholder background
+                            .clickable { onBack() }
+                            .padding(top = 16.dp) // Top padding below the status bar padding
                     ) {
-                        val painter = rememberAsyncImagePainter(
-                            model = employee.profilePhoto ?: R.drawable.profiledefault,
-                            error = painterResource(id = R.drawable.profiledefault)
-                        )
-                        Image(
-                            painter = painter,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(), // Fill the Box
-                            contentScale = ContentScale.Crop
-                        )
+                        Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
+                    Spacer(modifier = Modifier.height(24.dp)) // Space below the title
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    // Profile Info Row (Photo, Name, Edit Button)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Profile Picture
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray)
+                        ) {
+                            val painter = rememberAsyncImagePainter(
+                                model = employee.profilePhoto ?: R.drawable.profiledefault,
+                                error = painterResource(id = R.drawable.profiledefault)
+                            )
+                            Image(
+                                painter = painter,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
-                    // Column for Name and Title
-                    Column {
-                        Text("${employee.firstName} ${employee.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Column for Name and Title
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("${employee.firstName} ${employee.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
+                        }
+
+                        // Edit Button
+                        Button(
+                            onClick = { /* TODO: Edit Profile */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFBC02D), // Deeper Yellow
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 2.dp
+                            )
+                        ) {
+                            Text("Edit")
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp)) // Space between name and button
 
-                // New Row just for the Button, aligned to the end
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                // --- 2. CONTENT AREA (White BG - implicit from the outer Box) ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CardSurface) // Explicit white background for safety
+                        .padding(horizontal = 16.dp) // Horizontal padding for the content area
                 ) {
-                    Button(
-                        onClick = { /* TODO: Edit Profile */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFBC02D), // Deeper Yellow
-                            contentColor = Color.Black
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 2.dp
-                        )
-                    ) {
-                        Text("Edit")
-                    }
+                    // Personal Information
+                    InfoCard("Personal Information", R.drawable.ic_personal_info, employee)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Address Information
+                    AddressCard("Address Information", employee)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Employment Overview
+                    EmploymentCard("Employment Overview", employee)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Contact Information
+                    ContactCard("Contact Information", employee)
+
+                    Spacer(modifier = Modifier.height(32.dp)) // Padding at the bottom
                 }
-
-                Spacer(modifier = Modifier.height(24.dp)) // Space above the white section
-            }
-
-            // --- 2. CONTENT AREA (White BG) ---
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CardSurface) // FIX: White background starts here
-                    .padding(horizontal = 16.dp) // Horizontal padding for the content area
-            ) {
-                // Personal Information
-                InfoCard("Personal Information", R.drawable.ic_personal_info, employee)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Address Information
-                AddressCard("Address Information", employee)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Employment Overview
-                EmploymentCard("Employment Overview", employee)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Contact Information
-                ContactCard("Contact Information", employee)
-
-                Spacer(modifier = Modifier.height(32.dp)) // Padding at the bottom
             }
         }
     }
@@ -198,7 +200,7 @@ fun InfoCard(title: String, icon: Int, employee: Employee) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp) // <-- ADDED SHAPE
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,7 +249,7 @@ fun AddressCard(title: String, employee: Employee) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp) // <-- ADDED SHAPE
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +279,7 @@ fun EmploymentCard(title: String, employee: Employee) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp) // <-- ADDED SHAPE
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -315,7 +317,7 @@ fun ContactCard(title: String, employee: Employee) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp) // <-- ADDED SHAPE
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

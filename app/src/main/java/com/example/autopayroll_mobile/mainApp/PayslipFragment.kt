@@ -30,7 +30,12 @@ class PayslipFragment : Fragment() {
             setContent {
                 AutoPayrollMobileTheme {
                     PayslipScreen(
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        // FIX: Pass the required 'onBack' lambda.
+                        // This uses the Fragment Manager's popBackStack for simple back navigation.
+                        onBack = {
+                            requireActivity().supportFragmentManager.popBackStack()
+                        }
                     )
                 }
             }
