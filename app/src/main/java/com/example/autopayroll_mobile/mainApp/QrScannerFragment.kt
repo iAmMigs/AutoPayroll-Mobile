@@ -473,8 +473,13 @@ class QrScannerFragment : Fragment() {
                 } else {
                     apiService.clockOut(request)
                 }
+
+                // --- FIX: Show immediate pop-up notification (Toast) on success ---
+                activity?.runOnUiThread {
+                    showToast(response.message)
+                }
+
                 hideLoading()
-                showToast(response.message)
 
                 // On success, refetch status to update buttons and UI correctly
                 fetchEmployeeProfileAndAttendance()
@@ -490,13 +495,15 @@ class QrScannerFragment : Fragment() {
                         val errorBody = e.response()?.errorBody()?.string()
                         if (errorBody != null) {
                             val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
-                            errorMessage = errorResponse.message // Message from server (e.g., geofence error, already clocked in)
+                            // Show server error message (e.g., geofence, already clocked in)
+                            errorMessage = errorResponse.message
                         }
                     } catch (jsonError: Exception) {
                         Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
                     }
                 }
 
+                // Show error message on failure
                 showToast(errorMessage)
 
                 // Reset state to force rescan after failed submission

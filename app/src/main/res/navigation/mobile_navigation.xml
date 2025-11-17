@@ -21,8 +21,6 @@
         <action
             android:id="@+id/action_menu_to_adjustment"
             app:destination="@id/navigation_adjustment" />
-
-        <!-- Actions to other Compose-based Fragments (if directly accessible from Menu) -->
         <action
             android:id="@+id/action_menu_to_dashboard"
             app:destination="@id/navigation_dashboard" />
