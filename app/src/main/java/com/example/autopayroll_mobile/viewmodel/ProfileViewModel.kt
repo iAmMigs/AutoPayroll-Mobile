@@ -4,7 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.autopayroll_mobile.data.model.Employee
+import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,13 +52,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
 
             try {
-                // --- THIS IS THE FIX ---
-                // 1. Call the correct function (no ID passed)
                 val employee = apiService.getEmployeeProfile()
-
-                // 2. Set the state with the employee data.
-                // The employee object already contains the companyName.
-                // No second API call is needed.
                 _uiState.value = ProfileUiState(isLoading = false, employee = employee)
 
             } catch (e: Exception) {
@@ -68,12 +62,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // ## NEW: Function to trigger back navigation ##
+
     fun navigateBack() {
         _navigationEvent.value = ProfileNavigationEvent.NavigateBack
     }
 
-    // ## NEW: Function to clear navigation event after it's handled ##
     fun onNavigationHandled() {
         _navigationEvent.value = null
     }

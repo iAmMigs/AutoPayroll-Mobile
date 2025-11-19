@@ -1,6 +1,6 @@
 package com.example.autopayroll_mobile.network
 
-import com.example.autopayroll_mobile.data.model.Employee
+import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutResponse
@@ -14,12 +14,16 @@ import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequestLis
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentSubmitResponse
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentTypesResponse
 import com.example.autopayroll_mobile.data.model.AnnouncementResponse
-import com.example.autopayroll_mobile.data.model.ScheduleResponse // Import the new response class
+import com.example.autopayroll_mobile.data.model.ScheduleResponse
+// --- NEW IMPORTS ---
+import com.example.autopayroll_mobile.data.model.WorkedHoursResponse
+import com.example.autopayroll_mobile.data.model.LeaveCreditsResponse
+import com.example.autopayroll_mobile.data.model.AbsencesResponse
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.Multipart
@@ -60,8 +64,20 @@ interface ApiService {
     @GET("api/payroll/view")
     suspend fun getPayrolls(): PayrollResponse
 
+    // --- Schedule Endpoint ---
     @GET("api/employee/schedules")
     suspend fun getSchedule(): ScheduleResponse
+
+    // --- DASHBOARD STATISTICS (NEW) ---
+
+    @GET("api/employee/work-hours")
+    suspend fun getTotalWorkedHours(): WorkedHoursResponse
+
+    @GET("api/employee/leave-credit")
+    suspend fun getLeaveCredits(): LeaveCreditsResponse
+
+    @GET("api/employee/absences")
+    suspend fun getAbsences(): AbsencesResponse
 
 
     // --- Leave Request Endpoints ---

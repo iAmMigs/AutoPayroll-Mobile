@@ -22,17 +22,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.data.model.Schedule // Import Schedule
-import com.example.autopayroll_mobile.viewmodel.DashboardUiState
+import com.example.autopayroll_mobile.data.model.Schedule
+import com.example.autopayroll_mobile.composableUI.dashboardUI.DashboardUiState
 import com.example.autopayroll_mobile.viewmodel.DashboardViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar // This import is already present in your original code
 
 val TextPrimary = Color(0xFF3C3C3C)
 val CardSurface = Color.White
-val AppBackground = Color(0xFFEEEEEE)
-val HeaderBackground = Color(0xFFE0E0E0)
+val AppBackground = Color(0xFFCECECE)
+val HeaderBackground = Color(0xFF9A9A9A)
 
 val StatusPending = Color(0xFFFFA726)
 val StatusApproved = Color(0xFF66BB6A)
@@ -65,7 +66,12 @@ fun DashboardScreen(
                     .padding(top = 16.dp)
                     .padding(bottom = 16.dp),
             ) {
-                ProfileHeaderContent(state = uiState)
+                // ADDED: GreetingHeaderContent call
+                GreetingHeaderContent()
+                // ADDED: Spacer for separation
+                Spacer(modifier = Modifier.height(16.dp)) // You can adjust this height
+
+                ProfileHeaderContent(state = uiState) // ORIGINAL: ProfileHeaderContent remains
             }
 
             // --- 2. CONTENT SECTION ---
@@ -76,26 +82,50 @@ fun DashboardScreen(
                     .padding(horizontal = 20.dp)
                     .padding(top = 8.dp, bottom = 20.dp)
             ) {
-                AttendanceSummaryCard()
+                // Pass all three hour stats from State
+                AttendanceSummaryCard(
+                    regularHours = uiState.lastWorkedHours,
+                    overtimeHours = uiState.overtimeHours,
+                    lateHours = uiState.lateHours
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
-                PreviewCards()
+
+                PreviewCards(
+                    leaveCredits = uiState.leaveCredits,
+                    absences = uiState.absences
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 TransactionsCard(uiState = uiState)
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Pass the schedule from uiState
                 ScheduleCard(schedule = uiState.currentSchedule, isLoading = uiState.isLoading)
-
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
 
-// ... [ProfileHeaderContent, AttendanceSummaryCard, StatItem, PreviewCards, PreviewCard, formatDate, TransactionsCard UNCHANGED] ...
-// Note: Paste the previous unchanged Composables here if overwriting the whole file,
-// otherwise, just replace the ScheduleCard below.
 
+@Composable
+fun GreetingHeaderContent() {
+    val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+
+    val greeting = when (currentHour) {
+        in 5..11 -> "Good Morning!" // 5 AM to 11:59 AM
+        in 12..16 -> "Good Afternoon!" // 12 PM to 4:59 PM
+        else -> "Good Evening!" // 5 PM to 4:59 AM (includes midnight to 4:59 AM)
+    }
+
+    Text(
+        text = greeting,
+        fontSize = 22.sp, // Matching the "Payroll Viewing" text size
+        fontWeight = FontWeight.Bold,
+        color = TextPrimary // Using the TextPrimary color defined in this file
+    )
+}
+
+// The ProfileHeaderContent function is kept exactly as it was in your original code.
 @Composable
 fun ProfileHeaderContent(state: DashboardUiState) {
     Row(
@@ -139,7 +169,11 @@ fun ProfileHeaderContent(state: DashboardUiState) {
 }
 
 @Composable
-fun AttendanceSummaryCard() {
+fun AttendanceSummaryCard(
+    regularHours: String,
+    overtimeHours: String,
+    lateHours: String
+) {
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
@@ -151,9 +185,9 @@ fun AttendanceSummaryCard() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                StatItem(title = "Regular", value = "0", modifier = Modifier.weight(1f))
-                StatItem(title = "Overtime", value = "0", modifier = Modifier.weight(1f))
-                StatItem(title = "Late", value = "0", modifier = Modifier.weight(1f))
+                StatItem(title = "Regular", value = regularHours, modifier = Modifier.weight(1f))
+                StatItem(title = "Overtime", value = overtimeHours, modifier = Modifier.weight(1f))
+                StatItem(title = "Late", value = lateHours, modifier = Modifier.weight(1f))
             }
             Text(
                 text = "Accumulated hours over last attendance check",
@@ -181,20 +215,21 @@ fun StatItem(title: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
+// ... [Rest of the file: PreviewCards, PreviewCard, formatDate, TransactionsCard, formatTime, ScheduleCard remain unchanged]
 @Composable
-fun PreviewCards() {
+fun PreviewCards(leaveCredits: String, absences: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PreviewCard(
             title = "Leave Balance Preview",
-            value = "0",
+            value = leaveCredits,
             modifier = Modifier.weight(1f)
         )
         PreviewCard(
             title = "Absence Preview",
-            value = "0",
+            value = absences,
             modifier = Modifier.weight(1f)
         )
     }
@@ -330,11 +365,9 @@ fun TransactionsCard(uiState: DashboardUiState) {
     }
 }
 
-// --- Helper for Time Formatting ---
 fun formatTime(timeString: String?): String {
     if (timeString == null) return "--:--"
     return try {
-        // Assumes input format is "HH:mm:ss" (SQL standard time)
         val parser = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val formatter = SimpleDateFormat("h:mm a", Locale.getDefault())
         formatter.format(parser.parse(timeString) ?: Date())
@@ -370,7 +403,6 @@ fun ScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        // Start Time
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = "Shift Start", fontSize = 14.sp, color = TextPrimary)
                             Text(
@@ -380,7 +412,6 @@ fun ScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                                 color = TextPrimary
                             )
                         }
-                        // Divider (Visual)
                         Text(
                             text = "-",
                             fontSize = 20.sp,
@@ -388,7 +419,6 @@ fun ScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                             color = TextPrimary,
                             modifier = Modifier.align(Alignment.CenterVertically)
                         )
-                        // End Time
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = "Shift End", fontSize = 14.sp, color = TextPrimary)
                             Text(

@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.PayrollResponse
-import com.example.autopayroll_mobile.data.model.Employee
+import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.data.model.Payslip
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager

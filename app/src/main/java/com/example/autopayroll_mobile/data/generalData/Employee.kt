@@ -1,4 +1,4 @@
-package com.example.autopayroll_mobile.data.model
+package com.example.autopayroll_mobile.data.generalData
 
 import com.google.gson.annotations.SerializedName
 
@@ -31,7 +31,7 @@ data class Employee(
     @SerializedName("id_city") val idCity: String?,
     @SerializedName("id_province") val idProvince: String?,
     @SerializedName("id_country") val idCountry: String?,
-    @SerializedName("religion_name") val religion: String?,
+    @SerializedName("id_religion") val religion: String?,
     @SerializedName("available_leaves") val availableLeaves: Int,
     @SerializedName("used_leaves") val usedLeaves: Int
 )

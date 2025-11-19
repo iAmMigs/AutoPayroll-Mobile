@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.data.model.Employee
+import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.viewmodel.ProfileViewModel
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -81,6 +81,17 @@ fun ProfileScreen(
     } else if (uiState.employee != null) {
         val employee = uiState.employee!!
 
+        // Calculate formatted full name with middle initial here, for reuse
+        val formattedMiddleInitial = employee.middleName?.takeIf { it.isNotBlank() }?.let {
+            "${it.first().uppercaseChar()}." // Get first char, uppercase it, add period
+        } ?: "" // If middle name is blank or null, return empty string
+
+        val displayFullName = listOfNotNull(
+            employee.firstName,
+            formattedMiddleInitial.takeIf { it.isNotBlank() }, // Only include if it's not empty
+            employee.lastName
+        ).joinToString(" ")
+
         // Outer Column/Box sets the entire background to WHITE and handles insets
         Box(
             modifier = Modifier
@@ -93,7 +104,6 @@ fun ProfileScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                // --- 1. PROFILE HEADER SECTION (No Card, White Background) ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -101,7 +111,6 @@ fun ProfileScreen(
                         .padding(horizontal = 16.dp) // Horizontal padding for the content
                         .padding(bottom = 24.dp) // Space before the first information card
                 ) {
-                    // Header (Back button and title)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -114,7 +123,6 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp)) // Space below the title
 
-                    // Profile Info Row (Photo, Name, Edit Button)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -142,7 +150,11 @@ fun ProfileScreen(
 
                         // Column for Name and Title
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("${employee.firstName} ${employee.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = displayFullName, // Line 142
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                             Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
                         }
 
@@ -212,24 +224,32 @@ fun InfoCard(title: String, icon: Int, employee: Employee) {
 
             // Full Name / Gender
             Row(modifier = Modifier.fillMaxWidth()) {
-                InfoItem("Full Name", "${employee.firstName} ${employee.lastName}", Modifier.weight(1f))
+                val formattedMiddleInitial = employee.middleName?.takeIf { it.isNotBlank() }?.let {
+                    "${it.first().uppercaseChar()}."
+                } ?: ""
+
+                // Construct the full name, ensuring proper spacing
+                val fullName = listOfNotNull(
+                    employee.firstName,
+                    formattedMiddleInitial.takeIf { it.isNotBlank() }, // Only include if it's not empty
+                    employee.lastName
+                ).joinToString(" ")
+
+                InfoItem("Full Name", fullName, Modifier.weight(1f)) // Line 212
                 InfoItem("Gender", employee.gender.replaceFirstChar { it.uppercase() }, Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Marital Status / Religion
             Row(modifier = Modifier.fillMaxWidth()) {
                 InfoItem("Marital Status", employee.maritalStatus.replaceFirstChar { it.uppercase() }, Modifier.weight(1f))
-                InfoItem("Religion", employee.religion ?: "N/A", Modifier.weight(1f))
+                InfoItem("Date of Birth", formatApiDate(employee.birthdate), Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Place of Birth / Date of Birth (Formatted)
             Row(modifier = Modifier.fillMaxWidth()) {
                 val placeOfBirth = listOfNotNull(employee.city, employee.province, employee.country)
                     .joinToString(", ")
                 InfoItem("Place of Birth", placeOfBirth.ifEmpty { "N/A" }, Modifier.weight(1f))
-                InfoItem("Date of Birth", formatApiDate(employee.birthdate), Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -299,14 +319,6 @@ fun EmploymentCard(title: String, employee: Employee) {
 
             InfoItem("Employment Status", employee.employmentType)
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                TextButton(
-                    onClick = { /* TODO: View Contract */ },
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Text("View Contract >", color = MaterialTheme.colorScheme.primary)
-                }
-            }
         }
     }
 }
@@ -327,14 +339,6 @@ fun ContactCard(title: String, employee: Employee) {
 
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.weight(1f))
-
-                OutlinedButton(
-                    onClick = { /* TODO: Edit Contact Info */ },
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, Color.LightGray)
-                ) {
-                    Text("Edit", color = MaterialTheme.colorScheme.onSurface)
-                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             InfoItem("Phone Number", employee.phoneNumber)
@@ -342,8 +346,6 @@ fun ContactCard(title: String, employee: Employee) {
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
             InfoItem("Email", employee.email)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Other Contact", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
     }
 }
