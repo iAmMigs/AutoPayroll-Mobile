@@ -6,21 +6,15 @@ import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutResponse
 import com.example.autopayroll_mobile.data.loginModule.LoginRequest
 import com.example.autopayroll_mobile.data.loginModule.LoginResponse
-//import com.example.autopayroll_mobile.data.model.Schedule // TODO: Create data class Schedule
-import com.example.autopayroll_mobile.data.qrModule.TodayAttendanceResponse // ## NEW IMPORT (Assuming it's defined now) ##
-//import com.example.autopayroll_mobile.data.model.PasswordResetRequest // TODO: Create data class PasswordResetRequest
-//import com.example.autopayroll_mobile.data.model.PasswordResetResponse // TODO: Create data class PasswordResetResponse
-//import com.example.autopayroll_mobile.data.model.LeaveRequest // TODO: Create data class LeaveRequest
-//import com.example.autopayroll_mobile.data.model.LeaveRequestResponse // TODO: Create data class LeaveRequestResponse
+import com.example.autopayroll_mobile.data.qrModule.TodayAttendanceResponse
 import com.example.autopayroll_mobile.data.model.LeaveRequestListResponse
 import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit
 import com.example.autopayroll_mobile.data.model.LeaveRequestSubmitResponse
-// ## REMOVED Obsolete Import ##
-// import com.example.autopayroll_mobile.data.model.AdjustmentRequestDetailResponse
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequestListResponse
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentSubmitResponse
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentTypesResponse
 import com.example.autopayroll_mobile.data.model.AnnouncementResponse
+import com.example.autopayroll_mobile.data.model.ScheduleResponse // Import the new response class
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -43,16 +37,10 @@ interface ApiService {
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit>
 
-    // TODO: Wait Until Needed
-//    @POST("api/employee/password-reset")
-//    suspend fun resetPassword(@Body request: PasswordResetRequest): PasswordResetResponse
-
-
     // --- Employee Profile ---
 
     @GET("api/employee/profile")
     suspend fun getEmployeeProfile(): Employee
-
 
 
     // --- Attendance Endpoints ---
@@ -63,7 +51,6 @@ interface ApiService {
     @POST("api/attendance/clock-out")
     suspend fun clockOut(@Body request: ClockInOutRequest): ClockInOutResponse
 
-    // ## UNCOMMENTED/FIXED: Get Today's Attendance ##
     @GET("api/attendance/today")
     suspend fun getTodayAttendance(): TodayAttendanceResponse
 
@@ -71,7 +58,11 @@ interface ApiService {
     // --- Payroll Endpoint ---
 
     @GET("api/payroll/view")
-    suspend fun getPayrolls(): PayrollResponse // Assumes this returns a list
+    suspend fun getPayrolls(): PayrollResponse
+
+    @GET("api/employee/schedules")
+    suspend fun getSchedule(): ScheduleResponse
+
 
     // --- Leave Request Endpoints ---
 
@@ -80,10 +71,6 @@ interface ApiService {
 
     @GET("api/employee/show/leave-request")
     suspend fun getLeaveRequests(): LeaveRequestListResponse
-
-    @GET("api/employee/track/leave-request")
-    suspend fun getTrackedLeaveRequests(): LeaveRequestListResponse
-
 
     // --- Credit Adjustment Endpoints ---
     @Multipart
@@ -111,15 +98,6 @@ interface ApiService {
     suspend fun getPendingAdjustments(): AdjustmentRequestListResponse
 
 
-
-    // --- General Endpoints ---
-
     @GET("api/employee/announcements")
-    suspend fun getAnnouncements(): AnnouncementResponse // Assuming it returns a list
-    // TODO: Wait Until Needed
-//    @GET("api/companies")
-//    suspend fun getCompanies(): List<Company> // Assuming it returns a list
-    // TODO: Wait Until Needed
-//    @GET("api/schedules")
-//    suspend fun getSchedules(): List<Schedule> // Assuming it returns a list
+    suspend fun getAnnouncements(): AnnouncementResponse
 }

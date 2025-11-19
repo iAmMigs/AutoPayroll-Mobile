@@ -2,7 +2,7 @@ package com.example.autopayroll_mobile.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast // <-- 1. ADD THIS IMPORT
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -38,17 +38,13 @@ class LoginActivity : ComponentActivity() {
             }
         }
 
-        // --- 2. ADD THIS BLOCK TO OBSERVE AND SHOW ERRORS ---
         loginViewModel.errorMessage.observe(this) { message ->
             if (message != null) {
                 // Show the toast with the exact message from the server
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
-                // Tell the ViewModel the error has been shown
-                // This prevents the toast from showing again on rotation
                 loginViewModel.onErrorShown()
             }
         }
-        // --- END OF NEW BLOCK ---
     }
 }

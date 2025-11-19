@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.Employee
 import com.example.autopayroll_mobile.data.model.Payroll
 import com.example.autopayroll_mobile.data.model.PayrollResponse
+import com.example.autopayroll_mobile.data.model.Schedule // Import Schedule
 import com.example.autopayroll_mobile.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,13 +19,14 @@ data class DashboardUiState(
     val employeeId: String = "...",
     val jobAndCompany: String = "Loading...",
     val recentPayslip: Payroll? = null,
-    val profilePhotoUrl: String? = null // ADDED: To hold the image URL
+    val profilePhotoUrl: String? = null,
+    val currentSchedule: Schedule? = null // ADDED: Schedule data
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val apiService = ApiClient.getClient(application.applicationContext)
-    private val baseUrl = "https://autopayroll.org" // Base URL for constructing image paths
+    private val baseUrl = "https://autopayroll.org"
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
@@ -38,23 +40,37 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun fetchData() {
-        _uiState.value = DashboardUiState(isLoading = true)
+        // We don't set isLoading = true here to avoid flickering if refreshing silently
+        // or you can keep it if you want the spinner every time.
+        _uiState.value = _uiState.value.copy(isLoading = true)
 
         viewModelScope.launch {
             try {
+                // Use async/await pattern if you want parallel requests,
+                // but sequential is fine for now.
                 val employee: Employee = apiService.getEmployeeProfile()
                 val payrollResponse: PayrollResponse = apiService.getPayrolls()
+
+                // --- NEW: Fetch Schedule ---
+                var schedule: Schedule? = null
+                try {
+                    val scheduleResponse = apiService.getSchedule()
+                    if (scheduleResponse.success) {
+                        schedule = scheduleResponse.schedule
+                    }
+                } catch (e: Exception) {
+                    Log.e("DashboardViewModel", "Error fetching schedule (might be 404)", e)
+                    // Schedule remains null
+                }
 
                 val mostRecentPayslip = payrollResponse.data
                     .sortedByDescending { it.payDate }
                     .firstOrNull()
 
-                // --- MODIFIED: Construct the full photo URL ---
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) {
-                        path // It's already a full URL
+                        path
                     } else {
-                        // It's a relative path. Remove potential leading slash.
                         "$baseUrl/" + path.removePrefix("/")
                     }
                 }
@@ -65,7 +81,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     employeeId = employee.employeeId,
                     jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
                     recentPayslip = mostRecentPayslip,
-                    profilePhotoUrl = fullPhotoUrl // Set the URL here
+                    profilePhotoUrl = fullPhotoUrl,
+                    currentSchedule = schedule // Set the schedule
                 )
 
             } catch (e: Exception) {
@@ -76,7 +93,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     employeeId = "N/A",
                     jobAndCompany = "Error: ${e.message}",
                     recentPayslip = null,
-                    profilePhotoUrl = null // Ensure it's null on error
+                    profilePhotoUrl = null,
+                    currentSchedule = null
                 )
             }
         }

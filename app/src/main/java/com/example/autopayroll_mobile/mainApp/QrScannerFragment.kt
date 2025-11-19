@@ -495,7 +495,7 @@ class QrScannerFragment : Fragment() {
                         val errorBody = e.response()?.errorBody()?.string()
                         if (errorBody != null) {
                             val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
-                            // Show server error message (e.g., geofence, already clocked in)
+
                             errorMessage = errorResponse.message
                         }
                     } catch (jsonError: Exception) {
@@ -503,13 +503,9 @@ class QrScannerFragment : Fragment() {
                     }
                 }
 
-                // Show error message on failure
                 showToast(errorMessage)
-
-                // Reset state to force rescan after failed submission
                 scannedQrData = null
                 currentLocation = null
-                // Re-fetch status to ensure button visibility is correct after error
                 fetchEmployeeProfileAndAttendance()
             }
         }

@@ -1,9 +1,6 @@
 package com.example.autopayroll_mobile.composableUI.dashboardUI
 
-// Import the new Coil composable
 import coil.compose.AsyncImage
-// --- other imports ---
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,10 +19,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.data.model.Schedule // Import Schedule
 import com.example.autopayroll_mobile.viewmodel.DashboardUiState
 import com.example.autopayroll_mobile.viewmodel.DashboardViewModel
 import java.text.SimpleDateFormat
@@ -33,9 +30,9 @@ import java.util.Date
 import java.util.Locale
 
 val TextPrimary = Color(0xFF3C3C3C)
-val CardSurface = Color.White // White for cards/main content area
-val AppBackground = Color(0xFFEEEEEE) // Light Gray for the overall screen background / Header area
-val HeaderBackground = Color(0xFFE0E0E0) // Slightly darker gray for card headers
+val CardSurface = Color.White
+val AppBackground = Color(0xFFEEEEEE)
+val HeaderBackground = Color(0xFFE0E0E0)
 
 val StatusPending = Color(0xFFFFA726)
 val StatusApproved = Color(0xFF66BB6A)
@@ -48,7 +45,6 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Outer box to set the overall background color to WHITE (CardSurface) and handle insets
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -60,48 +56,50 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- 1. PROFILE HEADER SECTION (Plain Column, White BG) ---
+            // --- 1. PROFILE HEADER SECTION ---
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(CardSurface)
-                    .padding(horizontal = 20.dp) // Apply horizontal padding here
-                    .padding(top = 16.dp) // Margin below the status bar
-                    .padding(bottom = 16.dp), // Padding at the bottom for separation/margin
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp)
+                    .padding(bottom = 16.dp),
             ) {
-                // REMOVED: "Employee Dashboard" Title
-
                 ProfileHeaderContent(state = uiState)
             }
 
-            // --- 2. CONTENT SECTION (The White BG Part) ---
+            // --- 2. CONTENT SECTION ---
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(CardSurface)
-                    .padding(horizontal = 20.dp) // Keep horizontal padding consistent
+                    .padding(horizontal = 20.dp)
                     .padding(top = 8.dp, bottom = 20.dp)
             ) {
                 AttendanceSummaryCard()
-                Spacer(modifier = Modifier.height(32.dp)) // Increased spacing
+                Spacer(modifier = Modifier.height(16.dp))
                 PreviewCards()
-                Spacer(modifier = Modifier.height(32.dp)) // Increased spacing
+                Spacer(modifier = Modifier.height(16.dp))
                 TransactionsCard(uiState = uiState)
-                // Padding at the bottom for the scrolling content
-                Spacer(modifier = Modifier.height(40.dp)) // Increased final padding
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Pass the schedule from uiState
+                ScheduleCard(schedule = uiState.currentSchedule, isLoading = uiState.isLoading)
+
+                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
 
+// ... [ProfileHeaderContent, AttendanceSummaryCard, StatItem, PreviewCards, PreviewCard, formatDate, TransactionsCard UNCHANGED] ...
+// Note: Paste the previous unchanged Composables here if overwriting the whole file,
+// otherwise, just replace the ScheduleCard below.
+
 @Composable
 fun ProfileHeaderContent(state: DashboardUiState) {
-    // This composable handles the content inside the top section.
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-        // Removed horizontal padding here as it was applied to the parent Column
-        ,
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -142,11 +140,10 @@ fun ProfileHeaderContent(state: DashboardUiState) {
 
 @Composable
 fun AttendanceSummaryCard() {
-    // ... (unchanged)
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -170,7 +167,6 @@ fun AttendanceSummaryCard() {
 
 @Composable
 fun StatItem(title: String, value: String, modifier: Modifier = Modifier) {
-    // ... (unchanged)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -187,7 +183,6 @@ fun StatItem(title: String, value: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun PreviewCards() {
-    // ... (unchanged)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -207,12 +202,11 @@ fun PreviewCards() {
 
 @Composable
 fun PreviewCard(title: String, value: String, modifier: Modifier = Modifier) {
-    // ... (unchanged)
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier
@@ -232,7 +226,6 @@ fun PreviewCard(title: String, value: String, modifier: Modifier = Modifier) {
 }
 
 fun formatDate(dateString: String): String {
-    // ... (unchanged)
     return try {
         val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val formatter = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
@@ -244,7 +237,6 @@ fun formatDate(dateString: String): String {
 
 @Composable
 fun TransactionsCard(uiState: DashboardUiState) {
-    // ... (unchanged)
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Most Recent Payslip",
@@ -256,7 +248,7 @@ fun TransactionsCard(uiState: DashboardUiState) {
         Card(
             shape = RoundedCornerShape(15.dp),
             colors = CardDefaults.cardColors(containerColor = CardSurface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -332,6 +324,88 @@ fun TransactionsCard(uiState: DashboardUiState) {
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+// --- Helper for Time Formatting ---
+fun formatTime(timeString: String?): String {
+    if (timeString == null) return "--:--"
+    return try {
+        // Assumes input format is "HH:mm:ss" (SQL standard time)
+        val parser = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val formatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+        formatter.format(parser.parse(timeString) ?: Date())
+    } catch (e: Exception) {
+        timeString
+    }
+}
+
+@Composable
+fun ScheduleCard(schedule: Schedule?, isLoading: Boolean) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "My Schedule",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        Card(
+            shape = RoundedCornerShape(15.dp),
+            colors = CardDefaults.cardColors(containerColor = CardSurface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                } else if (schedule != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        // Start Time
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "Shift Start", fontSize = 14.sp, color = TextPrimary)
+                            Text(
+                                text = formatTime(schedule.startTime),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                        // Divider (Visual)
+                        Text(
+                            text = "-",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                        // End Time
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "Shift End", fontSize = 14.sp, color = TextPrimary)
+                            Text(
+                                text = formatTime(schedule.endTime),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No active schedule found.",
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
         }
