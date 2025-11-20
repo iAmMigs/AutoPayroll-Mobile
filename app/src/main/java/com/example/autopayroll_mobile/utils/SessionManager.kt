@@ -24,11 +24,9 @@ class SessionManager(context: Context) {
         return prefs.getString(KEY_EMPLOYEE_ID, null)
     }
 
-
     fun getToken(): String? {
         return prefs.getString(KEY_AUTH_TOKEN, null)
     }
-
 
     fun clearSession() {
         val editor = prefs.edit()

@@ -33,22 +33,16 @@ import retrofit2.http.Query
 interface ApiService {
 
     // --- Auth Endpoints ---
-
     @POST("api/employee/login")
     suspend fun login(@Body loginRequest: LoginRequest): LoginResponse
-
-
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit>
 
     // --- Employee Profile ---
-
     @GET("api/employee/profile")
     suspend fun getEmployeeProfile(): Employee
 
-
     // --- Attendance Endpoints ---
-
     @POST("api/attendance/clock-in")
     suspend fun clockIn(@Body request: ClockInOutRequest): ClockInOutResponse
 

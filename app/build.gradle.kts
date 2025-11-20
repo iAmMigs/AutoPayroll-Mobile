@@ -4,13 +4,21 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin.compose)
     id("androidx.navigation.safeargs.kotlin")
-
-
 }
 
 android {
     namespace = "com.example.autopayroll_mobile"
     compileSdk = 36
+
+    kotlinOptions {
+        jvmTarget = "11"
+        // Add these lines to pass the flags directly
+        freeCompilerArgs += listOf(
+            "-P", "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=IntrinsicRemember",
+            "-P", "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=OptimizeNonSkippingGroups",
+            "-P", "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=StrongSkipping"
+        )
+    }
 
     defaultConfig {
         applicationId = "com.example.autopayroll_mobile"
@@ -31,6 +39,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -41,17 +50,15 @@ android {
 
     buildFeatures {
         viewBinding = true
-        // You must enable compose for it to work
         compose = true
-    }
-
-    // You need to add this block for the Compose compiler plugin
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1" // Use a version compatible with your Kotlin and Compose versions
     }
 }
 
 dependencies {
+
+    //App runtime
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Original dependencies
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -86,49 +93,32 @@ dependencies {
     // Compose Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
-    // --- Corrected Jetpack Compose & Lifecycle Dependencies ---
-
-    // Define versions
+    // Lifecycle & Compose
     val lifecycle_version = "2.8.0"
     val compose_bom_version = "2024.05.00"
     val activity_compose_version = "1.9.0"
 
-    // Lifecycle (ViewModel, LiveData, etc.)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version") // For collecting flows as state
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
 
-    // Import the Compose Bill of Materials (BoM)
     implementation(platform("androidx.compose:compose-bom:$compose_bom_version"))
-
-    // Compose Dependencies (versions managed by the BoM)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.runtime:runtime-livedata") // << THIS IS THE FIX
+    implementation("androidx.compose.runtime:runtime-livedata")
 
-    // Integration with Activities
     implementation("androidx.activity:activity-compose:$activity_compose_version")
-    implementation("io.coil-kt:coil-compose:2.6.0")
-
-    //Icons
     implementation("androidx.compose.material:material-icons-extended")
 
-    //Nav
     implementation(libs.navigation.compose)
     implementation(libs.navigation.fragment.ktx)
 
-    // Tooling for debugging and inspection
     debugImplementation(libs.androidx.compose.ui.tooling)
-
-    //Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-
 }

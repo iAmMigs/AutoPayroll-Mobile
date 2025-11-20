@@ -63,11 +63,18 @@ class MenuFragment : Fragment() {
     private fun logoutUser() {
         lifecycleScope.launch {
             try {
-                apiService.logout()
-                Log.d("MenuFragment", "Server logout successful.")
+                // ## VERIFIED: Calls the API service logout ##
+                val response = apiService.logout()
+                if (response.isSuccessful) {
+                    Log.d("MenuFragment", "Server logout successful.")
+                } else {
+                    Log.e("MenuFragment", "Server logout failed with code: ${response.code()}, message: ${response.errorBody()?.string()}")
+                    // Optionally, show a toast to the user about the server logout failure
+                }
             } catch (e: Exception) {
                 Log.e("MenuFragment", "API logout failed, proceeding with local logout", e)
             } finally {
+                // Always clear local session and navigate to login, regardless of server logout success
                 if (isAdded && activity != null) {
                     sessionManager.clearSession()
                     val intent = Intent(requireActivity(), LoginActivity::class.java)
@@ -81,7 +88,6 @@ class MenuFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // No binding cleanup needed anymore
     }
 
     // Note: onViewCreated is no longer overridden as the click listeners are now in Compose.
