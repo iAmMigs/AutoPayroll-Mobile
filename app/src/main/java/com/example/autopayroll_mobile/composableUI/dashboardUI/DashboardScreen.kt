@@ -33,7 +33,7 @@ import java.util.Calendar // This import is already present in your original cod
 val TextPrimary = Color(0xFF3C3C3C)
 val CardSurface = Color.White
 val AppBackground = Color(0xFFCECECE)
-val HeaderBackground = Color(0xFF9A9A9A)
+val HeaderBackground = Color(0xFFC5C5C5)
 
 val StatusPending = Color(0xFFFFA726)
 val StatusApproved = Color(0xFF66BB6A)
@@ -49,7 +49,7 @@ fun DashboardScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CardSurface)
+            .background(Color.White)
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Column(

@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import com.example.autopayroll_mobile.composableUI.LoginScreen
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.LoginViewModel
+import com.example.autopayroll_mobile.mainApp.NavbarActivity // Import NavbarActivity
 
 class LoginActivity : ComponentActivity() {
 
@@ -17,7 +18,7 @@ class LoginActivity : ComponentActivity() {
     companion object {
         const val EXTRA_VERIFICATION_REASON = "com.example.autopayroll_mobile.auth.VERIFICATION_REASON"
         const val REASON_FORGOT_PASSWORD = "forgot_password"
-        const val REASON_LOGIN_VERIFICATION = "login_verification"
+        const val REASON_LOGIN_VERIFICATION = "login_verification" // Keep this, as it might be used if VerificationActivity is accessed directly for other reasons.
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,8 +32,8 @@ class LoginActivity : ComponentActivity() {
 
         loginViewModel.loginSuccess.observe(this) { isSuccess ->
             if (isSuccess) {
-                val intent = Intent(this, VerificationActivity::class.java)
-                intent.putExtra(EXTRA_VERIFICATION_REASON, REASON_LOGIN_VERIFICATION)
+                val intent = Intent(this, NavbarActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
                 finish()
             }
@@ -40,9 +41,7 @@ class LoginActivity : ComponentActivity() {
 
         loginViewModel.errorMessage.observe(this) { message ->
             if (message != null) {
-                // Show the toast with the exact message from the server
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-
                 loginViewModel.onErrorShown()
             }
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.automirrored.filled.ArrowBack // NEW IMPORT
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,14 +25,13 @@ import com.example.autopayroll_mobile.viewmodel.LeaveModuleUiState
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.filteredRequests
 
-// (LeaveModuleListScreen, LeaveBalanceCard, and BalanceItem are unchanged)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveModuleListScreen(
     viewModel: LeaveModuleViewModel,
     onFileLeaveClicked: () -> Unit,
     onCalendarClicked: () -> Unit,
-    onBackToMenu: () -> Unit
+    onBackToMenu: () -> Unit // This parameter is already correctly received
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabItems = viewModel.tabItems
@@ -41,6 +41,16 @@ fun LeaveModuleListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Leave Request") },
+                // --- NEW ADDITION START ---
+                navigationIcon = {
+                    IconButton(onClick = onBackToMenu) { // Call the onBackToMenu lambda
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Use the back arrow icon
+                            contentDescription = "Back to Main Menu"
+                        )
+                    }
+                },
+                // --- NEW ADDITION END ---
                 actions = {
                     IconButton(onClick = onCalendarClicked) {
                         Icon(
@@ -147,7 +157,6 @@ fun BalanceItem(count: Int, label: String) {
 }
 
 
-// ## THIS FUNCTION IS UPDATED ##
 @Composable
 fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewModel) {
     LazyColumn(
@@ -156,14 +165,12 @@ fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewMod
         items(requests, key = { it.id }) { request ->
             LeaveRequestItem(
                 request = request,
-                // ## CHANGED: Pass the whole viewModel ##
                 viewModel = viewModel
             )
         }
     }
 }
 
-// ## THIS FUNCTION IS UPDATED ##
 @Composable
 fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
     val statusColor = when (request.status.lowercase()) {
@@ -197,7 +204,6 @@ fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ## FIX: Use the new formatter for start_date and end_date ##
             Text(
                 text = "${viewModel.formatDisplayDate(request.startDate)} to ${viewModel.formatDisplayDate(request.endDate)}",
                 style = MaterialTheme.typography.bodyMedium,
@@ -212,7 +218,6 @@ fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ## FIX: Use the new formatter for created_at ##
             Text(
                 text = "Filed on: ${viewModel.formatDisplayDate(request.createdAt)}",
                 style = MaterialTheme.typography.bodySmall,

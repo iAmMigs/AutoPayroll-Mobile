@@ -1,5 +1,9 @@
 package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
+// NEW IMPORTS FOR TRANSITIONS
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,9 +26,13 @@ fun LeaveModuleNavHost(
 
     NavHost(
         navController = internalNavController,
-        startDestination = LeaveModuleRoutes.LIST
+        startDestination = LeaveModuleRoutes.LIST,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None }
     ) {
-        // Main List Screen
+
         composable(LeaveModuleRoutes.LIST) {
             LeaveModuleListScreen(
                 viewModel = viewModel,
@@ -38,7 +46,6 @@ fun LeaveModuleNavHost(
             )
         }
 
-        // "File a Leave" Form Screen
         composable(LeaveModuleRoutes.FORM) {
             LeaveModuleFormScreen(
                 viewModel = viewModel,
@@ -48,7 +55,6 @@ fun LeaveModuleNavHost(
             )
         }
 
-        // Calendar View Screen
         composable(LeaveModuleRoutes.CALENDAR) {
             LeaveModuleCalendarScreen(
                 viewModel = viewModel,

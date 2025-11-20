@@ -55,6 +55,7 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
             onValueChange = { loginViewModel.onEmailChange(it) },
             label = { Text("Email or Username") },
             modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
@@ -78,12 +79,12 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
                 focusedContainerColor = Color.Transparent
             )
         )
-        TextButton(
-            onClick = { /* TODO: Handle forgot password */ },
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
-        }
+//        TextButton(
+//            onClick = { /* TODO: Handle forgot password, No Api for OTP right now  */ },
+//            modifier = Modifier.align(Alignment.End)
+//        ) {
+//            Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
+//        }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = { loginViewModel.login() },

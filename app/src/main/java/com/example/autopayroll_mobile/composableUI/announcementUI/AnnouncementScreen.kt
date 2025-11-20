@@ -27,9 +27,8 @@ fun AnnouncementScreen(
     viewModel: AnnouncementViewModel,
     onAnnouncementClicked: (String) -> Unit
 ) {
-    val announcements by viewModel.filteredAnnouncements.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val categories = viewModel.categories
+    // Directly collect the filtered list from ViewModel
+    val announcements by viewModel.announcements.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     // Outer Box/Column to handle full screen and status bar padding
@@ -40,15 +39,14 @@ fun AnnouncementScreen(
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Scaffold(
-            // Removed topBar parameter
-            containerColor = MaterialTheme.colorScheme.background // Ensure Scaffold uses theme background
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // ADDED: Custom Title Header
+                // Custom Title Header
                 Text(
                     text = "Announcement",
                     fontSize = 22.sp,
@@ -60,22 +58,12 @@ fun AnnouncementScreen(
                         .padding(top = 16.dp, bottom = 8.dp)
                 )
 
-                TabRow(
-                    selectedTabIndex = categories.indexOf(selectedCategory)
-                ) {
-                    categories.forEach { category ->
-                        Tab(
-                            selected = category == selectedCategory,
-                            onClick = { viewModel.selectCategory(category) },
-                            text = { Text(category) }
-                        )
-                    }
-                }
+                // REMOVED: TabRow (Categories)
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp) // Removed vertical padding here, applied to the list
+                        .padding(horizontal = 16.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -84,7 +72,7 @@ fun AnnouncementScreen(
                         )
                     } else if (announcements.isEmpty()) {
                         Text(
-                            text = "No announcements found.",
+                            text = "No recent announcements.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.Center)
@@ -92,7 +80,7 @@ fun AnnouncementScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 16.dp), // Added padding to list
+                            contentPadding = PaddingValues(vertical = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(announcements, key = { it.id }) { item ->
@@ -120,7 +108,6 @@ fun AnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        // FIX: Increased elevation from 2.dp to 4.dp
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -128,9 +115,10 @@ fun AnnouncementCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Simplified Icon logic (Always generic)
             Icon(
                 imageVector = item.icon,
-                contentDescription = item.category,
+                contentDescription = "Announcement",
                 modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -152,12 +140,11 @@ fun AnnouncementCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            // Removed Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = item.displayDate,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Top).padding(start = 8.dp) // Added start padding
+                modifier = Modifier.align(Alignment.Top).padding(start = 8.dp)
             )
         }
     }

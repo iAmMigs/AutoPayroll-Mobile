@@ -1,6 +1,8 @@
 package com.example.autopayroll_mobile.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.example.autopayroll_mobile.data.model.LeaveRequestSubmitResponse
+
 
 /**
  * Represents the data for a single leave request,
@@ -53,15 +55,6 @@ data class LeaveRequestSubmit(
     val endDate: String, // "YYYY-MM-DD"
 
     val reason: String
-)
-
-/**
- * Represents the server's response after we submit a new request.
- */
-data class LeaveRequestSubmitResponse(
-    val success: Boolean,
-    val message: String,
-    val data: LeaveRequest // The newly created request
 )
 
 /**

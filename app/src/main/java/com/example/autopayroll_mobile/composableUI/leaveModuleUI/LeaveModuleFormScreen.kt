@@ -1,6 +1,10 @@
 package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
+import android.net.Uri // NEW IMPORT
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult // NEW IMPORT
+import androidx.activity.result.contract.ActivityResultContracts // NEW IMPORT
+import androidx.compose.foundation.BorderStroke // NEW IMPORT for AttachmentButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,12 +13,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.AttachFile // NEW IMPORT for AttachmentButton
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color // NEW IMPORT for AttachmentButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp // NEW IMPORT for AttachmentButton
+import com.example.autopayroll_mobile.ui.theme.TextPrimary // NEW IMPORT for AttachmentButton
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.NavigationEvent
 import java.time.Instant
@@ -29,6 +39,13 @@ fun LeaveModuleFormScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    val filePickerLauncher = rememberLauncherForActivityResult( // ## NEW ##
+        contract = ActivityResultContracts.GetContent() // Contract to pick any content type
+    ) { uri: Uri? ->
+        uri?.let { viewModel.onAttachmentSelected(it) }
+    }
+
 
     // Observe error messages
     LaunchedEffect(uiState.errorMessage) {
@@ -67,12 +84,10 @@ fun LeaveModuleFormScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // 1. Leave Type Dropdown
-            // This line (74) was causing the error, but is now correct
-            // because the function below is also updated.
             LeaveTypeDropdown(
-                selectedType = uiState.formLeaveType, // e.g., "Sick Leave"
-                leaveTypes = uiState.leaveTypes,       // e.g., MapOf("sick" to "Sick Leave")
-                onTypeSelected = { viewModel.onLeaveTypeChanged(it) } // sends "Sick Leave"
+                selectedType = uiState.formLeaveType,
+                leaveTypes = uiState.leaveTypes,
+                onTypeSelected = { viewModel.onLeaveTypeChanged(it) }
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -102,6 +117,14 @@ fun LeaveModuleFormScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
+            // ## NEW: Attachment Button ##
+            AttachmentButton(
+                fileName = uiState.formAttachment?.name,
+                onFilePick = { filePickerLauncher.launch("*/*") }, // Launch file picker for any file type
+                onFileRemove = { viewModel.onAttachmentRemoved() }
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+
             // 4. Submit Button
             Button(
                 onClick = { viewModel.submitLeaveRequest() },
@@ -123,12 +146,13 @@ fun LeaveModuleFormScreen(
     }
 }
 
-// ## THIS IS THE FIX ##
+// (LeaveTypeDropdown and DatePickerField composables are unchanged, keeping them here for completeness)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveTypeDropdown(
     selectedType: String,
-    leaveTypes: Map<String, String>, // ## FIX: Changed from List<String> to Map<String, String> ##
+    leaveTypes: Map<String, String>,
     onTypeSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -138,7 +162,7 @@ fun LeaveTypeDropdown(
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = selectedType, // This is the display name, e.g., "Sick Leave"
+            value = selectedType,
             onValueChange = {},
             readOnly = true,
             label = { Text("Leave Type") },
@@ -154,12 +178,11 @@ fun LeaveTypeDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            // ## FIX: We iterate over the map's .values (the display names) ##
             leaveTypes.values.forEach { displayName ->
                 DropdownMenuItem(
                     text = { Text(displayName) },
                     onClick = {
-                        onTypeSelected(displayName) // Send the display name to the ViewModel
+                        onTypeSelected(displayName)
                         expanded = false
                     }
                 )
@@ -168,13 +191,12 @@ fun LeaveTypeDropdown(
     }
 }
 
-// (DatePickerField composable is unchanged and correct)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerField(
     label: String,
     date: String,
-    onDateSelected: (String) -> Unit // Returns "YYYY-MM-DD"
+    onDateSelected: (String) -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     var showDialog by remember { mutableStateOf(false) }
@@ -230,5 +252,35 @@ fun DatePickerField(
                 disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
+    }
+}
+
+// ## NEW: AttachmentButton composable (copied and adapted from AdjustmentFilingScreen.kt) ##
+@Composable
+private fun AttachmentButton(
+    fileName: String?,
+    onFilePick: () -> Unit,
+    onFileRemove: () -> Unit
+) {
+    OutlinedButton(
+        onClick = { if (fileName == null) onFilePick() else onFileRemove() },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = TextPrimary // Assuming TextPrimary is a theme color
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Icon(
+            Icons.Default.AttachFile,
+            contentDescription = "Attach File",
+            modifier = Modifier.padding(end = 8.dp)
+        )
+        if (fileName == null) {
+            Text("Attach Image / File")
+        } else {
+            Text(fileName, modifier = Modifier.weight(1f))
+            Text(" (Remove)", color = MaterialTheme.colorScheme.error)
+        }
     }
 }

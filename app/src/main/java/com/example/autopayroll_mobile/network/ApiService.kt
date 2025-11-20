@@ -68,7 +68,7 @@ interface ApiService {
     @GET("api/employee/schedules")
     suspend fun getSchedule(): ScheduleResponse
 
-    // --- DASHBOARD STATISTICS (NEW) ---
+    // --- DASHBOARD STATISTICS ---
 
     @GET("api/employee/work-hours")
     suspend fun getTotalWorkedHours(): WorkedHoursResponse
@@ -82,8 +82,15 @@ interface ApiService {
 
     // --- Leave Request Endpoints ---
 
+    @Multipart
     @POST("api/employee/leave-request")
-    suspend fun submitLeaveRequest(@Body request: LeaveRequestSubmit): LeaveRequestSubmitResponse
+    suspend fun submitLeaveRequest(
+        @Part("leave_type") leaveType: RequestBody,
+        @Part("start_date") startDate: RequestBody,
+        @Part("end_date") endDate: RequestBody,
+        @Part("reason") reason: RequestBody,
+        @Part attachment: MultipartBody.Part? // Allow optional file attachment
+    ): LeaveRequestSubmitResponse
 
     @GET("api/employee/show/leave-request")
     suspend fun getLeaveRequests(): LeaveRequestListResponse

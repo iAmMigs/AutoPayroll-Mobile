@@ -28,7 +28,6 @@ class LeaveModuleFragment : Fragment() {
                 AutoPayrollMobileTheme {
                     LeaveModuleNavHost(
                         viewModel = viewModel,
-                        // FIX: Pass the missing 'onBackToMenu' parameter, which handles back navigation from the List screen.
                         onBackToMenu = {
                             findNavController().popBackStack()
                         }
