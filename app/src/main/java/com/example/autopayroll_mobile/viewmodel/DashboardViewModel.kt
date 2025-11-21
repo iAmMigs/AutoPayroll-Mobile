@@ -30,36 +30,36 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun fetchData() {
-        // Set loading state but keep existing data if any (for pull-to-refresh)
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             try {
                 // --- STEP 1: CRITICAL DATA (Sequential) ---
-                // Fetch Profile FIRST to validate token.
-                // If this fails (401), we go to catch block immediately.
                 val employee = apiService.getEmployeeProfile()
 
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
 
-                // Update UI immediately with Profile info so the user sees they are logged in
+                // Check if company is empty, null, or "N/A"
+                val companyName = employee.companyName
+                val displayCompany = if (companyName.isNullOrBlank() || companyName.equals("N/A", ignoreCase = true)) {
+                    "No Assigned Company"
+                } else {
+                    companyName
+                }
+
                 _uiState.update {
                     it.copy(
                         employeeName = "${employee.firstName} ${employee.lastName}",
                         employeeId = employee.employeeId,
-                        jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
+                        jobAndCompany = "${employee.jobPosition} • $displayCompany",
                         profilePhotoUrl = fullPhotoUrl
-                        // Keep isLoading = true because we are fetching stats next
                     )
                 }
 
                 // --- STEP 2: SECONDARY DATA (Parallel) ---
-                // Now that we know the token works, fetch the rest safely.
                 supervisorScope {
-                    // We wrap ALL of these in try-catch so one failure doesn't kill the whole dashboard
-
                     val payrollDeferred = async {
                         try { apiService.getPayrolls() } catch (e: Exception) { null }
                     }
@@ -76,41 +76,35 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         try { apiService.getAbsences() } catch (e: Exception) { null }
                     }
 
-                    // Await Results
                     val payrollResponse = payrollDeferred.await()
                     val scheduleResponse = scheduleDeferred.await()
                     val hoursResponse = hoursDeferred.await()
                     val leavesResponse = leavesDeferred.await()
                     val absencesResponse = absencesDeferred.await()
 
-                    // --- PROCESS RESULTS ---
-
-                    // 1. Payroll
+                    // Process Results
                     val mostRecentPayslip = payrollResponse?.data
                         ?.sortedByDescending { it.payDate }
                         ?.firstOrNull()
 
-                    // 2. Schedule
                     val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
 
-                    // 3. Stats Formatting
                     val workedHours = if (hoursResponse?.success == true) {
                         hoursResponse.total.toInt().toString()
                     } else "0"
 
+                    // ## FIX: Convert to Int to remove decimal ##
                     val credits = if (leavesResponse?.success == true) {
-                        leavesResponse.creditDays.toString()
+                        leavesResponse.creditDays.toInt().toString()
                     } else "0"
 
                     val absCount = if (absencesResponse?.success == true) {
                         absencesResponse.count.toString()
                     } else "0"
 
-                    // Overtime/Late placeholders (update logic if API endpoints exist later)
                     val overtime = "0"
                     val late = "0"
 
-                    // Update Final State
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -134,14 +128,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     "Error: ${e.message}"
                 }
 
-                // Only overwrite name/job if we really failed to load the profile
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         employeeName = "Error loading data",
                         employeeId = "N/A",
                         jobAndCompany = errorText,
-                        // Reset data on critical error
                         recentPayslip = null,
                         currentSchedule = null
                     )

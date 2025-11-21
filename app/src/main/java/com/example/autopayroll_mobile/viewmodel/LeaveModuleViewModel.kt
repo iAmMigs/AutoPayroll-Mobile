@@ -1,14 +1,13 @@
 package com.example.autopayroll_mobile.viewmodel
 
 import android.app.Application
-import android.net.Uri // NEW IMPORT
-import android.provider.OpenableColumns // NEW IMPORT
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.LeaveBalance
 import com.example.autopayroll_mobile.data.model.LeaveRequest
-import com.example.autopayroll_mobile.data.model.LeaveRequestSubmit // Keep this import if used elsewhere, not directly in submitLeaveRequest now
 import com.example.autopayroll_mobile.data.model.ValidationErrorResponse
 import com.example.autopayroll_mobile.network.ApiClient
 import com.google.gson.Gson
@@ -17,13 +16,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull // NEW IMPORT
-import okhttp3.MultipartBody // NEW IMPORT
-import okhttp3.RequestBody.Companion.asRequestBody // NEW IMPORT
-import okhttp3.RequestBody.Companion.toRequestBody // NEW IMPORT
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
-import java.io.File // NEW IMPORT
-import java.io.FileOutputStream // NEW IMPORT
+import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -50,15 +49,19 @@ data class LeaveModuleUiState(
     val formReason: String = "",
     val formIsSubmitting: Boolean = false,
     val allRequests: List<LeaveRequest> = emptyList(),
-    // ## NEW: Add formAttachment field ##
     val formAttachment: File? = null
 )
 
+// ## FIX 1: Updated Filter Logic ##
 val LeaveModuleUiState.filteredRequests: List<LeaveRequest>
     get() = when (selectedTab) {
         "Pending" -> allRequests.filter { it.status.equals("pending", ignoreCase = true) }
         "Approved" -> allRequests.filter { it.status.equals("approved", ignoreCase = true) }
-        "Declined" -> allRequests.filter { it.status.equals("declined", ignoreCase = true) }
+        "Declined" -> allRequests.filter {
+            val s = it.status.lowercase()
+            // Includes declined, rejected, and need revision
+            s == "declined" || s == "rejected" || s == "need revision" || s == "needs revision"
+        }
         else -> allRequests
     }
 
@@ -68,9 +71,10 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
     private val apiService = ApiClient.getClient(application.applicationContext)
     private val _uiState = MutableStateFlow(LeaveModuleUiState())
     val uiState: StateFlow<LeaveModuleUiState> = _uiState.asStateFlow()
-    val tabItems = listOf("Pending", "Approved", "Declined")
     private val _navigationEvent = MutableStateFlow<NavigationEvent?>(null)
     val navigationEvent: StateFlow<NavigationEvent?> = _navigationEvent.asStateFlow()
+
+    val tabItems = listOf("Pending", "Approved", "Declined")
 
     init {
         fetchData()
@@ -83,19 +87,23 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
 
     private fun fetchLeaveBalances() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             try {
-                val employee = apiService.getEmployeeProfile()
-                _uiState.update {
-                    it.copy(
-                        leaveBalance = LeaveBalance(
-                            available = employee.availableLeaves,
-                            used = employee.usedLeaves
+                val response = apiService.getLeaveCredits()
+
+                if (response.success) {
+                    _uiState.update {
+                        it.copy(
+                            leaveBalance = LeaveBalance(
+                                available = response.creditDays.toInt(),
+                                used = 0
+                            )
                         )
-                    )
+                    }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to load leave credits") }
                 }
             } catch (e: Exception) {
-                Log.e("LeaveModuleViewModel", "Failed to fetch profile for leave balance", e)
+                Log.e("LeaveModuleViewModel", "Failed to fetch leave credits", e)
                 _uiState.update { it.copy(errorMessage = "Failed to load leave balance") }
             }
         }
@@ -134,19 +142,16 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _uiState.update { it.copy(formIsSubmitting = true, errorMessage = null) }
             try {
-                // Convert form fields to RequestBody parts
                 val leaveTypePart = leaveTypeApiKey.toRequestBody("text/plain".toMediaTypeOrNull())
                 val startDatePart = state.formStartDate.toRequestBody("text/plain".toMediaTypeOrNull())
                 val endDatePart = state.formEndDate.toRequestBody("text/plain".toMediaTypeOrNull())
                 val reasonPart = state.formReason.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                // Create MultipartBody.Part for the attachment if it exists
                 val filePart = state.formAttachment?.let { file ->
                     val requestFile = file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("attachment", file.name, requestFile)
                 }
 
-                // Call the API service with the multipart parts
                 val response = apiService.submitLeaveRequest(
                     leaveType = leaveTypePart,
                     startDate = startDatePart,
@@ -158,6 +163,8 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                 if (response.success) {
                     _uiState.update { it.copy(formIsSubmitting = false) }
                     fetchLeaveRequests()
+                    fetchLeaveBalances()
+
                     _navigationEvent.value = NavigationEvent.NavigateBack
                     clearForm()
                 } else {
@@ -196,6 +203,26 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    // --- Helper Functions ---
+
+    // ## FIX 2: Added Helper Function for UI Formatting ##
+    /**
+     * Helper to convert raw API type (e.g., "vacation") to display format (e.g., "Vacation Leave").
+     * Call this in your composable: viewModel.formatLeaveType(request.leaveType)
+     */
+    fun formatLeaveType(rawType: String?): String {
+        if (rawType == null) return "Leave"
+
+        // 1. Try to find in the static map
+        val mapped = _uiState.value.leaveTypes[rawType.lowercase()]
+        if (mapped != null) return mapped
+
+        // 2. Fallback: Capitalize and append " Leave"
+        return rawType.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        } + " Leave"
+    }
+
     fun onTabSelected(tab: String) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
@@ -212,7 +239,6 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.update { it.copy(formReason = reason) }
     }
 
-    // ## NEW: Attachment Handlers ##
     fun onAttachmentSelected(uri: Uri) {
         viewModelScope.launch {
             val file = copyUriToCache(uri)
@@ -227,11 +253,11 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
     fun clearErrorMessage() {
         _uiState.update { it.copy(errorMessage = null) }
     }
+
     fun onNavigationHandled() {
         _navigationEvent.value = null
     }
 
-    // ## MODIFIED: Clear attachment when form is cleared ##
     fun clearForm() {
         _uiState.update {
             it.copy(
@@ -239,7 +265,7 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                 formStartDate = "",
                 formEndDate = "",
                 formReason = "",
-                formAttachment = null, // Clear attachment
+                formAttachment = null,
                 formIsSubmitting = false,
                 errorMessage = null
             )
@@ -250,10 +276,8 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         _navigationEvent.value = NavigationEvent.NavigateBackToMenu
     }
 
-    // --- Date Formatting ---
     fun formatDisplayDate(date: String): String {
         val outputFormatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.getDefault())
-
         try {
             val parser = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             return LocalDateTime.parse(date, parser).format(outputFormatter)
@@ -264,14 +288,12 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                 try {
                     return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).format(outputFormatter)
                 } catch (e3: Exception) {
-                    Log.w("LeaveModuleViewModel", "Could not parse date: $date")
                     return date
                 }
             }
         }
     }
 
-    // --- Helper Function: Copy Uri to Cache (Copied from AdjustmentModuleViewModel) ---
     private fun copyUriToCache(uri: Uri): File? {
         return try {
             val contentResolver = getApplication<Application>().contentResolver
@@ -283,7 +305,6 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                     "temp_file"
                 }
             }
-
             val file = File(getApplication<Application>().cacheDir, name)
             FileOutputStream(file).use { outputStream ->
                 contentResolver.openInputStream(uri)?.use { inputStream ->

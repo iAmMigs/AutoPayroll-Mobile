@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.automirrored.filled.ArrowBack // NEW IMPORT
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,7 +31,7 @@ fun LeaveModuleListScreen(
     viewModel: LeaveModuleViewModel,
     onFileLeaveClicked: () -> Unit,
     onCalendarClicked: () -> Unit,
-    onBackToMenu: () -> Unit // This parameter is already correctly received
+    onBackToMenu: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabItems = viewModel.tabItems
@@ -41,16 +41,14 @@ fun LeaveModuleListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Leave Request") },
-                // --- NEW ADDITION START ---
                 navigationIcon = {
-                    IconButton(onClick = onBackToMenu) { // Call the onBackToMenu lambda
+                    IconButton(onClick = onBackToMenu) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Use the back arrow icon
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back to Main Menu"
                         )
                     }
                 },
-                // --- NEW ADDITION END ---
                 actions = {
                     IconButton(onClick = onCalendarClicked) {
                         Icon(
@@ -175,8 +173,8 @@ fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewMod
 fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
     val statusColor = when (request.status.lowercase()) {
         "approved" -> Color(0xFF0A9396) // Greenish-Blue
-        "declined" -> Color(0xFFAE2012) // Red
-        else -> Color(0xFFEE9B00) // Orange
+        "declined", "rejected", "need revision", "needs revision" -> Color(0xFFAE2012) // Red
+        else -> Color(0xFFEE9B00) // Orange (Pending)
     }
 
     Card(
@@ -190,8 +188,11 @@ fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // ## CHANGE IS HERE ##
+                // We use the helper function from the ViewModel to format the text
+                // e.g., "vacation" becomes "Vacation Leave"
                 Text(
-                    text = request.leaveType,
+                    text = viewModel.formatLeaveType(request.leaveType),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
