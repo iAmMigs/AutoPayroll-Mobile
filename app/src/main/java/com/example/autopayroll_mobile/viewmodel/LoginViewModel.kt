@@ -9,12 +9,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.loginModule.LoginRequest
 import com.example.autopayroll_mobile.data.loginModule.LoginResponse
-import com.example.autopayroll_mobile.data.model.ApiErrorResponse // Import ApiErrorResponse
+import com.example.autopayroll_mobile.data.model.ApiErrorResponse
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import com.google.gson.Gson // Import Gson
+import com.google.gson.Gson
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _email = MutableLiveData<String>()
@@ -29,7 +29,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _loginSuccess = MutableLiveData<Boolean>()
     val loginSuccess: LiveData<Boolean> = _loginSuccess
 
-    // LiveData for error messages to show in the UI
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
@@ -70,7 +69,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun authenticateUserOnline(loginIdentifier: String, pass: String, androidId: String) {
         _isLoading.value = true
-        _errorMessage.value = null // Clear previous errors
+        _errorMessage.value = null
 
         val loginRequest = LoginRequest(
             identifier = loginIdentifier,
@@ -89,33 +88,26 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 Log.e("LoginViewModel", "Login failed", e)
 
-                // --- MODIFICATION START ---
                 val errorMsg = if (e is HttpException) {
                     val errorBodyString = e.response()?.errorBody()?.string()
-                    // Log the error for debugging purposes
                     Log.e("LoginViewModel", "HTTP Error Code: ${e.code()}, Body: $errorBodyString")
 
                     if (errorBodyString != null) {
                         try {
-                            // Use Gson to parse the error body into ApiErrorResponse
                             val errorResponse = Gson().fromJson(errorBodyString, ApiErrorResponse::class.java)
-                            errorResponse.message // This will extract "Invalid credentials"
+                            errorResponse.message ?: "An unknown error occurred."
                         } catch (jsonParseException: Exception) {
-                            Log.e("LoginViewModel", "Failed to parse error JSON with Gson: $errorBodyString", jsonParseException)
-                            // Fallback message if JSON parsing fails
+                            Log.e("LoginViewModel", "Failed to parse error JSON", jsonParseException)
                             "An unexpected server error occurred. (Code: ${e.code()})"
                         }
                     } else {
-                        // Fallback if error body is null (e.g., 404 without a body)
                         "An unknown error occurred. (Code: ${e.code()})"
                     }
                 } else {
-                    // Not an HTTP error (e.g., network connectivity issues)
                     "Login failed: ${e.message ?: "Unknown network error"}"
                 }
-                // --- MODIFICATION END ---
 
-                _errorMessage.value = errorMsg // Set the error for the UI
+                _errorMessage.value = errorMsg
                 _loginSuccess.value = false
             } finally {
                 _isLoading.value = false
@@ -123,9 +115,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Call this from your UI after you've shown the error.
-     */
     fun onErrorShown() {
         _errorMessage.value = null
     }

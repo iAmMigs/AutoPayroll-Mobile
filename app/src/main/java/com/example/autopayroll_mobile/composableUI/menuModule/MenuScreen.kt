@@ -24,6 +24,7 @@ fun MenuScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToLeave: () -> Unit,
     onNavigateToAdjustment: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
     onLogout: () -> Unit
     // Add other navigation callbacks (Dashboard, Payslip, etc.) if needed in the menu UI
 ) {
@@ -73,7 +74,7 @@ fun MenuScreen(
                     Divider(Modifier.padding(horizontal = 16.dp), color = Color(0xFFEEEEEE))
                     MenuItem("Payroll Credit Adjustment", onNavigateToAdjustment)
                     Divider(Modifier.padding(horizontal = 16.dp), color = Color(0xFFEEEEEE))
-                    MenuItem("Settings", {})
+                    MenuItem("Reset Password", onNavigateToChangePassword)
                     Divider(Modifier.padding(horizontal = 16.dp), color = Color(0xFFEEEEEE))
                     MenuItem("Help", {})
                 }

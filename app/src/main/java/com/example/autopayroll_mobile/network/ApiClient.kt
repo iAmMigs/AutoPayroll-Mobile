@@ -17,11 +17,11 @@ object ApiClient {
     }
 
     fun getClient(context: Context): ApiService {
-        val client = createClient(context.applicationContext) // Get the OkHttpClient
+        val client = createClient(context.applicationContext) // OkHttpClient
 
         val retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(client) // Use our custom client
+            .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

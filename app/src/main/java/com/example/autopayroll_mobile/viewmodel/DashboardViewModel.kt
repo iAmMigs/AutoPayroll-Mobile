@@ -5,15 +5,13 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.composableUI.dashboardUI.DashboardUiState
-import com.example.autopayroll_mobile.data.generalData.Employee
-import com.example.autopayroll_mobile.data.model.Payroll
-import com.example.autopayroll_mobile.data.model.PayrollResponse
-import com.example.autopayroll_mobile.data.model.Schedule
 import com.example.autopayroll_mobile.network.ApiClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -32,92 +30,122 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun fetchData() {
-        _uiState.value = _uiState.value.copy(isLoading = true)
+        // Set loading state but keep existing data if any (for pull-to-refresh)
+        _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             try {
-                // 1. Main Profile & Payroll
-                val employeeDeferred = async { apiService.getEmployeeProfile() }
-                val payrollDeferred = async { apiService.getPayrolls() }
-
-                // 2. Independent Stats
-                val scheduleDeferred = async {
-                    try { apiService.getSchedule() } catch (e: Exception) { null }
-                }
-                val hoursDeferred = async {
-                    try { apiService.getTotalWorkedHours() } catch (e: Exception) { null }
-                }
-                val leavesDeferred = async {
-                    try { apiService.getLeaveCredits() } catch (e: Exception) { null }
-                }
-                val absencesDeferred = async {
-                    try { apiService.getAbsences() } catch (e: Exception) { null }
-                }
-
-                // Await Data
-                val employee = employeeDeferred.await()
-                val payrollResponse = payrollDeferred.await()
-                val scheduleResponse = scheduleDeferred.await()
-                val hoursResponse = hoursDeferred.await()
-                val leavesResponse = leavesDeferred.await()
-                val absencesResponse = absencesDeferred.await()
-
-                // Process Data
-                val mostRecentPayslip = payrollResponse.data
-                    .sortedByDescending { it.payDate }
-                    .firstOrNull()
+                // --- STEP 1: CRITICAL DATA (Sequential) ---
+                // Fetch Profile FIRST to validate token.
+                // If this fails (401), we go to catch block immediately.
+                val employee = apiService.getEmployeeProfile()
 
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
 
-                val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
+                // Update UI immediately with Profile info so the user sees they are logged in
+                _uiState.update {
+                    it.copy(
+                        employeeName = "${employee.firstName} ${employee.lastName}",
+                        employeeId = employee.employeeId,
+                        jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
+                        profilePhotoUrl = fullPhotoUrl
+                        // Keep isLoading = true because we are fetching stats next
+                    )
+                }
 
-                // --- FORMATTING LOGIC: Use .toInt() to remove decimals ---
-                val workedHours = if (hoursResponse?.success == true) {
-                    hoursResponse.total.toInt().toString()
-                } else "0"
+                // --- STEP 2: SECONDARY DATA (Parallel) ---
+                // Now that we know the token works, fetch the rest safely.
+                supervisorScope {
+                    // We wrap ALL of these in try-catch so one failure doesn't kill the whole dashboard
 
-                // Placeholder logic for Overtime/Late (formatted as Ints)
-                val overtime = "0"
-                val late = "0"
+                    val payrollDeferred = async {
+                        try { apiService.getPayrolls() } catch (e: Exception) { null }
+                    }
+                    val scheduleDeferred = async {
+                        try { apiService.getSchedule() } catch (e: Exception) { null }
+                    }
+                    val hoursDeferred = async {
+                        try { apiService.getTotalWorkedHours() } catch (e: Exception) { null }
+                    }
+                    val leavesDeferred = async {
+                        try { apiService.getLeaveCredits() } catch (e: Exception) { null }
+                    }
+                    val absencesDeferred = async {
+                        try { apiService.getAbsences() } catch (e: Exception) { null }
+                    }
 
-                val credits = if (leavesResponse?.success == true) {
-                    leavesResponse.creditDays.toString()
-                } else "0"
+                    // Await Results
+                    val payrollResponse = payrollDeferred.await()
+                    val scheduleResponse = scheduleDeferred.await()
+                    val hoursResponse = hoursDeferred.await()
+                    val leavesResponse = leavesDeferred.await()
+                    val absencesResponse = absencesDeferred.await()
 
-                val absCount = if (absencesResponse?.success == true) {
-                    absencesResponse.count.toString()
-                } else "0"
+                    // --- PROCESS RESULTS ---
 
+                    // 1. Payroll
+                    val mostRecentPayslip = payrollResponse?.data
+                        ?.sortedByDescending { it.payDate }
+                        ?.firstOrNull()
 
-                _uiState.value = DashboardUiState(
-                    isLoading = false,
-                    employeeName = "${employee.firstName} ${employee.lastName}",
-                    employeeId = employee.employeeId,
-                    jobAndCompany = "${employee.jobPosition} • ${employee.companyName}",
-                    recentPayslip = mostRecentPayslip,
-                    profilePhotoUrl = fullPhotoUrl,
-                    currentSchedule = schedule,
-                    // Set formatted strings
-                    lastWorkedHours = workedHours,
-                    overtimeHours = overtime,
-                    lateHours = late,
-                    leaveCredits = credits,
-                    absences = absCount
-                )
+                    // 2. Schedule
+                    val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
+
+                    // 3. Stats Formatting
+                    val workedHours = if (hoursResponse?.success == true) {
+                        hoursResponse.total.toInt().toString()
+                    } else "0"
+
+                    val credits = if (leavesResponse?.success == true) {
+                        leavesResponse.creditDays.toString()
+                    } else "0"
+
+                    val absCount = if (absencesResponse?.success == true) {
+                        absencesResponse.count.toString()
+                    } else "0"
+
+                    // Overtime/Late placeholders (update logic if API endpoints exist later)
+                    val overtime = "0"
+                    val late = "0"
+
+                    // Update Final State
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            recentPayslip = mostRecentPayslip,
+                            currentSchedule = schedule,
+                            lastWorkedHours = workedHours,
+                            overtimeHours = overtime,
+                            lateHours = late,
+                            leaveCredits = credits,
+                            absences = absCount
+                        )
+                    }
+                }
 
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error fetching dashboard data", e)
-                _uiState.value = DashboardUiState(
-                    isLoading = false,
-                    employeeName = "Error loading data",
-                    employeeId = "N/A",
-                    jobAndCompany = "Error: ${e.message}",
-                    recentPayslip = null,
-                    profilePhotoUrl = null,
-                    currentSchedule = null
-                )
+
+                val errorText = if (e is retrofit2.HttpException && e.code() == 401) {
+                    "Session expired. Please login again."
+                } else {
+                    "Error: ${e.message}"
+                }
+
+                // Only overwrite name/job if we really failed to load the profile
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        employeeName = "Error loading data",
+                        employeeId = "N/A",
+                        jobAndCompany = errorText,
+                        // Reset data on critical error
+                        recentPayslip = null,
+                        currentSchedule = null
+                    )
+                }
             }
         }
     }

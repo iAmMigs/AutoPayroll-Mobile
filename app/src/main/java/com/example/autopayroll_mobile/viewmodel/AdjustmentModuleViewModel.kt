@@ -119,8 +119,6 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
             try {
                 val response = publicService.getAdjustmentTypes(typeToQuery)
 
-                // ## NEW LOGGING ##
-                // This log is critical. It will tell us exactly what the server is sending back.
                 Log.d("AdjVM", "Server response for '$typeToQuery': success=${response.success}, message=${response.message}")
 
                 if (response.success) {
@@ -186,8 +184,6 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                 val startDatePart = currentState.formStartDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val endDatePart = currentState.formEndDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                // ## UPDATED ##
-                // Now reads from the state, sending null if blank
                 val affectedDatePart = currentState.formAffectedDate.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 val filePart = currentState.formAttachment?.let { file ->
@@ -201,7 +197,7 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
                     subtype = subTypePart,
                     startDate = startDatePart,
                     endDate = endDatePart,
-                    affectedDate = affectedDatePart, // ## UPDATED ##
+                    affectedDate = affectedDatePart, // Single Date only
                     reason = reasonPart,
                     attachment = filePart
                 )
@@ -273,7 +269,6 @@ class AdjustmentModuleViewModel(private val app: Application) : AndroidViewModel
         _uiState.update { it.copy(formEndDate = date) }
     }
 
-    // ## NEWLY ADDED ##
     fun onAffectedDateChanged(date: String) {
         _uiState.update { it.copy(formAffectedDate = date) }
     }

@@ -3,15 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_dashboard"> <!-- This remains the start destination -->
+    app:startDestination="@+id/navigation_dashboard">
 
-    <!-- Menu Fragment: The starting point for menu navigations -->
     <fragment
         android:id="@+id/navigation_menu"
         android:name="com.example.autopayroll_mobile.mainApp.MenuFragment"
         android:label="Menu">
 
-        <!-- Define all navigation actions FROM the MenuFragment -->
         <action
             android:id="@+id/action_menu_to_profile"
             app:destination="@id/navigation_profile" />
@@ -30,56 +28,50 @@
         <action
             android:id="@+id/action_menu_to_payslip"
             app:destination="@id/navigation_payslip" />
+        <action
+            android:id="@+id/action_menu_to_change_password"
+            app:destination="@id/navigation_change_password" />
     </fragment>
 
-    <!-- Profile Fragment -->
     <fragment
         android:id="@+id/navigation_profile"
         android:name="com.example.autopayroll_mobile.mainApp.ProfileFragment"
         android:label="Profile" />
 
-    <!-- Leave Module Fragment -->
     <fragment
         android:id="@+id/navigation_leave"
         android:name="com.example.autopayroll_mobile.mainApp.LeaveModuleFragment"
         android:label="Leave Request" />
 
-    <!-- Adjustment Module Fragment -->
     <fragment
         android:id="@+id/navigation_adjustment"
         android:name="com.example.autopayroll_mobile.mainApp.AdjustmentModuleFragment"
         android:label="Adjustment Request" />
 
-    <!-- Announcement Fragment -->
     <fragment
         android:id="@+id/navigation_announcement"
         android:name="com.example.autopayroll_mobile.mainApp.AnnouncementFragment"
         android:label="Announcements">
-        <!-- Action to navigate from Announcements list to detail -->
         <action
             android:id="@+id/action_announcement_to_detail"
             app:destination="@id/navigation_announcement_detail" />
     </fragment>
 
-    <!-- Announcement Detail Fragment -->
     <fragment
         android:id="@+id/navigation_announcement_detail"
         android:name="com.example.autopayroll_mobile.mainApp.AnnouncementDetailHostFragment"
         android:label="Announcement Details">
-        <!-- Argument for passing announcement ID -->
         <argument
             android:name="announcementId"
             app:argType="string" />
     </fragment>
 
-    <!-- Compose-based Dashboard Fragment -->
     <fragment
         android:id="@+id/navigation_dashboard"
         android:name="com.example.autopayroll_mobile.mainApp.DashboardFragment"
         android:label="Dashboard">
     </fragment>
 
-    <!-- Compose-based Payslip Fragment -->
     <fragment
         android:id="@+id/navigation_payslip"
         android:name="com.example.autopayroll_mobile.mainApp.PayslipFragment"
@@ -89,8 +81,12 @@
         android:id="@+id/navigation_qr_scanner"
         android:name="com.example.autopayroll_mobile.mainApp.QrScannerFragment"
         android:label="QR Scanner"
-        tools:layout="@layout/fragment_qr_scanner"> <!-- Correctly pointing to its XML layout -->
-        <!-- Define actions FROM QrScannerFragment if any -->
+        tools:layout="@layout/fragment_qr_scanner">
     </fragment>
+
+    <fragment
+        android:id="@+id/navigation_change_password"
+        android:name="com.example.autopayroll_mobile.mainApp.ChangePasswordFragment"
+        android:label="Reset Password" />
 
 </navigation>

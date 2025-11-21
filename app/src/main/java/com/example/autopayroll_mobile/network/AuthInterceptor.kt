@@ -1,7 +1,7 @@
 package com.example.autopayroll_mobile.network
 
 import android.content.Context
-import com.example.autopayroll_mobile.utils.SessionManager // Import SessionManager
+import com.example.autopayroll_mobile.utils.SessionManager
 import okhttp3.Interceptor
 import okhttp3.Response
 

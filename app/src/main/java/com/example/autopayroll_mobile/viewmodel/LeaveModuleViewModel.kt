@@ -129,9 +129,8 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         val leaveTypeApiKey = state.leaveTypes.entries
             .find { it.value == state.formLeaveType }
             ?.key
-            ?: "sick" // Fallback
+            ?: "sick"
 
-        // ## MODIFIED: To support Multipart request ##
         viewModelScope.launch {
             _uiState.update { it.copy(formIsSubmitting = true, errorMessage = null) }
             try {
@@ -158,9 +157,9 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
 
                 if (response.success) {
                     _uiState.update { it.copy(formIsSubmitting = false) }
-                    fetchLeaveRequests() // Refresh the list after submission
+                    fetchLeaveRequests()
                     _navigationEvent.value = NavigationEvent.NavigateBack
-                    clearForm() // Clear form after successful submission
+                    clearForm()
                 } else {
                     val errorMsg = response.errors?.values?.firstOrNull()?.firstOrNull() ?: response.message ?: "Submission failed"
                     Log.w("LeaveModuleViewModel", "Submission failed: $errorMsg")

@@ -50,6 +50,10 @@ class MenuFragment : Fragment() {
                         onNavigateToAdjustment = {
                             findNavController().navigate(R.id.action_menu_to_adjustment)
                         },
+                        // NEW NAVIGATION
+                        onNavigateToChangePassword = {
+                            findNavController().navigate(R.id.action_menu_to_change_password)
+                        },
                         onLogout = {
                             logoutUser()
                         }

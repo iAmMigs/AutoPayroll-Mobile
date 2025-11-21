@@ -40,10 +40,6 @@ data class LeaveRequestListResponse(
     val data: List<LeaveRequest> // Assuming server sends a 'data' key
 )
 
-/**
- * Represents the data we SEND to the server to create a new request.
- * Your API route is: /employee/leave-request
- */
 data class LeaveRequestSubmit(
     @SerializedName("leave_type")
     val leaveType: String,
