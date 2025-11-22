@@ -4,45 +4,51 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
-// Make sure MenuFragment and R are imported correctly
-import com.example.autopayroll_mobile.MenuFragment // Assuming MenuFragment is in this package
-import com.example.autopayroll_mobile.R // For R.id.your_fragment_container_in_hosting_activity
-import com.example.autopayroll_mobile.databinding.FragmentProfileBinding
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.example.autopayroll_mobile.composableUI.ProfileScreen
+import com.example.autopayroll_mobile.viewmodel.ProfileViewModel
+import com.example.autopayroll_mobile.viewmodel.ProfileNavigationEvent
+import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
+import kotlinx.coroutines.launch
 
 class ProfileFragment : Fragment() {
 
-    private var _binding: FragmentProfileBinding? = null
-    private val binding get() = _binding!!
+    private val viewModel: ProfileViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentProfileBinding.inflate(inflater, container, false)
-        return binding.root
+        return ComposeView(requireContext()).apply {
+            setContent {
+                AutoPayrollMobileTheme {
+                    ProfileScreen(
+                        profileViewModel = viewModel,
+                        // FIX: Pass the missing 'onBack' parameter, which handles the header back button.
+                        onBack = {
+                            findNavController().popBackStack()
+                        }
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.backButton.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, MenuFragment())
-                .addToBackStack(null)
-                .commit()
+        // Observe navigation events from the ViewModel (used for internal back presses).
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.navigationEvent.collect { event ->
+                if (event is ProfileNavigationEvent.NavigateBack) {
+                    findNavController().popBackStack()
+                    viewModel.onNavigationHandled()
+                }
+            }
         }
-
-        loadUserData()
-    }
-
-    private fun loadUserData() {
-        val userFullName = "Marc Jurell Afable"
-        binding.textViewFullName.text = userFullName
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }
