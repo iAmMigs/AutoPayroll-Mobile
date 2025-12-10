@@ -218,13 +218,15 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         if (mapped != null) return mapped
 
         // 2. Fallback: Capitalize and append " Leave"
-        return rawType.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        return rawType.replaceFirstChar { 
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
         } + " Leave"
     }
 
     fun onTabSelected(tab: String) {
         _uiState.update { it.copy(selectedTab = tab) }
+        // Fetch new data every time a tab is selected
+        fetchLeaveRequests()
     }
     fun onLeaveTypeChanged(type: String) {
         _uiState.update { it.copy(formLeaveType = type) }

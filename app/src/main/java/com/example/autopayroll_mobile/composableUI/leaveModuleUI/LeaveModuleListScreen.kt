@@ -24,6 +24,7 @@ import com.example.autopayroll_mobile.data.model.LeaveRequest
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleUiState
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.filteredRequests
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,11 @@ fun LeaveModuleListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val tabItems = viewModel.tabItems
     val lightGrayBackground = Color(0xFFF6F5F2)
+
+    LaunchedEffect(Unit) {
+        // Ensure data is fetched when the screen first appears or is recomposed due to navigation
+        viewModel.fetchData()
+    }
 
     Scaffold(
         topBar = {
@@ -129,7 +135,7 @@ fun LeaveBalanceCard(uiState: LeaveModuleUiState) {
                 count = uiState.leaveBalance.available,
                 label = "Available"
             )
-            Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color.LightGray))
+            Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color.LightGray)) // Divider
             BalanceItem(
                 count = uiState.leaveBalance.used,
                 label = "Used"
@@ -160,9 +166,9 @@ fun LeaveRequestList(requests: List<LeaveRequest>, viewModel: LeaveModuleViewMod
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(requests, key = { it.id }) { request ->
+        items(requests, key = { it.id }) {
             LeaveRequestItem(
-                request = request,
+                request = it,
                 viewModel = viewModel
             )
         }
@@ -188,7 +194,6 @@ fun LeaveRequestItem(request: LeaveRequest, viewModel: LeaveModuleViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // ## CHANGE IS HERE ##
                 // We use the helper function from the ViewModel to format the text
                 // e.g., "vacation" becomes "Vacation Leave"
                 Text(
