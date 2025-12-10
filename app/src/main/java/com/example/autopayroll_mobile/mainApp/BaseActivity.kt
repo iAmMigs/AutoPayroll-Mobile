@@ -1,10 +1,14 @@
 package com.example.autopayroll_mobile.mainApp
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.autopayroll_mobile.auth.LoginActivity
 import com.example.autopayroll_mobile.network.ApiClient
@@ -13,10 +17,13 @@ import com.example.autopayroll_mobile.utils.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.Locale
 
 /**
  * An abstract base activity that handles automatic user logout after a period of inactivity.
  * Activities extending this class will be timed.
+ * Also handles security checks for Developer Options, Emulator detection, and Root access.
  */
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -30,6 +37,8 @@ abstract class BaseActivity : AppCompatActivity() {
     private val timeoutRunnable = Runnable {
         performAutomaticLogout()
     }
+
+    private var securityDialog: AlertDialog? = null
 
     companion object {
         // 30 minutes in milliseconds
@@ -53,15 +62,6 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun resetTimeoutTimer() {
         timeoutHandler.removeCallbacks(timeoutRunnable)
         timeoutHandler.postDelayed(timeoutRunnable, TIMEOUT_MS)
-        // Log.d("BaseActivity", "Inactivity timer reset.")
-    }
-
-    /**
-     * Starts the inactivity timer.
-     */
-    private fun startTimeoutTimer() {
-        timeoutHandler.postDelayed(timeoutRunnable, TIMEOUT_MS)
-        // Log.d("BaseActivity", "Inactivity timer started.")
     }
 
     /**
@@ -74,11 +74,12 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     /**
-     * When the activity comes back into the foreground, reset the timer.
+     * When the activity comes back into the foreground, reset the timer and check security.
      */
     override fun onResume() {
         super.onResume()
         resetTimeoutTimer()
+        checkSecurityConstraints()
     }
 
     /**
@@ -88,8 +89,11 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     override fun onPause() {
         super.onPause()
-        // We intentionally do *not* call timeoutHandler.removeCallbacks(timeoutRunnable)
-        // Log.d("BaseActivity", "onPause: Timer continues to run.")
+
+        // Dismiss dialog to avoid leaks, it will show again on Resume if needed
+        if (securityDialog?.isShowing == true) {
+            securityDialog?.dismiss()
+        }
     }
 
     /**
@@ -101,26 +105,17 @@ abstract class BaseActivity : AppCompatActivity() {
         // Always clean up the handler to prevent leaks
         timeoutHandler.removeCallbacks(timeoutRunnable)
 
-        // `isFinishing` is true if the activity is being finished by a call
-        // to finish() or if the user is closing the app (e.g., back button, swipe from recents).
         if (isFinishing) {
             Log.d("BaseActivity", "Activity is finishing. Clearing session and launching 'fire-and-forget' logout task.")
 
             // This is a 'best effort' attempt to call the logout API.
-            // It's not guaranteed to complete if the app process is killed too quickly.
-            // We use GlobalScope because the Activity's scope is ending.
             GlobalScope.launch(Dispatchers.IO) {
                 try {
-                    Log.d("BaseActivity", "Logout task executing API call...")
                     apiService.logout()
-                    Log.d("BaseActivity", "Logout task API call successful.")
                 } catch (e: Exception) {
                     Log.e("BaseActivity", "Logout task API call failed.", e)
                 } finally {
-                    // CRITICAL: Always clear the session locally, even if API call fails.
-                    // This ensures the user is logged out on the device.
                     sessionManager.clearSession()
-                    Log.d("BaseActivity", "Logout task session cleared.")
                 }
             }
         }
@@ -132,32 +127,177 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun performAutomaticLogout() {
         Log.d("BaseActivity", "Inactivity timeout reached. Performing automatic logout.")
 
-        // Use GlobalScope as this may be called when the app is in the background
-        // and the normal lifecycleScope might not be active.
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 apiService.logout()
-                Log.d("BaseActivity", "Automatic logout API call successful.")
             } catch (e: Exception) {
                 Log.e("BaseActivity", "Automatic logout API call failed.", e)
             } finally {
-                // Regardless of API success, clear the local session
                 sessionManager.clearSession()
 
-                // Redirect to LoginActivity.
-                // This must run on the main thread, but we are in a coroutine.
-                // We can't directly launch an activity from a background thread.
-                // Instead, we prepare the intent and start it from the main context.
                 launch(Dispatchers.Main) {
                     val intent = Intent(applicationContext, LoginActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     }
                     startActivity(intent)
-
-                    // Finish all activities in the current task stack
                     finishAffinity()
                 }
             }
         }
+    }
+
+    // ================= SECURITY CHECKS =================
+
+    /**
+     * Checks if the device violates security policies (Emulator, Root, or Developer Options).
+     */
+    private fun checkSecurityConstraints() {
+        // 1. Check for Emulator
+        if (isEmulator()) {
+            showSecurityDialog(
+                title = "Device Not Supported",
+                message = "AutoPayroll cannot be used on emulators (BlueStacks, Nox, LDPlayer, etc).",
+                isFixable = false
+            )
+            return
+        }
+
+        // 2. Check for Rooted Device
+        if (isRooted()) {
+            showSecurityDialog(
+                title = "Security Risk Detected",
+                message = "For security reasons, AutoPayroll cannot be used on rooted devices.",
+                isFixable = false
+            )
+            return
+        }
+
+        // 3. Check for Developer Options
+        if (isDevOptionsEnabled()) {
+            showSecurityDialog(
+                title = "Developer Options Enabled",
+                message = "Please disable Developer Options to use AutoPayroll.",
+                isFixable = true
+            )
+            return
+        }
+    }
+
+    /**
+     * Returns true if Developer Options are enabled on the device.
+     */
+    private fun isDevOptionsEnabled(): Boolean {
+        return try {
+            Settings.Global.getInt(
+                contentResolver,
+                Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0
+            ) != 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Returns true if the device appears to be rooted.
+     */
+    private fun isRooted(): Boolean {
+        val buildTags = Build.TAGS
+        if (buildTags != null && buildTags.contains("test-keys")) {
+            return true
+        }
+
+        val paths = arrayOf(
+            "/system/app/Superuser.apk",
+            "/sbin/su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/data/local/xbin/su",
+            "/data/local/bin/su",
+            "/system/sd/xbin/su",
+            "/system/bin/failsafe/su",
+            "/data/local/su",
+            "/su/bin/su"
+        )
+
+        for (path in paths) {
+            if (File(path).exists()) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * Returns true if the app is running on an emulator.
+     * Updated to target BlueStacks, Nox, LDPlayer, MEmu, and Google Play Games for PC.
+     */
+    private fun isEmulator(): Boolean {
+        // 1. Check Google Play Games for PC specifically
+        if (packageManager.hasSystemFeature("com.google.android.play.feature.HPE_EXPERIENCE")) {
+            return true
+        }
+
+        val phoneInfo = (Build.MANUFACTURER + Build.MODEL + Build.BRAND + Build.PRODUCT + Build.HARDWARE + Build.FINGERPRINT + Build.BOARD + Build.BOOTLOADER).lowercase(Locale.ROOT)
+
+        val emulatorKeywords = listOf(
+            "bluestacks",  // BlueStacks
+            "nox",         // NoxPlayer
+            "ldplayer",    // LDPlayer
+            "memu",        // MEmu Play
+            "koplayer",    // KoPlayer
+            "genymotion",  // Genymotion
+            "ami",         // AMIDuOS
+            "remix",       // RemixOS
+            "phoenix",     // PhoenixOS
+            "vbox",        // VirtualBox (used by many emulators)
+            "goldfish",    // Android Emulator standard
+            "ranchu",      // Android Emulator standard
+            "sdk_gphone",  // Android Studio Emulator
+            "google_sdk"   // Old Google SDK
+        )
+
+        // Check if any keyword exists in the phone info
+        if (emulatorKeywords.any { phoneInfo.contains(it) }) {
+            return true
+        }
+
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.PRODUCT.contains("sdk")
+                || Build.PRODUCT.contains("sdk_x86")
+                || Build.PRODUCT.contains("vbox86p")
+    }
+
+    private fun showSecurityDialog(title: String, message: String, isFixable: Boolean) {
+        if (securityDialog?.isShowing == true) return
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setCancelable(false) // Prevent clicking outside to dismiss
+
+        if (isFixable) {
+            builder.setPositiveButton("Open Settings") { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+                } catch (e: Exception) {
+                    startActivity(Intent(Settings.ACTION_SETTINGS))
+                }
+            }
+            builder.setNegativeButton("Exit") { _, _ ->
+                finishAffinity()
+            }
+        } else {
+            builder.setPositiveButton("Close") { _, _ ->
+                finishAffinity()
+            }
+        }
+
+        securityDialog = builder.create()
+        securityDialog?.show()
     }
 }

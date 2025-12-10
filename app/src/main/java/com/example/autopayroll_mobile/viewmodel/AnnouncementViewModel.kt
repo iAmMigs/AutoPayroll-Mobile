@@ -41,6 +41,10 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
         fetchAnnouncements()
     }
 
+    fun refreshAnnouncements() {
+        fetchAnnouncements()
+    }
+
     private fun fetchAnnouncements() {
         viewModelScope.launch {
             _isLoading.value = true
