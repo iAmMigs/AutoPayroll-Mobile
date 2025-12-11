@@ -18,12 +18,13 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+// 1. We keep 'category' here because the UI relies on it for filtering
 data class AnnouncementUiItem(
     val id: String,
     val title: String,
     val message: String,
     val displayDate: String,
-    // Removed category field
+    val category: String, // UI needs this, even if API doesn't have it
     val icon: ImageVector
 )
 
@@ -52,22 +53,20 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
                 val response = apiService.getAnnouncements()
 
                 if (response.success) {
-                    // 1. Calculate date 2 months ago
                     val calendar = Calendar.getInstance()
-                    calendar.add(Calendar.MONTH, -2)
+                    calendar.add(Calendar.MONTH, -2) // Show last 2 months
                     val twoMonthsAgo: Date = calendar.time
 
-                    // 2. Date Parser matching API format
-                    val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+                    val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) // Adjusted format likely matches DB
 
-                    // 3. Filter and Map
                     val uiItems = response.announcements.filter { announcement ->
                         try {
-                            val date = parser.parse(announcement.createdAt)
-                            // Keep if date is not null and is after twoMonthsAgo
+                            // Handle cases where DB date might be slightly different format
+                            val dateString = announcement.createdAt.replace("T", " ").substringBefore(".")
+                            val date = parser.parse(dateString)
                             date != null && date.after(twoMonthsAgo)
                         } catch (e: Exception) {
-                            false // If date parse fails, exclude it
+                            true // If date parsing fails, keep it just in case
                         }
                     }.map { it.toUiItem() }
 
@@ -89,21 +88,35 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
         return _announcements.value.find { it.id == id }
     }
 
+    // 2. THE TEMPLATE LOGIC
     private fun Announcement.toUiItem(): AnnouncementUiItem {
+        // Since API lacks 'category', we guess it from the Title
+        val generatedCategory = when {
+            this.title.contains("Maintenance", ignoreCase = true) -> "Admin"
+            this.title.contains("System", ignoreCase = true) -> "Admin"
+            this.title.contains("Payslip", ignoreCase = true) -> "Payroll"
+            this.title.contains("Salary", ignoreCase = true) -> "Payroll"
+            this.title.contains("Policy", ignoreCase = true) -> "Admin"
+            else -> "Memo" // Default for "Holiday", "Event", etc.
+        }
+
         return AnnouncementUiItem(
             id = this.announcementId,
             title = this.title,
             message = this.message,
             displayDate = this.createdAt.toFormattedDate(),
-            icon = Icons.Default.Campaign // Generic icon for all
+            category = generatedCategory, // <--- Value is injected here
+            icon = Icons.Default.Campaign
         )
     }
 
     private fun String.toFormattedDate(): String {
         return try {
-            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+            // Flexible parser for standard SQL timestamp
+            val raw = this.replace("T", " ").substringBefore(".")
+            val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val formatter = SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault())
-            parser.parse(this)?.let { formatter.format(it) } ?: this
+            parser.parse(raw)?.let { formatter.format(it) } ?: this
         } catch (e: Exception) {
             this
         }

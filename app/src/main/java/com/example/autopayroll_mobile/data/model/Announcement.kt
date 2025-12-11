@@ -2,10 +2,6 @@ package com.example.autopayroll_mobile.data.model
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Represents the raw announcement data from the API,
- * matching the database table structure.
- */
 data class Announcement(
     @SerializedName("announcement_id")
     val announcementId: String,
@@ -32,10 +28,6 @@ data class Announcement(
     val createdAt: String
 )
 
-/**
- * A wrapper class for the API response
- * that holds the list of announcements.
- */
 data class AnnouncementResponse(
     // ## FIX: These now match the PHP controller ##
     val success: Boolean,

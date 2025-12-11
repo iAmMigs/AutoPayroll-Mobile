@@ -11,7 +11,6 @@ import com.example.autopayroll_mobile.mainApp.NavbarActivity
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.LoginViewModel
 
-// Extend BaseActivity to inherit security checks and timeout logic
 class LoginActivity : BaseActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels()
