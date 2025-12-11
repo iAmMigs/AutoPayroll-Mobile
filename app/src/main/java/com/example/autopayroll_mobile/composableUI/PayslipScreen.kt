@@ -1,145 +1,136 @@
 package com.example.autopayroll_mobile.composableUI
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.data.model.Payslip
-import com.example.autopayroll_mobile.viewmodel.PayslipUiState
 import com.example.autopayroll_mobile.viewmodel.PayslipViewModel
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import java.util.Locale
+
+// --- WEB DESIGN TOKENS ---
+private val WebBackground = Color(0xFFF8F9FA)
+private val WebSurface = Color.White
+private val WebBorderColor = Color(0xFFE2E8F0)
+private val TextHeader = Color(0xFF1E293B)
+private val TextBody = Color(0xFF64748B)
+private val TextLabel = Color(0xFF94A3B8)
+
+private val StatusReleasedBg = Color(0xFFDCFCE7)
+private val StatusReleasedText = Color(0xFF166534)
+private val StatusProcessingBg = Color(0xFFFEF3C7)
+private val StatusProcessingText = Color(0xFFB45309)
+private val StatusRejectedBg = Color(0xFFFEE2E2)
+private val StatusRejectedText = Color(0xFF991B1B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PayslipScreen(
     viewModel: PayslipViewModel,
-    onBack: () -> Unit // Kept for fragment dependency, but not used in UI
+    onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Outer Box/Column to handle full screen and status bar padding
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(WebBackground)
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                // Custom Header Area
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 16.dp)
-                ) {
-                    // FIX: Removed Back button functionality and icon.
-                    // Renamed title to "Payroll Viewing".
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        // Removed clickable modifier
-                    ) {
-                        // Removed Icon and Spacer
-                        Text(
-                            "Payroll Viewing", // RENAME: Payroll Viewing
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    EmployeeHeaderContent(uiState)
-                }
-                HorizontalDivider()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            // --- 1. HEADER SECTION ---
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "My Payslips",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextHeader
+            )
+            Text(
+                text = "View and download your payment history.",
+                fontSize = 14.sp,
+                color = TextBody,
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+            )
 
-                Row(
+            // --- 2. FILTERS ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "FILTER BY YEAR",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextBody,
+                    letterSpacing = 1.sp
+                )
+
+                WebYearDropdown(
+                    selectedYear = uiState.selectedYear,
+                    availableYears = uiState.availableYears,
+                    onYearSelected = { viewModel.onYearSelected(it) }
+                )
+            }
+
+            // --- 3. LIST CONTENT ---
+            // If there is an error message OR the list is empty (and not loading), show the message
+            val showEmptyState = !uiState.isLoading && (uiState.payslips.isEmpty() || uiState.listErrorMessage != null)
+
+            if (uiState.isLoading) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(5) { PayslipItemPlaceholder() }
+                }
+            } else if (showEmptyState) {
+                // Centered Empty State
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(1f), // Take remaining space
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "My Pay Slips",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                    YearFilterDropdown(
-                        selectedYear = uiState.selectedYear,
-                        availableYears = uiState.availableYears,
-                        onYearSelected = { year ->
-                            viewModel.onYearSelected(year)
-                        }
+                        // Prefer the specific error message, fallback to generic
+                        text = uiState.listErrorMessage ?: "No available payslip",
+                        color = TextLabel,
+                        fontSize = 16.sp
                     )
                 }
-
+            } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    if (uiState.isLoading) {
-                        items(5) {
-                            PayslipItemPlaceholder()
-                        }
-                    } else if (uiState.listErrorMessage != null) {
-                        item {
-                            val isError = uiState.listErrorMessage!!.startsWith("Error")
-                            val message = uiState.listErrorMessage!!
-
-                            Text(
-                                text = message,
-                                color = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 32.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    } else {
-                        items(uiState.payslips) { payslip ->
-                            PayslipItem(payslip = payslip)
-                        }
-                    }
-                    // Add bottom padding space to the list
-                    item {
-                        Spacer(modifier = Modifier.height(32.dp))
+                    items(uiState.payslips) { payslip ->
+                        WebPayslipCard(payslip = payslip)
                     }
                 }
             }
@@ -148,38 +139,110 @@ fun PayslipScreen(
 }
 
 @Composable
-fun EmployeeHeaderContent(uiState: PayslipUiState) {
-    Row(
+fun WebPayslipCard(payslip: Payslip) {
+    val (bg, txt) = when (payslip.status.lowercase()) {
+        "released", "paid", "completed" -> StatusReleasedBg to StatusReleasedText
+        "processing", "pending" -> StatusProcessingBg to StatusProcessingText
+        "rejected", "failed" -> StatusRejectedBg to StatusRejectedText
+        else -> Color(0xFFF1F5F9) to Color(0xFF475569)
+    }
+
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = WebSurface),
+        border = BorderStroke(1.dp, WebBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.profiledefault),
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = uiState.employeeName,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Row 1: Pay Period & Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = "PAY PERIOD",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = payslip.dateRange,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextHeader
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(bg)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = payslip.status.replaceFirstChar { it.uppercase() },
+                        color = txt,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = WebBorderColor,
+                thickness = 1.dp
             )
-            Text(
-                text = uiState.jobAndCompany,
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+
+            // Row 2: Net Pay & Action
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "NET PAY",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = payslip.netAmount,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextHeader
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { /* TODO: View Details */ },
+                    shape = RoundedCornerShape(4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    border = BorderStroke(1.dp, WebBorderColor),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "View",
+                        tint = TextBody,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View", color = TextBody, fontSize = 12.sp)
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun YearFilterDropdown(
+fun WebYearDropdown(
     selectedYear: Int,
     availableYears: List<Int>,
     onYearSelected: (Int) -> Unit
@@ -187,24 +250,45 @@ fun YearFilterDropdown(
     var isExpanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedButton(
+        // FIXED: Replaced Modifier.clickable with Surface(onClick) to prevent crash
+        Surface(
             onClick = { isExpanded = true },
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier
+                .width(100.dp)
+                .height(36.dp),
+            shape = RoundedCornerShape(4.dp),
+            border = BorderStroke(1.dp, WebBorderColor),
+            color = WebSurface
         ) {
-            Text(selectedYear.toString())
-            Icon(
-                Icons.Default.ArrowDropDown,
-                contentDescription = "Select Year"
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = selectedYear.toString(),
+                    fontSize = 13.sp,
+                    color = TextHeader
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = TextBody,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         DropdownMenu(
             expanded = isExpanded,
-            onDismissRequest = { isExpanded = false }
+            onDismissRequest = { isExpanded = false },
+            modifier = Modifier
+                .background(WebSurface)
+                .width(100.dp)
         ) {
             availableYears.forEach { year ->
                 DropdownMenuItem(
-                    text = { Text(year.toString()) },
+                    text = { Text(year.toString(), fontSize = 14.sp, color = TextHeader) },
                     onClick = {
                         onYearSelected(year)
                         isExpanded = false
@@ -216,96 +300,29 @@ fun YearFilterDropdown(
 }
 
 @Composable
-fun PayslipItem(payslip: Payslip) {
-    // Define status colors locally
-    val StatusPending = Color(0xFFFFA726)
-    val StatusApproved = Color(0xFF66BB6A)
-    val StatusRejected = Color(0xFFEF5350)
-    val StatusDefault = Color(0xFF9E9E9E)
-
-    // Determine status text and colors
-    val statusText = payslip.status.replaceFirstChar { it.uppercase() }
-
-    // Use String.lowercase()
-    val statusColor = when (payslip.status.lowercase()) {
-        "processing", "pending" -> StatusPending
-        "completed", "released" -> StatusApproved
-        "rejected" -> StatusRejected
-        else -> StatusDefault
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(text = payslip.dateRange, fontWeight = FontWeight.Bold)
-                Text(text = "Net Amount: ${payslip.netAmount}", color = Color.Gray)
-            }
-
-            // Apply colorized background chip style
-            Text(
-                text = statusText,
-                textAlign = TextAlign.Center,
-                color = Color.White,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(statusColor)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
 fun PayslipItemPlaceholder() {
     val shimmerBrush = shimmerBrush()
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = WebSurface),
+        border = BorderStroke(1.dp, WebBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(
-                    modifier = Modifier
-                        .height(20.dp)
-                        .width(150.dp)
-                        .background(shimmerBrush)
-                )
-                Box(
-                    modifier = Modifier
-                        .height(16.dp)
-                        .width(100.dp)
-                        .background(shimmerBrush)
-                )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Box(modifier = Modifier.height(10.dp).width(60.dp).background(shimmerBrush))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.height(14.dp).width(120.dp).background(shimmerBrush))
+                }
+                Box(modifier = Modifier.height(20.dp).width(50.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush))
             }
-            Box(
-                modifier = Modifier
-                    .height(20.dp)
-                    .width(80.dp)
-                    .background(shimmerBrush)
-            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.height(18.dp).width(100.dp).background(shimmerBrush))
+                Box(modifier = Modifier.height(32.dp).width(60.dp).background(shimmerBrush))
+            }
         }
     }
 }
@@ -317,13 +334,11 @@ fun shimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush
             colors = listOf(Color.LightGray.copy(alpha = 0.6f), Color.LightGray.copy(alpha = 0.6f)),
         )
     }
-
     val shimmerColors = listOf(
         Color.LightGray.copy(alpha = 0.6f),
         Color.LightGray.copy(alpha = 0.2f),
         Color.LightGray.copy(alpha = 0.6f),
     )
-
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnimation = transition.animateFloat(
         initialValue = 0f,
@@ -334,7 +349,6 @@ fun shimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush
         ),
         label = "shimmer_anim"
     )
-
     return Brush.linearGradient(
         colors = shimmerColors,
         start = Offset.Zero,
