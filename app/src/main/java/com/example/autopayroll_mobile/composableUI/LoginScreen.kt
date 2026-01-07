@@ -33,7 +33,7 @@ import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.viewmodel.LoginViewModel
 
 @Composable
-fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
+fun LoginScreen(loginViewModel: LoginViewModel = viewModel(), onForgotPasswordClick: () -> Unit) {
     val isLoading by loginViewModel.isLoading.observeAsState(false)
     val email by loginViewModel.email.observeAsState("")
     val password by loginViewModel.password.observeAsState("")
@@ -79,12 +79,12 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
                 focusedContainerColor = Color.Transparent
             )
         )
-//        TextButton(
-//            onClick = { /* TODO: Handle forgot password, No Api for OTP right now  */ },
-//            modifier = Modifier.align(Alignment.End)
-//        ) {
-//            Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
-//        }
+        TextButton(
+            onClick = onForgotPasswordClick,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = { loginViewModel.login() },

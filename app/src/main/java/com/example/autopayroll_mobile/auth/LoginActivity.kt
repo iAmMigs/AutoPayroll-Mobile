@@ -26,7 +26,14 @@ class LoginActivity : BaseActivity() {
 
         setContent {
             AutoPayrollMobileTheme {
-                LoginScreen(loginViewModel = loginViewModel)
+                LoginScreen(
+                    loginViewModel = loginViewModel,
+                    // 3. Implement the navigation callback here
+                    onForgotPasswordClick = {
+                        val intent = Intent(this@LoginActivity, ForgotPasswordActivity::class.java)
+                        startActivity(intent)
+                    }
+                )
             }
         }
 
