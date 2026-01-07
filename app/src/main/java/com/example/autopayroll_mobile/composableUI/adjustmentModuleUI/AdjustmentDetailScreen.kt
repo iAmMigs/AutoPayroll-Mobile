@@ -1,7 +1,9 @@
 package com.example.autopayroll_mobile.composableUI.adjustmentModuleUI
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,171 +18,75 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.composableUI.StatusChip
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
-import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequest
-import com.example.autopayroll_mobile.ui.theme.TextPrimary
-import com.example.autopayroll_mobile.ui.theme.TextSecondary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
+
+private val WebBackground = Color(0xFFF8F9FA)
+private val WebSurface = Color.White
+private val WebBorderColor = Color(0xFFE2E8F0)
+private val TextHeader = Color(0xFF1E293B)
+private val TextBody = Color(0xFF64748B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdjustmentDetailScreen(
     uiState: AdjustmentModuleUiState,
-    requestId: String, // ## UPDATED ##: ID is now a String
+    requestId: String,
     viewModel: AdjustmentModuleViewModel,
     onBack: () -> Unit
 ) {
-    val scrollState = rememberScrollState()
-
-    // ## UPDATED ##
-    // When this screen launches, tell the ViewModel to find the
-    // request with this ID from its master list.
-    LaunchedEffect(key1 = requestId) {
-        viewModel.selectRequestById(requestId)
-    }
+    LaunchedEffect(key1 = requestId) { viewModel.selectRequestById(requestId) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Track Adjustment Request") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.clearSelectedRequest() // Clear state on back
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
-                )
+                title = { Text("Request Details", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { viewModel.clearSelectedRequest(); onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextHeader) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = WebBackground, titleContentColor = TextHeader)
             )
         },
-        containerColor = Color.White
+        containerColor = WebBackground
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-        ) {
-            // ## UPDATED ##
-            // No loading/error. Just show the request if it exists.
+        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize().verticalScroll(rememberScrollState())) {
             if (uiState.selectedRequest != null) {
-                RequestDetails(details = uiState.selectedRequest)
-            } else {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Request not found.", color = Color.Gray)
+                val details = uiState.selectedRequest!!
+                Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = WebSurface), border = BorderStroke(1.dp, WebBorderColor), elevation = CardDefaults.cardElevation(0.dp)) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("STATUS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextBody)
+                            StatusChip(status = details.status)
+                        }
+                        Divider(modifier = Modifier.padding(vertical = 16.dp), color = WebBorderColor)
+                        DetailItem("Type", details.type.replaceFirstChar { it.uppercase() })
+                        DetailItem("Sub-Type", details.subType)
+                        DetailItem("Date Submitted", details.dateSubmitted ?: "N/A")
+                        val dateInfo = if (!details.startDate.isNullOrBlank()) "${details.startDate} to ${details.endDate}" else details.dateSubmitted
+                        DetailItem("Affected Dates", dateInfo ?: "N/A")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        DetailItem("Reason", details.reason ?: "None")
+                        if (details.remarks != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)), shape = RoundedCornerShape(4.dp)) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text("REVIEWER REMARKS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextBody)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(details.remarks, fontSize = 14.sp, color = TextHeader)
+                                }
+                            }
+                        }
+                    }
                 }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = TextHeader) }
             }
         }
     }
 }
 
-/**
- * The main content of the detail screen, showing all data.
- */
 @Composable
-private fun RequestDetails(details: AdjustmentRequest) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        // --- Admin Review Section ---
-        DetailRow(label = "Reviewed by:", value = details.reviewedBy ?: "N/A")
-        DetailRow(label = "Date Reviewed:", value = details.dateReviewed ?: "N/A")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Status:",
-                fontSize = 16.sp,
-                color = TextSecondary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(120.dp)
-            )
-            StatusChip(status = details.status)
-        }
-
-        DetailRow(
-            label = "Remarks:",
-            value = details.remarks ?: "No remarks provided.",
-            isVertical = true
-        )
-
-        Divider(Modifier.padding(vertical = 16.dp))
-
-        // --- Original Request Section ---
-        Text(
-            "Submitted Request Details",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        DetailRow(label = "Date Submitted:", value = details.dateSubmitted)
-        DetailRow(label = "Main Type:", value = details.type)
-        DetailRow(label = "Sub Type:", value = details.subType)
-        DetailRow(label = "Affected Dates:", value = "${details.startDate ?: "N/A"} to ${details.endDate ?: "N/A"}")
-
-        // This field was removed from your new API, so we hide it.
-        // DetailRow(label = "Hours Requested:", value = "N/A")
-
-        DetailRow(
-            label = "Reason:",
-            value = details.reason ?: "N/A",
-            isVertical = true
-        )
-        DetailRow(
-            label = "Attachment:",
-            value = details.attachmentUrl ?: "None",
-            isVertical = true
-        )
-    }
-}
-
-/**
- * A reusable row for displaying a label and its value.
- */
-@Composable
-private fun DetailRow(
-    label: String,
-    value: String,
-    isVertical: Boolean = false
-) {
-    if (isVertical) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = label,
-                fontSize = 16.sp,
-                color = TextSecondary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = value,
-                fontSize = 16.sp,
-                color = TextPrimary,
-                lineHeight = 24.sp
-            )
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontSize = 16.sp,
-                color = TextSecondary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(120.dp) // Aligns the values
-            )
-            Text(
-                text = value,
-                fontSize = 16.sp,
-                color = TextPrimary
-            )
-        }
+fun DetailItem(label: String, value: String) {
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Text(text = label.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextBody, letterSpacing = 0.5.sp)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = value, fontSize = 16.sp, color = TextHeader, fontWeight = FontWeight.Medium)
     }
 }

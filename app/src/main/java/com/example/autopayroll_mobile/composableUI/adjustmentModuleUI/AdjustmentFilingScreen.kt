@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,18 +18,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentType
 import com.example.autopayroll_mobile.data.AdjustmentModule.FormSubmissionStatus
-import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+private val WebBackground = Color(0xFFF8F9FA)
+private val TextHeader = Color(0xFF1E293B)
+private val AccentYellow = Color(0xFFFFC107)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,390 +53,148 @@ fun AdjustmentFilingScreen(
         "Official Business" to "official_business"
     )
 
-    val subTypeOptions by remember(uiState.adjustmentTypes) {
-        derivedStateOf {
-            uiState.adjustmentTypes
-        }
-    }
-
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.onAttachmentSelected(it) }
-    }
-
-    val isReasonError = uiState.formReason.isBlank()
-    val isSubTypeError = uiState.formSubType == null
+    ) { uri: Uri? -> uri?.let { viewModel.onAttachmentSelected(it) } }
 
     LaunchedEffect(uiState.submissionStatus) {
-        when (uiState.submissionStatus) {
-            FormSubmissionStatus.SUCCESS -> {
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Request submitted successfully!",
-                        withDismissAction = true
-                    )
-                }
-                onBack()
-            }
-            FormSubmissionStatus.ERROR -> {
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = uiState.submissionError ?: "An unknown error occurred.",
-                        withDismissAction = true
-                    )
-                }
-            }
-            FormSubmissionStatus.IDLE -> {}
+        if (uiState.submissionStatus == FormSubmissionStatus.SUCCESS) {
+            scope.launch { snackbarHostState.showSnackbar("Request submitted successfully!") }
+            onBack()
+        } else if (uiState.submissionStatus == FormSubmissionStatus.ERROR) {
+            scope.launch { snackbarHostState.showSnackbar(uiState.submissionError ?: "Error") }
         }
-        if (uiState.submissionStatus != FormSubmissionStatus.IDLE) {
-            viewModel.clearForm()
-        }
+        if (uiState.submissionStatus != FormSubmissionStatus.IDLE) viewModel.clearForm()
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Request Filing") },
+                title = { Text("File New Request", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextHeader)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = WebBackground, titleContentColor = TextHeader)
             )
         },
-        containerColor = Color.White
+        containerColor = WebBackground
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState)
+            modifier = Modifier.padding(padding).padding(horizontal = 16.dp).verticalScroll(scrollState)
         ) {
-
-            MainTypeDropdown(
-                label = "Adjustment Type",
-                options = mainTypesMap,
-                selectedApiKey = uiState.formMainType,
-                onOptionSelected = { apiKey ->
-                    viewModel.onMainTypeChanged(apiKey)
-                }
-            )
-
+            MainTypeDropdown("Adjustment Type", mainTypesMap, uiState.formMainType) { viewModel.onMainTypeChanged(it) }
             Spacer(Modifier.height(16.dp))
-
-            SubTypeDropdown(
-                options = subTypeOptions,
-                selectedOption = uiState.formSubType,
-                onOptionSelected = { viewModel.onSubTypeChanged(it) },
-                label = "Adjustment Sub-type",
-                isLoading = uiState.isLoadingTypes,
-                isError = isSubTypeError && uiState.submissionError != null,
-                errorMessage = "Please select a sub-type"
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                "For single-day requests:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            SubTypeDropdown(uiState.adjustmentTypes, uiState.formSubType, { viewModel.onSubTypeChanged(it) }, "Adjustment Sub-type", uiState.isLoadingTypes, uiState.formSubType == null && uiState.submissionError != null, "Please select a sub-type")
+            Spacer(Modifier.height(24.dp))
+            Text("Affected Date (Single Day)", style = MaterialTheme.typography.labelMedium, color = TextHeader)
             Spacer(Modifier.height(8.dp))
-            DatePickerField(
-                label = "Affected Date",
-                date = uiState.formAffectedDate,
-                onDateSelected = { viewModel.onAffectedDateChanged(it) } // ## UPDATED ##
-            )
-
+            DatePickerField("Select Date", uiState.formAffectedDate) { viewModel.onAffectedDateChanged(it) }
             Spacer(Modifier.height(16.dp))
-            Text(
-                "For date-range requests:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("Date Range (Optional)", style = MaterialTheme.typography.labelMedium, color = TextHeader)
             Spacer(Modifier.height(8.dp))
-            DatePickerField(
-                label = "Start Date",
-                date = uiState.formStartDate,
-                onDateSelected = { viewModel.onStartDateChanged(it) }
-            )
-            Spacer(Modifier.height(16.dp))
-            DatePickerField(
-                label = "End Date",
-                date = uiState.formEndDate,
-                onDateSelected = { viewModel.onEndDateChanged(it) }
-            )
-            Spacer(Modifier.height(16.dp))
-
-            // --- 4. Reason for Adjustment ---
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.weight(1f)) { DatePickerField("Start", uiState.formStartDate) { viewModel.onStartDateChanged(it) } }
+                Box(modifier = Modifier.weight(1f)) { DatePickerField("End", uiState.formEndDate) { viewModel.onEndDateChanged(it) } }
+            }
+            Spacer(Modifier.height(24.dp))
             OutlinedTextField(
                 value = uiState.formReason,
                 onValueChange = { viewModel.onReasonChanged(it) },
                 label = { Text("Reason for Adjustment") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                shape = RoundedCornerShape(12.dp),
-                isError = isReasonError && uiState.submissionError != null
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                shape = RoundedCornerShape(8.dp),
+                isError = uiState.formReason.isBlank() && uiState.submissionError != null
             )
-            if (isReasonError && uiState.submissionError != null) {
-                Text(
-                    text = "Reason is required",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                )
-            }
-
             Spacer(Modifier.height(24.dp))
-
-            // --- 5. Attachment ---
-            AttachmentButton(
-                fileName = uiState.formAttachment?.name,
-                onFilePick = { filePickerLauncher.launch("*/*") },
-                onFileRemove = { viewModel.onAttachmentRemoved() }
-            )
+            AttachmentButton(uiState.formAttachment?.name, { filePickerLauncher.launch("*/*") }, { viewModel.onAttachmentRemoved() })
             Spacer(Modifier.height(32.dp))
-
-            // --- 6. Send Button ---
             Button(
                 onClick = { viewModel.submitAdjustmentRequest() },
                 enabled = !uiState.isSubmitting,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = TextPrimary
-                )
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentYellow, contentColor = TextHeader)
             ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Send Request", fontSize = 16.sp)
-                }
+                if (uiState.isSubmitting) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = TextHeader)
+                else Text("Submit Request", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(32.dp))
         }
     }
 }
 
+// --- HELPER COMPOSABLES ---
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainTypeDropdown(
-    label: String,
-    options: Map<String, String>, // <"Leave", "leave">
-    selectedApiKey: String,
-    onOptionSelected: (String) -> Unit // returns "leave"
-) {
+private fun MainTypeDropdown(label: String, options: Map<String, String>, selectedApiKey: String, onOptionSelected: (String) -> Unit) {
     var isExpanded by remember { mutableStateOf(false) }
-
     val selectedDisplayName = options.entries.find { it.value == selectedApiKey }?.key ?: ""
-
-    ExposedDropdownMenuBox(
-        expanded = isExpanded,
-        onExpandedChange = { isExpanded = !isExpanded }
-    ) {
-        OutlinedTextField(
-            value = selectedDisplayName,
-            onValueChange = { },
-            label = { Text(label) },
-            readOnly = true,
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
-            },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-        ExposedDropdownMenu(
-            expanded = isExpanded,
-            onDismissRequest = { isExpanded = false }
-        ) {
-            options.forEach { (displayName, apiKey) ->
-                DropdownMenuItem(
-                    text = { Text(displayName) },
-                    onClick = {
-                        onOptionSelected(apiKey)
-                        isExpanded = false
-                    }
-                )
-            }
+    ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = { isExpanded = !isExpanded }) {
+        OutlinedTextField(value = selectedDisplayName, onValueChange = {}, label = { Text(label) }, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(8.dp))
+        ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }, modifier = Modifier.background(Color.White)) {
+            options.forEach { (name, key) -> DropdownMenuItem(text = { Text(name) }, onClick = { onOptionSelected(key); isExpanded = false }) }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubTypeDropdown(
-    options: List<AdjustmentType>,
-    selectedOption: AdjustmentType?,
-    onOptionSelected: (AdjustmentType) -> Unit,
-    label: String,
-    isLoading: Boolean,
-    isError: Boolean,
-    errorMessage: String
-) {
+private fun SubTypeDropdown(options: List<AdjustmentType>, selectedOption: AdjustmentType?, onOptionSelected: (AdjustmentType) -> Unit, label: String, isLoading: Boolean, isError: Boolean, errorMessage: String) {
     var isExpanded by remember { mutableStateOf(false) }
-
     Column {
-        ExposedDropdownMenuBox(
-            expanded = isExpanded,
-            onExpandedChange = {
-                if (!isLoading && !isError) {
-                    isExpanded = it
-                }
-            }
-        ) {
+        ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = { if (!isLoading) isExpanded = it }) {
             OutlinedTextField(
                 value = selectedOption?.name ?: "",
-                onValueChange = { },
+                onValueChange = {},
                 label = { Text(label) },
                 readOnly = true,
-                trailingIcon = {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
-                    }
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                trailingIcon = { if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp)) else ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
                 isError = isError
             )
-            ExposedDropdownMenu(
-                expanded = isExpanded,
-                onDismissRequest = { isExpanded = false }
-            ) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.name) },
-                        onClick = {
-                            onOptionSelected(option)
-                            isExpanded = false
-                        }
-                    )
-                }
+            ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }, modifier = Modifier.background(Color.White)) {
+                options.forEach { option -> DropdownMenuItem(text = { Text(option.name) }, onClick = { onOptionSelected(option); isExpanded = false }) }
             }
         }
-        if (isError) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
-        }
+        if (isError) Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
     }
 }
 
 @Composable
-private fun AttachmentButton(
-    fileName: String?,
-    onFilePick: () -> Unit,
-    onFileRemove: () -> Unit
-) {
+private fun AttachmentButton(fileName: String?, onFilePick: () -> Unit, onFileRemove: () -> Unit) {
     OutlinedButton(
         onClick = { if (fileName == null) onFilePick() else onFileRemove() },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = TextPrimary
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.Gray)
     ) {
-        Icon(
-            Icons.Default.AttachFile,
-            contentDescription = "Attach File",
-            modifier = Modifier.padding(end = 8.dp)
-        )
-        if (fileName == null) {
-            Text("Attach Image / File")
-        } else {
-            Text(fileName, modifier = Modifier.weight(1f))
-            Text(" (Remove)", color = MaterialTheme.colorScheme.error)
-        }
+        Icon(Icons.Default.AttachFile, null, modifier = Modifier.padding(end = 8.dp), tint = TextHeader)
+        if (fileName == null) Text("Attach Document", color = TextHeader) else { Text(fileName, modifier = Modifier.weight(1f), maxLines = 1, color = TextHeader); Text(" (Remove)", color = Color.Red) }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerField(
-    label: String,
-    date: String,
-    onDateSelected: (String) -> Unit
-) {
+fun DatePickerField(label: String, date: String, onDateSelected: (String) -> Unit) {
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     var showDialog by remember { mutableStateOf(false) }
-
     val datePickerState = rememberDatePickerState()
-
     if (showDialog) {
         DatePickerDialog(
             onDismissRequest = { showDialog = false },
-            confirmButton = {
-                Button(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val selectedDate = Instant.ofEpochMilli(millis)
-                            .atZone(ZoneId.of("UTC"))
-                            .toLocalDate()
-                        onDateSelected(selectedDate.format(dateFormatter))
-                    }
-                    showDialog = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+            confirmButton = { Button(onClick = { datePickerState.selectedDateMillis?.let { onDateSelected(Instant.ofEpochMilli(it).atZone(ZoneId.of("UTC")).toLocalDate().format(dateFormatter)) }; showDialog = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } }
+        ) { DatePicker(state = datePickerState) }
     }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDialog = true }
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clickable { showDialog = true }) {
         OutlinedTextField(
-            value = if (date.isNotBlank()) {
-                try {
-                    LocalDate.parse(date, dateFormatter)
-                        .format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
-                } catch (e: Exception) { "" }
-            } else { "" },
-            onValueChange = {},
-            label = { Text(label) },
-            trailingIcon = {
-                Icon(Icons.Default.DateRange, "Select Date")
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            enabled = false,
-            readOnly = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            value = if (date.isNotBlank()) try { LocalDate.parse(date, dateFormatter).format(DateTimeFormatter.ofPattern("MM-dd-yyyy")) } catch (e: Exception) { "" } else "",
+            onValueChange = {}, label = { Text(label) }, trailingIcon = { Icon(Icons.Default.DateRange, "Select Date") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), enabled = false, colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = Color.Gray, disabledTextColor = TextHeader, disabledLabelColor = Color.Gray, disabledTrailingIconColor = Color.Gray)
         )
     }
 }

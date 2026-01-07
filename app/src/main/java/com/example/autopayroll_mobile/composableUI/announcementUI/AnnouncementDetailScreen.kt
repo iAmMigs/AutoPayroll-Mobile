@@ -1,7 +1,10 @@
 package com.example.autopayroll_mobile.composableUI.announcementUI
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -13,15 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp // Added for custom header typography
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.autopayroll_mobile.viewmodel.AnnouncementViewModel
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.clickable // Added for back button clickable area
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Reuse local design tokens for consistency
+private val WebBackground = Color(0xFFF8F9FA)
+private val TextHeader = Color(0xFF1E293B)
+private val TextBody = Color(0xFF334155)
+private val TextLabel = Color(0xFF64748B)
+
 @Composable
 fun AnnouncementDetailScreen(
     navController: NavController,
@@ -30,87 +34,93 @@ fun AnnouncementDetailScreen(
 ) {
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val item = if (!isLoading) {
-        viewModel.getAnnouncementById(announcementId)
-    } else {
-        null
-    }
+    // Retrieve item
+    val item = if (!isLoading) viewModel.getAnnouncementById(announcementId) else null
 
-    // Replace Scaffold with custom Box/Column structure for uniformity
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars) // Handle status bar padding
+            .background(WebBackground)
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            // --- Custom Header Area (Uniform Style) ---
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // --- HEADER (Back Button) ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { navController.popBackStack() } // Make the whole area clickable for back
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 16.dp)
+                    .padding(top = 16.dp, bottom = 8.dp)
+                    .padding(horizontal = 8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                // Title uses uniform typography
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextHeader
+                    )
+                }
                 Text(
-                    "Announcement Details",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "Back to Announcements",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextHeader,
+                    modifier = Modifier.clickable { navController.popBackStack() }
                 )
             }
-            // --- End Custom Header Area ---
 
-            // Use Box to center loading/error states within the remaining space
-            Box(
-                modifier = Modifier
-                    .weight(1f) // Take up remaining vertical space
-                    .fillMaxWidth()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else if (item != null) {
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxSize()
-                    ) {
-                        Text(
-                            text = item.title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = item.displayDate,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                        Text(
-                            text = item.message,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(32.dp)) // Add bottom padding
-                    }
-                } else {
+            // --- CONTENT AREA ---
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TextHeader)
+                }
+            } else if (item != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Date Tag
                     Text(
-                        text = "Announcement not found.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray,
-                        modifier = Modifier.align(Alignment.Center)
+                        text = item.displayDate.uppercase(),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 1.sp
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Big Title
+                    Text(
+                        text = item.title,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextHeader,
+                        lineHeight = 34.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Message Body
+                    Text(
+                        text = item.message,
+                        fontSize = 16.sp,
+                        color = TextBody,
+                        lineHeight = 24.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Announcement not found.", color = TextLabel)
                 }
             }
         }

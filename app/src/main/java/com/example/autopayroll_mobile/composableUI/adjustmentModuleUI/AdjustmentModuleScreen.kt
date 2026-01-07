@@ -17,9 +17,8 @@ import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
 object AdjustmentModuleDestinations {
     const val HUB_SCREEN = "hub"
     const val FILING_SCREEN = "filing"
-    const val TRACK_LIST_SCREEN = "trackList"
     const val TRACK_DETAIL_SCREEN = "trackDetail"
-    const val REQUEST_ID_ARG = "requestId" // ID is now a String
+    const val REQUEST_ID_ARG = "requestId"
     val TRACK_DETAIL_ROUTE = "$TRACK_DETAIL_SCREEN/{$REQUEST_ID_ARG}"
 }
 
@@ -27,37 +26,32 @@ object AdjustmentModuleDestinations {
 fun AdjustmentModuleScreen(
     viewModel: AdjustmentModuleViewModel = viewModel(),
     navController: NavHostController = rememberNavController(),
-    onBackToMenu: () -> Unit // ## NEW: Callback from the hosting Fragment ##
+    onBackToMenu: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     NavHost(
         navController = navController,
         startDestination = AdjustmentModuleDestinations.HUB_SCREEN,
-        // No animations
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
-
     ) {
-
+        // 1. Dashboard (Stats + History)
         composable(AdjustmentModuleDestinations.HUB_SCREEN) {
             AdjustmentHubScreen(
                 uiState = uiState,
-                onNavigateToFiling = {
-                    navController.navigate(AdjustmentModuleDestinations.FILING_SCREEN)
+                viewModel = viewModel,
+                onNavigateToFiling = { navController.navigate(AdjustmentModuleDestinations.FILING_SCREEN) },
+                onNavigateToDetail = { requestId ->
+                    navController.navigate("${AdjustmentModuleDestinations.TRACK_DETAIL_SCREEN}/$requestId")
                 },
-                onNavigateToTracking = {
-                    navController.navigate(AdjustmentModuleDestinations.TRACK_LIST_SCREEN)
-                },
-                onBack = {
-                    // TODO: Go back to MenuFragment
-                    onBackToMenu() // ## UPDATED: Use the new callback ##
-                }
+                onBack = onBackToMenu
             )
         }
 
+        // 2. Filing Form
         composable(AdjustmentModuleDestinations.FILING_SCREEN) {
             AdjustmentFilingScreen(
                 uiState = uiState,
@@ -69,30 +63,12 @@ fun AdjustmentModuleScreen(
             )
         }
 
-        composable(AdjustmentModuleDestinations.TRACK_LIST_SCREEN) {
-            AdjustmentTrackScreen(
-                uiState = uiState,
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() },
-                onSelectRequest = { requestId -> // requestId is a String
-                    navController.navigate("${AdjustmentModuleDestinations.TRACK_DETAIL_SCREEN}/$requestId")
-                }
-            )
-        }
-
-        /**
-         * Screen 4: The "Track Request Detail"
-         * ## UPDATED ##
-         */
+        // 3. Details View
         composable(
             route = AdjustmentModuleDestinations.TRACK_DETAIL_ROUTE,
-            arguments = listOf(navArgument(AdjustmentModuleDestinations.REQUEST_ID_ARG) {
-                type = NavType.StringType // ## CHANGED to StringType ##
-            })
+            arguments = listOf(navArgument(AdjustmentModuleDestinations.REQUEST_ID_ARG) { type = NavType.StringType })
         ) { backStackEntry ->
-            // Get the request ID
             val requestId = backStackEntry.arguments?.getString(AdjustmentModuleDestinations.REQUEST_ID_ARG) ?: ""
-
             AdjustmentDetailScreen(
                 uiState = uiState,
                 requestId = requestId,

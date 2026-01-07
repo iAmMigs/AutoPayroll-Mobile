@@ -1,102 +1,141 @@
 package com.example.autopayroll_mobile.composableUI.announcementUI
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.viewmodel.AnnouncementUiItem
 import com.example.autopayroll_mobile.viewmodel.AnnouncementViewModel
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.runtime.LaunchedEffect
 
-@OptIn(ExperimentalMaterial3Api::class)
+// --- DESIGN TOKENS ---
+private val WebBackground = Color(0xFFF8F9FA)
+private val WebSurface = Color.White
+private val WebBorderColor = Color(0xFFE2E8F0)
+private val TextHeader = Color(0xFF1E293B)
+private val TextBody = Color(0xFF64748B)
+private val IconBg = Color(0xFFF1F5F9)
+private val AccentYellow = Color(0xFFFFC107) // Matches the yellow underline in image
+
 @Composable
 fun AnnouncementScreen(
     viewModel: AnnouncementViewModel,
     onAnnouncementClicked: (String) -> Unit
 ) {
-    // Directly collect the filtered list from ViewModel
     val announcements by viewModel.announcements.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    // State for Tabs
+    val categories = listOf("All", "Payroll", "Admin", "Memo")
+    var selectedCategory by remember { mutableStateOf("All") }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAnnouncements()
     }
 
-    // Outer Box/Column to handle full screen and status bar padding
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(WebBackground)
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            // --- HEADER ---
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Announcements",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextHeader
+            )
+
+            // --- TABS (Added Back) ---
+            ScrollableTabRow(
+                selectedTabIndex = categories.indexOf(selectedCategory),
+                containerColor = Color.Transparent,
+                contentColor = TextBody,
+                edgePadding = 0.dp,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[categories.indexOf(selectedCategory)]),
+                        height = 3.dp,
+                        color = AccentYellow
+                    )
+                },
+                divider = {
+                    HorizontalDivider(color = WebBorderColor, thickness = 1.dp)
+                },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Custom Title Header
-                Text(
-                    text = "Announcement",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 8.dp)
-                )
-
-                // REMOVED: TabRow (Categories)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else if (announcements.isEmpty()) {
-                        Text(
-                            text = "No recent announcements.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(announcements, key = { it.id }) { item ->
-                                AnnouncementCard(
-                                    item = item,
-                                    onClick = {
-                                        onAnnouncementClicked(item.id)
-                                    }
-                                )
-                            }
+                categories.forEach { category ->
+                    Tab(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        text = {
+                            Text(
+                                text = category,
+                                fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedCategory == category) TextHeader else TextBody
+                            )
                         }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- FILTER LOGIC ---
+            val filteredList = remember(selectedCategory, announcements) {
+                if (selectedCategory == "All") {
+                    announcements
+                } else {
+                    announcements.filter {
+                        // Case-insensitive check (e.g., "ADMIN" matches "Admin")
+                        it.category.equals(selectedCategory, ignoreCase = true)
+                    }
+                }
+            }
+
+            // --- LIST CONTENT ---
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TextHeader)
+                }
+            } else if (filteredList.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "No available announcements.",
+                        color = TextBody,
+                        fontSize = 16.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    items(filteredList, key = { it.id }) { item ->
+                        WebAnnouncementCard(
+                            item = item,
+                            onClick = { onAnnouncementClicked(item.id) }
+                        )
                     }
                 }
             }
@@ -105,7 +144,7 @@ fun AnnouncementScreen(
 }
 
 @Composable
-fun AnnouncementCard(
+fun WebAnnouncementCard(
     item: AnnouncementUiItem,
     onClick: () -> Unit
 ) {
@@ -113,44 +152,85 @@ fun AnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = WebSurface),
+        border = BorderStroke(1.dp, WebBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.Top
         ) {
-            // Simplified Icon logic (Always generic)
-            Icon(
-                imageVector = item.icon,
-                contentDescription = "Announcement",
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(
-                modifier = Modifier.weight(1f)
+            // Icon Box
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(IconBg, shape = RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = item.message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    tint = TextHeader,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Text(
-                text = item.displayDate,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Top).padding(start = 8.dp)
-            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Content
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextHeader,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = item.displayDate,
+                        fontSize = 12.sp,
+                        color = TextBody,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+
+                // Dynamic Category Label
+                // Displays "ADMIN UPDATE" if category is Admin, etc.
+                val displayCategory = when(item.category.uppercase()) {
+                    "ADMIN" -> "ADMIN UPDATE"
+                    "MEMO" -> "GENERAL MEMO"
+                    "PAYROLL" -> "PAYROLL"
+                    else -> item.category.uppercase()
+                }
+
+                Text(
+                    text = displayCategory,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextBody,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = item.message,
+                    fontSize = 14.sp,
+                    color = TextBody,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }

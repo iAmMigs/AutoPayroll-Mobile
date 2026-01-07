@@ -228,10 +228,6 @@ abstract class BaseActivity : AppCompatActivity() {
         return false
     }
 
-    /**
-     * Returns true if the app is running on an emulator.
-     * Updated to target BlueStacks, Nox, LDPlayer, MEmu, and Google Play Games for PC.
-     */
     private fun isEmulator(): Boolean {
         // 1. Check Google Play Games for PC specifically
         if (packageManager.hasSystemFeature("com.google.android.play.feature.HPE_EXPERIENCE")) {
@@ -257,7 +253,6 @@ abstract class BaseActivity : AppCompatActivity() {
             "google_sdk"   // Old Google SDK
         )
 
-        // Check if any keyword exists in the phone info
         if (emulatorKeywords.any { phoneInfo.contains(it) }) {
             return true
         }
