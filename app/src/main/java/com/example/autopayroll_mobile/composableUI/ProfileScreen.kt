@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,7 +30,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,19 +52,10 @@ import java.time.OffsetDateTime
 import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
 
 // Define custom design colors here, matching the Dashboard/Menu aesthetic
-val AppBackground = Color(0xFFEEEEEE) // Light Gray (Darker Header Background)
-val CardSurface = Color.White // White (Lighter Content Background)
-val TextPrimary = Color(0xFF3C3C3C) // Assuming TextPrimary
+val AppBackground = Color(0xFFEEEEEE) // Light Gray
+val CardSurface = Color.White // White
 
 @Composable
 fun ProfileScreen(
@@ -75,53 +69,63 @@ fun ProfileScreen(
             CircularProgressIndicator()
         }
     } else if (uiState.error != null) {
+        // Show error with a retry or re-login hint
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Error: ${uiState.error}")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = uiState.error ?: "Unknown Error",
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+                Button(onClick = { profileViewModel.fetchEmployeeData() }) {
+                    Text("Retry")
+                }
+            }
         }
     } else if (uiState.employee != null) {
         val employee = uiState.employee!!
 
-        // Calculate formatted full name with middle initial here, for reuse
         val formattedMiddleInitial = employee.middleName?.takeIf { it.isNotBlank() }?.let {
-            "${it.first().uppercaseChar()}." // Get first char, uppercase it, add period
-        } ?: "" // If middle name is blank or null, return empty string
+            "${it.first().uppercaseChar()}."
+        } ?: ""
 
         val displayFullName = listOfNotNull(
             employee.firstName,
-            formattedMiddleInitial.takeIf { it.isNotBlank() }, // Only include if it's not empty
+            formattedMiddleInitial.takeIf { it.isNotBlank() },
             employee.lastName
         ).joinToString(" ")
 
-        // Outer Column/Box sets the entire background to WHITE and handles insets
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CardSurface) // Base background is White
-                .windowInsetsPadding(WindowInsets.statusBars) // Apply status bar padding
+                .background(CardSurface)
+                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
+                // --- HEADER SECTION ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(CardSurface) // Explicitly set to White
-                        .padding(horizontal = 16.dp) // Horizontal padding for the content
-                        .padding(bottom = 24.dp) // Space before the first information card
+                        .background(CardSurface)
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 24.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clickable { onBack() }
-                            .padding(top = 16.dp) // Top padding below the status bar padding
+                            .padding(top = 16.dp)
                     ) {
                         Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Back")
                         Spacer(modifier = Modifier.width(16.dp))
                         Text("User Profile", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(24.dp)) // Space below the title
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -148,58 +152,49 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // Column for Name and Title
+                        // Name and Title
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = displayFullName, // Line 142
+                                text = displayFullName,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
                         }
 
-                        // Edit Button
+                        // Edit Button (Visual only for now)
                         Button(
                             onClick = { /* TODO: Edit Profile */ },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFBC02D), // Deeper Yellow
+                                containerColor = Color(0xFFFBC02D),
                                 contentColor = Color.Black
                             ),
                             shape = RoundedCornerShape(8.dp),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 6.dp,
-                                pressedElevation = 2.dp
-                            )
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                         ) {
                             Text("Edit")
                         }
                     }
                 }
 
-
-                // --- 2. CONTENT AREA (White BG - implicit from the outer Box) ---
+                // --- CONTENT AREA ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(CardSurface) // Explicit white background for safety
-                        .padding(horizontal = 16.dp) // Horizontal padding for the content area
+                        .background(CardSurface)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    // Personal Information
                     InfoCard("Personal Information", R.drawable.ic_personal_info, employee)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Address Information
                     AddressCard("Address Information", employee)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Employment Overview
                     EmploymentCard("Employment Overview", employee)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Contact Information
                     ContactCard("Contact Information", employee)
-
-                    Spacer(modifier = Modifier.height(32.dp)) // Padding at the bottom
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -228,37 +223,32 @@ fun InfoCard(title: String, icon: Int, employee: Employee) {
                     "${it.first().uppercaseChar()}."
                 } ?: ""
 
-                // Construct the full name, ensuring proper spacing
                 val fullName = listOfNotNull(
                     employee.firstName,
-                    formattedMiddleInitial.takeIf { it.isNotBlank() }, // Only include if it's not empty
+                    formattedMiddleInitial.takeIf { it.isNotBlank() },
                     employee.lastName
                 ).joinToString(" ")
 
-                InfoItem("Full Name", fullName, Modifier.weight(1f)) // Line 212
+                InfoItem("Full Name", fullName, Modifier.weight(1f))
                 InfoItem("Gender", employee.gender.replaceFirstChar { it.uppercase() }, Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
+            // Marital Status / DOB
             Row(modifier = Modifier.fillMaxWidth()) {
                 InfoItem("Marital Status", employee.maritalStatus.replaceFirstChar { it.uppercase() }, Modifier.weight(1f))
                 InfoItem("Date of Birth", formatApiDate(employee.birthdate), Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                val placeOfBirth = listOfNotNull(employee.city, employee.province, employee.country)
-                    .joinToString(", ")
-                InfoItem("Place of Birth", placeOfBirth.ifEmpty { "N/A" }, Modifier.weight(1f))
-            }
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Blood Type / Age (Calculated)
+            // Blood Type / Age
             Row(modifier = Modifier.fillMaxWidth()) {
                 InfoItem("Blood Type", employee.bloodType ?: "N/A", Modifier.weight(1f))
                 val age = calculateAge(employee.birthdate)?.toString() ?: "N/A"
                 InfoItem("Age", age, Modifier.weight(1f))
             }
+
+            // REMOVED: "Place of Birth" row (Redundant with address and not explicitly provided by API)
         }
     }
 }
@@ -273,21 +263,33 @@ fun AddressCard(title: String, employee: Employee) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // TODO: Replace with your address icon
-                Icon(painter = painterResource(id = R.drawable.ic_personal_info), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Icon(painter = painterResource(id = R.drawable.ic_address), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            val residentialAddress = listOfNotNull(employee.street, employee.barangay, employee.city, employee.province, employee.country)
-                .joinToString(", ")
+            // Combine address parts, filtering out nulls
+            val residentialAddress = listOfNotNull(
+                employee.street,
+                employee.barangay,
+                employee.city,
+                employee.province,
+                employee.country
+            ).joinToString(", ")
+
             InfoItem("Residential Address", residentialAddress.ifEmpty { "N/A" })
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            val idAddress = listOfNotNull(employee.idStreet, employee.idBarangay, employee.idCity, employee.idProvince, employee.idCountry)
-                .joinToString(", ")
+            val idAddress = listOfNotNull(
+                employee.idStreet,
+                employee.idBarangay,
+                employee.idCity,
+                employee.idProvince,
+                employee.idCountry
+            ).joinToString(", ")
+
             InfoItem("Address on Identification Card", idAddress.ifEmpty { "N/A" })
         }
     }
@@ -303,8 +305,7 @@ fun EmploymentCard(title: String, employee: Employee) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // TODO: Replace with your employment icon
-                Icon(painter = painterResource(id = R.drawable.ic_personal_info), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Icon(painter = painterResource(id = R.drawable.ic_payroll), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
@@ -314,11 +315,8 @@ fun EmploymentCard(title: String, employee: Employee) {
                 InfoItem("Date Started", formatApiDate(employee.contractStart), Modifier.weight(1f))
                 InfoItem("Job Role", employee.jobPosition, Modifier.weight(1f))
             }
-
             Divider(modifier = Modifier.padding(vertical = 8.dp))
-
             InfoItem("Employment Status", employee.employmentType)
-
         }
     }
 }
@@ -333,18 +331,14 @@ fun ContactCard(title: String, employee: Employee) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // TODO: Replace with your contact icon
-                Icon(painter = painterResource(id = R.drawable.ic_personal_info), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Icon(painter = painterResource(id = R.drawable.ic_contact), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.width(12.dp))
-
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(16.dp))
             InfoItem("Phone Number", employee.phoneNumber)
-
             Divider(modifier = Modifier.padding(vertical = 8.dp))
-
             InfoItem("Email", employee.email)
         }
     }
@@ -358,23 +352,42 @@ fun InfoItem(label: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
+// --- ROBUST DATE UTILS ---
+
 private fun formatApiDate(apiDate: String): String {
+    if (apiDate.isBlank()) return "N/A"
+
+    val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
+
     return try {
-        val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
+        // 1. Try parsing as standard ISO DateTime (e.g., 2023-10-05T14:30:00.000000Z)
         val dateTime = OffsetDateTime.parse(apiDate)
         dateTime.format(outputFormatter)
     } catch (e: Exception) {
-        Log.e("ProfileScreen", "Error parsing date: $apiDate", e)
-        "Invalid Date"
+        try {
+            // 2. Fallback: Try parsing as Date only (e.g., 2023-10-05) - Common in Laravel
+            val date = LocalDate.parse(apiDate)
+            date.format(outputFormatter)
+        } catch (e2: Exception) {
+            Log.e("ProfileScreen", "Error parsing date: $apiDate", e2)
+            apiDate // Return original string if we can't parse it
+        }
     }
 }
 
 private fun calculateAge(birthdate: String): Int? {
+    if (birthdate.isBlank()) return null
     return try {
+        // Try parsing as DateTime
         val parsedDate = OffsetDateTime.parse(birthdate).toLocalDate()
-        val today = LocalDate.now()
-        Period.between(parsedDate, today).years
+        Period.between(parsedDate, LocalDate.now()).years
     } catch (e: Exception) {
-        null
+        try {
+            // Fallback: Try parsing as Date only
+            val parsedDate = LocalDate.parse(birthdate)
+            Period.between(parsedDate, LocalDate.now()).years
+        } catch (e2: Exception) {
+            null
+        }
     }
 }
