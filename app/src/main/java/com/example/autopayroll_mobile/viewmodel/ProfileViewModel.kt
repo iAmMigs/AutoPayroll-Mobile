@@ -6,20 +6,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.network.ApiClient
-import com.example.autopayroll_mobile.utils.SessionManager
+import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 data class ProfileUiState(
     val isLoading: Boolean = true,
     val employee: Employee? = null,
-    // val company: Company? = null, // We removed this
     val error: String? = null
 )
 
-// ## NEW: NavigationEvent definition ##
 sealed class ProfileNavigationEvent {
     object NavigateBack : ProfileNavigationEvent()
 }
@@ -29,39 +29,63 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState
 
-    // ## NEW: Back Navigation StateFlow ##
     private val _navigationEvent = MutableStateFlow<ProfileNavigationEvent?>(null)
     val navigationEvent: StateFlow<ProfileNavigationEvent?> = _navigationEvent.asStateFlow()
 
-    private val sessionManager = SessionManager(application)
-    // Get the apiService once
     private val apiService = ApiClient.getClient(application)
+    private val baseUrl = "https://autopayroll.org" // Base URL for fixing image paths
 
     init {
         fetchEmployeeData()
     }
 
     fun fetchEmployeeData() {
+        // Reset state to loading
+        _uiState.update { it.copy(isLoading = true, error = null) }
+
         viewModelScope.launch {
-            _uiState.value = ProfileUiState(isLoading = true)
-
-            // We can still check if a user is logged in
-            if (sessionManager.getEmployeeId() == null) {
-                _uiState.value = ProfileUiState(isLoading = false, error = "Employee ID not found. Please log in again.")
-                return@launch
-            }
-
             try {
+                // 1. Call API directly (No session ID check needed, Token handles auth)
                 val employee = apiService.getEmployeeProfile()
-                _uiState.value = ProfileUiState(isLoading = false, employee = employee)
+
+                // 2. Fix Profile Photo URL (Logic matched from DashboardViewModel)
+                // If the URL is partial (e.g., "uploads/photo.jpg"), prepend the base URL
+                val fullPhotoUrl = employee.profilePhoto?.let { path ->
+                    if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
+                }
+
+                // Create a copy of the employee with the corrected photo URL
+                val updatedEmployee = employee.copy(profilePhoto = fullPhotoUrl)
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        employee = updatedEmployee,
+                        error = null
+                    )
+                }
 
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error fetching employee data", e)
-                _uiState.value = ProfileUiState(isLoading = false, error = "Failed to fetch employee data: ${e.message}")
+
+                // 3. Robust Error Handling
+                val errorText = when {
+                    // Handle 401 Unauthorized (Session Expired)
+                    e is HttpException && e.code() == 401 -> "Session expired. Please login again."
+
+                    // Handle the "Expected BEGIN_OBJECT but was STRING" error
+                    e is JsonSyntaxException -> "Server returned an unexpected response. Please check your internet or login status."
+
+                    // General errors
+                    else -> "Failed to fetch profile: ${e.message}"
+                }
+
+                _uiState.update {
+                    it.copy(isLoading = false, error = errorText)
+                }
             }
         }
     }
-
 
     fun navigateBack() {
         _navigationEvent.value = ProfileNavigationEvent.NavigateBack

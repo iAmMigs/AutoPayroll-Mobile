@@ -83,6 +83,17 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val response: LoginResponse = apiService.login(loginRequest)
+
+                // DEBUG LOG: Check exactly what we got
+                Log.d("LoginDebug", "Token received: '${response.token}'")
+                Log.d("LoginDebug", "EmployeeID received: '${response.employeeId}'")
+
+                if (response.token.isBlank()) {
+                    _errorMessage.value = "Login failed: Server returned an empty token."
+                    _isLoading.value = false
+                    return@launch
+                }
+
                 sessionManager.saveSession(response.employeeId, response.token)
                 _loginSuccess.value = true
             } catch (e: Exception) {

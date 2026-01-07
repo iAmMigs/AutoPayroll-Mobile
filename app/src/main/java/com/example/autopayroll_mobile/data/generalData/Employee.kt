@@ -20,18 +20,22 @@ data class Employee(
     @SerializedName("gender") val gender: String,
     @SerializedName("marital_status") val maritalStatus: String,
     @SerializedName("blood_type") val bloodType: String?,
+
+    // Address Info
     @SerializedName("street") val street: String?,
     @SerializedName("barangay_name") val barangay: String?,
     @SerializedName("city_name") val city: String?,
     @SerializedName("province_name") val province: String?,
     @SerializedName("zip") val zip: String?,
     @SerializedName("country") val country: String?,
+
+    // ID Address Info
     @SerializedName("id_street") val idStreet: String?,
     @SerializedName("id_barangay") val idBarangay: String?,
     @SerializedName("id_city") val idCity: String?,
     @SerializedName("id_province") val idProvince: String?,
-    @SerializedName("id_country") val idCountry: String?,
-    @SerializedName("id_religion") val religion: String?,
-    @SerializedName("available_leaves") val availableLeaves: Int,
-    @SerializedName("used_leaves") val usedLeaves: Int
+    @SerializedName("id_country") val idCountry: String?
+
+    // REMOVED: religion, availableLeaves, usedLeaves
+    // These were NOT in your PHP Controller and caused the crash.
 )
