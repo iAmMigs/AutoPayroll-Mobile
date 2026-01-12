@@ -30,11 +30,10 @@ import com.example.autopayroll_mobile.viewmodel.filteredRequests // Ensure this 
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// --- Design Constants (Matching Adjustment Module) ---
 val CardSurface = Color.White
 val TextPrimary = Color(0xFF1F2937)
 val TextSecondary = Color(0xFF4B5563)
-val AppBackground = Color(0xFFF5F5F5) // Light Gray Background
+val AppBackground = Color(0xFFF5F5F5)
 
 @Composable
 fun LeaveModuleListScreen(
@@ -45,19 +44,17 @@ fun LeaveModuleListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Local state to toggle between "Hub" and "List" views
     var currentView by remember { mutableStateOf("hub") }
 
     LaunchedEffect(Unit) {
         viewModel.fetchData()
     }
 
-    // Switch content based on local state
     if (currentView == "hub") {
         LeaveHubContent(
             uiState = uiState,
             onFileClick = onFileLeaveClicked,
-            onTrackClick = { currentView = "list" }, // Switch to List View
+            onTrackClick = { currentView = "list" },
             onCalendarClick = onCalendarClicked,
             onBack = onBackToMenu
         )
@@ -65,16 +62,12 @@ fun LeaveModuleListScreen(
         LeaveListContent(
             uiState = uiState,
             viewModel = viewModel,
-            onBack = { currentView = "hub" }, // Back returns to Hub
+            onBack = { currentView = "hub" },
             onCalendarClicked = onCalendarClicked,
             onFileLeaveClicked = onFileLeaveClicked
         )
     }
 }
-
-// ==========================================
-// 1. HUB VIEW (Matches AdjustmentHubScreen)
-// ==========================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,14 +78,12 @@ fun LeaveHubContent(
     onCalendarClick: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Calculate Summary Data
     val pendingCount by remember(uiState.allRequests) {
         derivedStateOf { uiState.allRequests.count { it.status.equals("Pending", ignoreCase = true) } }
     }
 
     val latestRequest by remember(uiState.allRequests) {
         derivedStateOf {
-            // Sort by createdAt descending to get the latest
             uiState.allRequests.maxByOrNull { it.createdAt }
         }
     }
@@ -112,7 +103,7 @@ fun LeaveHubContent(
                 )
             )
         },
-        containerColor = Color.White // Consistent white background
+        containerColor = Color.White
     ) { padding ->
         Column(
             modifier = Modifier
@@ -120,12 +111,10 @@ fun LeaveHubContent(
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            // 1. Balance Card (Replaces the generic Intro Card)
             LeaveBalanceCardHub(uiState)
 
             Spacer(Modifier.height(24.dp))
 
-            // 2. Navigation Buttons (Side-by-Side)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -160,15 +149,13 @@ fun LeaveHubContent(
 
             Spacer(Modifier.height(32.dp))
 
-            // 3. Summary Section (Pending & Latest)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(AppBackground) // Light gray contrast
+                    .background(AppBackground)
                     .padding(16.dp)
             ) {
-                // Pending Count Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,10 +205,6 @@ fun LeaveHubContent(
         }
     }
 }
-
-// ==========================================
-// 2. LIST VIEW (Original Functionality, New Design)
-// ==========================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -309,10 +292,6 @@ fun LeaveListContent(
         }
     }
 }
-
-// ==========================================
-// 3. SHARED COMPONENTS
-// ==========================================
 
 @Composable
 fun LeaveBalanceCardHub(uiState: LeaveModuleUiState) {
