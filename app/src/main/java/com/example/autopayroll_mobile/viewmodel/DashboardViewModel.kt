@@ -34,7 +34,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                // --- STEP 1: CRITICAL DATA (Sequential) ---
                 val employee = apiService.getEmployeeProfile()
 
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
