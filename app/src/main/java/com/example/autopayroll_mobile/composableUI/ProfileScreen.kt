@@ -312,7 +312,10 @@ fun EmploymentCard(title: String, employee: Employee) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                InfoItem("Date Started", formatApiDate(employee.contractStart), Modifier.weight(1f))
+                // FIX: Handle nullable contractStart safely
+                val startDate = employee.contractStart?.let { formatApiDate(it) } ?: "N/A"
+
+                InfoItem("Date Started", startDate, Modifier.weight(1f))
                 InfoItem("Job Role", employee.jobPosition, Modifier.weight(1f))
             }
             Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -337,7 +340,8 @@ fun ContactCard(title: String, employee: Employee) {
                 Spacer(modifier = Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(16.dp))
-            InfoItem("Phone Number", employee.phoneNumber)
+            InfoItem("Phone Number", employee.phoneNumber ?: "N/A")
+
             Divider(modifier = Modifier.padding(vertical = 8.dp))
             InfoItem("Email", employee.email)
         }
