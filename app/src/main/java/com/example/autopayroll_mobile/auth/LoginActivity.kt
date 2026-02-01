@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.example.autopayroll_mobile.composableUI.LoginScreen
-import com.example.autopayroll_mobile.mainApp.BaseActivity // Import BaseActivity
+import com.example.autopayroll_mobile.mainApp.BaseActivity
 import com.example.autopayroll_mobile.mainApp.NavbarActivity
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.LoginViewModel
@@ -15,12 +15,6 @@ class LoginActivity : BaseActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels()
 
-    companion object {
-        const val EXTRA_VERIFICATION_REASON = "com.example.autopayroll_mobile.auth.VERIFICATION_REASON"
-        const val REASON_FORGOT_PASSWORD = "forgot_password"
-        const val REASON_LOGIN_VERIFICATION = "login_verification"
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -28,7 +22,6 @@ class LoginActivity : BaseActivity() {
             AutoPayrollMobileTheme {
                 LoginScreen(
                     loginViewModel = loginViewModel,
-                    // 3. Implement the navigation callback here
                     onForgotPasswordClick = {
                         val intent = Intent(this@LoginActivity, ForgotPasswordActivity::class.java)
                         startActivity(intent)

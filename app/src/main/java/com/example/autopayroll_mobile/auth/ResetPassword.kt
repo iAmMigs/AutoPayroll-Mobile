@@ -13,6 +13,8 @@ import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.ResetPasswordState
 import com.example.autopayroll_mobile.viewmodel.ResetPasswordViewModel
 
+// DO NOT ADD DATA CLASSES HERE. THEY ARE IN ResetPasswordModels.kt
+
 class ResetPassword : ComponentActivity() {
 
     private val viewModel: ResetPasswordViewModel by viewModels()
@@ -31,13 +33,12 @@ class ResetPassword : ComponentActivity() {
             AutoPayrollMobileTheme {
                 val state by viewModel.resetState.collectAsState()
 
-                // 2. Use your existing UI Composable
+                // 2. Render UI
                 ResetPasswordScreen(
-                    onSubmit = { newPass, confirmPass ->
+                    onConfirmClick = { newPass, confirmPass ->
                         viewModel.submitNewPassword(email, newPass, confirmPass)
                     },
-                    onCancel = {
-                        // Navigate back to Login
+                    onCancelClick = {
                         val intent = Intent(this@ResetPassword, LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         startActivity(intent)
@@ -45,25 +46,21 @@ class ResetPassword : ComponentActivity() {
                     }
                 )
 
-                // 3. Handle State Changes (Success/Error/Loading)
+                // 3. Handle State Changes
                 when (val result = state) {
                     is ResetPasswordState.Success -> {
                         Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
-
-                        // Navigate to Login on success
                         val intent = Intent(this, LoginActivity::class.java)
-                        // Clear back stack so user can't go back to reset password page
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
                         finish()
                     }
                     is ResetPasswordState.Error -> {
                         Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                        // Reset state so the toast doesn't show repeatedly on recomposition
                         viewModel.resetStateToIdle()
                     }
                     is ResetPasswordState.Loading -> {
-                        // Optional: Show a loading dialog or indicator here if not handled in Screen
+                        // Loading handled in UI
                     }
                     else -> {}
                 }

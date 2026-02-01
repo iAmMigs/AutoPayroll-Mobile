@@ -12,13 +12,14 @@ import java.io.IOException
 
 class ResetPasswordViewModel : ViewModel() {
 
+    // Use PublicApiClient since the user is not logged in during this flow
     private val apiService = PublicApiClient.getService()
 
-    // State to track the UI
     private val _resetState = MutableStateFlow<ResetPasswordState>(ResetPasswordState.Idle)
     val resetState = _resetState.asStateFlow()
 
     fun submitNewPassword(email: String, pass: String, confirmPass: String) {
+        // 1. Client-side Validation
         if (email.isBlank()) {
             _resetState.value = ResetPasswordState.Error("Email is missing. Please restart the process.")
             return
@@ -34,10 +35,11 @@ class ResetPasswordViewModel : ViewModel() {
             return
         }
 
+        // 2. API Call
         viewModelScope.launch {
             _resetState.value = ResetPasswordState.Loading
             try {
-                // Laravel 'confirmed' validation expects 'password' and 'password_confirmation'
+                // Prepare request for PHP: email, password, password_confirmation
                 val request = ResetPasswordRequest(
                     email = email,
                     password = pass,
@@ -56,7 +58,7 @@ class ResetPasswordViewModel : ViewModel() {
                 val errorMsg = when (e) {
                     is IOException -> "Network error. Please check your connection."
                     is HttpException -> {
-                        // Attempt to parse Laravel error JSON if needed, otherwise generic
+                        // Handle Laravel 422 (Validation) or 404 (User not found)
                         "Server error: ${e.message()}"
                     }
                     else -> "An unexpected error occurred."
@@ -66,7 +68,6 @@ class ResetPasswordViewModel : ViewModel() {
         }
     }
 
-    // Helper to reset state if user navigates away or retries
     fun resetStateToIdle() {
         _resetState.value = ResetPasswordState.Idle
     }
