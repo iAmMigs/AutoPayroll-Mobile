@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -27,7 +29,7 @@ private val WebBorderColor = Color(0xFFE2E8F0)
 private val TextHeader = Color(0xFF1E293B)
 private val TextBody = Color(0xFF64748B)
 private val IconBg = Color(0xFFF1F5F9)
-private val AccentYellow = Color(0xFFFFC107) // Matches the yellow underline in image
+private val AccentYellow = Color(0xFFFFC107)
 
 @Composable
 fun AnnouncementScreen(
@@ -58,13 +60,30 @@ fun AnnouncementScreen(
         ) {
 
             Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Announcements",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextHeader
-            )
 
+            // --- HEADER WITH REFRESH BUTTON ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Announcements",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextHeader
+                )
+
+                IconButton(onClick = { viewModel.refreshAnnouncements() }) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = TextBody
+                    )
+                }
+            }
+
+            // --- TABS ---
             ScrollableTabRow(
                 selectedTabIndex = categories.indexOf(selectedCategory),
                 containerColor = Color.Transparent,
@@ -104,7 +123,6 @@ fun AnnouncementScreen(
                     announcements
                 } else {
                     announcements.filter {
-                        // Case-insensitive check (e.g., "ADMIN" matches "Admin")
                         it.category.equals(selectedCategory, ignoreCase = true)
                     }
                 }
@@ -117,11 +135,19 @@ fun AnnouncementScreen(
                 }
             } else if (filteredList.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No available announcements.",
-                        color = TextBody,
-                        fontSize = 16.sp
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No updates available.",
+                            color = TextHeader,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Pull to refresh or check back later.",
+                            color = TextBody,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -205,15 +231,22 @@ fun WebAnnouncementCard(
                 val displayCategory = when(item.category.uppercase()) {
                     "ADMIN" -> "ADMIN UPDATE"
                     "MEMO" -> "GENERAL MEMO"
-                    "PAYROLL" -> "PAYROLL"
+                    "PAYROLL" -> "PAYROLL UPDATE"
                     else -> item.category.uppercase()
+                }
+
+                // Color code the category text slightly
+                val categoryColor = when(item.category.uppercase()) {
+                    "PAYROLL" -> Color(0xFF166534) // Green
+                    "ADMIN" -> Color(0xFFB45309)   // Orange
+                    else -> TextBody
                 }
 
                 Text(
                     text = displayCategory,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextBody,
+                    color = categoryColor,
                     letterSpacing = 0.5.sp,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )

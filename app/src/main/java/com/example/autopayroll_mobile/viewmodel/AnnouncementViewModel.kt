@@ -4,6 +4,9 @@ import android.app.Application
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,7 +26,8 @@ data class AnnouncementUiItem(
     val title: String,
     val message: String,
     val displayDate: String,
-    val category: String, // UI needs this, even if API doesn't have it
+    val rawDate: Date?, // Added for sorting
+    val category: String,
     val icon: ImageVector
 )
 
@@ -52,21 +56,18 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
                 val response = apiService.getAnnouncements()
 
                 if (response.success) {
+                    // Filter: Last 3 months only
                     val calendar = Calendar.getInstance()
-                    calendar.add(Calendar.MONTH, -2)
-                    val twoMonthsAgo: Date = calendar.time
+                    calendar.add(Calendar.MONTH, -3)
+                    val cutOffDate: Date = calendar.time
 
-                    val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-
-                    val uiItems = response.announcements.filter { announcement ->
-                        try {
-                            val dateString = announcement.createdAt.replace("T", " ").substringBefore(".")
-                            val date = parser.parse(dateString)
-                            date != null && date.after(twoMonthsAgo)
-                        } catch (e: Exception) {
-                            true
+                    val uiItems = response.announcements
+                        .map { it.toUiItem() }
+                        .filter {
+                            // Keep if date is valid AND recent, OR if parsing failed (safety)
+                            it.rawDate == null || it.rawDate.after(cutOffDate)
                         }
-                    }.map { it.toUiItem() }
+                        .sortedByDescending { it.rawDate } // FIX: Show newest first
 
                     _announcements.value = uiItems
                 } else {
@@ -82,29 +83,40 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // FIX: This method must exist for the Detail Screen to work
     fun getAnnouncementById(id: String): AnnouncementUiItem? {
         return _announcements.value.find { it.id == id }
     }
 
-    // 2. THE TEMPLATE LOGIC
     private fun Announcement.toUiItem(): AnnouncementUiItem {
-        // Since API lacks 'category', we guess it from the Title
-        val generatedCategory = when {
-            this.title.contains("Maintenance", ignoreCase = true) -> "Admin"
-            this.title.contains("System", ignoreCase = true) -> "Admin"
-            this.title.contains("Payslip", ignoreCase = true) -> "Payroll"
-            this.title.contains("Salary", ignoreCase = true) -> "Payroll"
-            this.title.contains("Policy", ignoreCase = true) -> "Admin"
-            else -> "Memo" // Default for "Holiday", "Event", etc.
+        // Improved Category Logic
+        val textContent = "${this.title} ${this.message}".lowercase()
+
+        val (generatedCategory, generatedIcon) = when {
+            textContent.contains("payslip") || textContent.contains("salary") || textContent.contains("bonus") || textContent.contains("payroll") -> {
+                "Payroll" to Icons.Default.Payment
+            }
+            textContent.contains("maintenance") || textContent.contains("system") || textContent.contains("policy") || textContent.contains("admin") -> {
+                "Admin" to Icons.Default.Security
+            }
+            else -> "Memo" to Icons.Default.Notifications
         }
+
+        // Parse Date for Sorting
+        val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val dateObj = try {
+            val dateString = this.createdAt.replace("T", " ").substringBefore(".")
+            parser.parse(dateString)
+        } catch (e: Exception) { null }
 
         return AnnouncementUiItem(
             id = this.announcementId,
             title = this.title,
             message = this.message,
             displayDate = this.createdAt.toFormattedDate(),
-            category = generatedCategory, // <--- Value is injected here
-            icon = Icons.Default.Campaign
+            rawDate = dateObj,
+            category = generatedCategory,
+            icon = generatedIcon
         )
     }
 
@@ -112,7 +124,7 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
         return try {
             val raw = this.replace("T", " ").substringBefore(".")
             val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            val formatter = SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault())
+            val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             parser.parse(raw)?.let { formatter.format(it) } ?: this
         } catch (e: Exception) {
             this

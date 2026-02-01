@@ -151,10 +151,79 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     private fun isEmulator(): Boolean {
+        // Check for specific files known to exist on popular emulators
+        val emulatorFiles = listOf(
+            // BlueStacks
+            "/mnt/windows/BstSharedFolder",
+            "/sdcard/windows/BstSharedFolder",
+            "/sdcard/bst_folder",
+            "/data/data/com.bluestacks.home",
+            "/data/data/com.bluestacks.settings",
+
+            // Nox App Player
+            "/data/data/com.bignox.app.mobile.production",
+            "/system/bin/nox-prop",
+
+            // Genymotion
+            "/dev/socket/genyd",
+            "/dev/socket/baseband_genyd",
+
+            // MEmu
+            "/data/data/com.microvirt.launcher",
+            "/data/data/com.microvirt.memuime",
+
+            // LDPlayer
+            "/system/priv-app/LDAppStore",
+            "/data/data/com.ldmnq.launcher3",
+
+            // Andy
+            "/data/data/com.andy.androVM",
+
+            // KoPlayer
+            "/data/data/com.koplayer.launcher",
+
+            // Generic / QEMU / Android Studio
+            "/dev/socket/qemud",
+            "/dev/qemu_pipe",
+            "/system/lib/libc_malloc_debug_qemu.so",
+            "/sys/qemu_trace",
+            "/system/bin/qemu-props"
+        )
+
+        if (emulatorFiles.any { File(it).exists() }) {
+            return true
+        }
+
+        val phoneInfo = (Build.MANUFACTURER + Build.MODEL + Build.BRAND + Build.PRODUCT +
+                Build.HARDWARE + Build.FINGERPRINT + Build.BOARD + Build.BOOTLOADER +
+                Build.DEVICE).lowercase(Locale.ROOT)
+
+        val emulatorKeywords = listOf(
+            "bluestacks", "nox", "ldplayer", "memu", "koplayer", "genymotion",
+            "ami", "remix", "phoenix", "vbox", "goldfish", "ranchu",
+            "sdk_gphone", "google_sdk", "droid4x", "virtual", "emulator",
+            "titan", "andy", "microvirt"
+        )
+
+        if (emulatorKeywords.any { phoneInfo.contains(it) }) return true
+
+        // Structural Checks for Standard Android SDK Emulators
+        if (Build.FINGERPRINT.startsWith("generic") ||
+            Build.FINGERPRINT.startsWith("unknown") ||
+            Build.MODEL.contains("google_sdk") ||
+            Build.MODEL.contains("Emulator") ||
+            Build.MODEL.contains("Android SDK built for x86") ||
+            Build.PRODUCT.contains("sdk") ||
+            Build.PRODUCT.contains("vbox") ||
+            Build.HARDWARE.contains("goldfish") ||
+            Build.HARDWARE.contains("ranchu") ||
+            Build.BOARD.contains("unknown")) {
+            return true
+        }
+
         if (packageManager.hasSystemFeature("com.google.android.play.feature.HPE_EXPERIENCE")) return true
-        val phoneInfo = (Build.MANUFACTURER + Build.MODEL + Build.BRAND + Build.PRODUCT + Build.HARDWARE + Build.FINGERPRINT + Build.BOARD + Build.BOOTLOADER).lowercase(Locale.ROOT)
-        val emulatorKeywords = listOf("bluestacks", "nox", "ldplayer", "memu", "koplayer", "genymotion", "ami", "remix", "phoenix", "vbox", "goldfish", "ranchu", "sdk_gphone", "google_sdk")
-        return emulatorKeywords.any { phoneInfo.contains(it) } || Build.FINGERPRINT.startsWith("generic") || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.PRODUCT.contains("sdk")
+
+        return false
     }
 
     private fun showSecurityDialog(title: String, message: String, isFixable: Boolean) {
