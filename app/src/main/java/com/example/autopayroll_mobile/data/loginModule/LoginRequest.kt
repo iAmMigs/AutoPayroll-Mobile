@@ -7,5 +7,8 @@ data class LoginRequest(
     val password: String,
 
     @SerializedName("android_id")
-    val androidId: String
+    val androidId: String,
+
+    @SerializedName("fcm_token")
+    val fcmToken: String
 )

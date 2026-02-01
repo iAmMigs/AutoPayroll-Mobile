@@ -33,7 +33,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     val navigationEvent: StateFlow<ProfileNavigationEvent?> = _navigationEvent.asStateFlow()
 
     private val apiService = ApiClient.getClient(application)
-    private val baseUrl = "https://autopayroll.org" // Base URL for fixing image paths
+    private val baseUrl = "https://autopayroll.org"
 
     init {
         fetchEmployeeData()
@@ -45,11 +45,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
         viewModelScope.launch {
             try {
-                // 1. Call API directly (No session ID check needed, Token handles auth)
+                // 1. Call API directly
                 val employee = apiService.getEmployeeProfile()
 
-                // 2. Fix Profile Photo URL (Logic matched from DashboardViewModel)
-                // If the URL is partial (e.g., "uploads/photo.jpg"), prepend the base URL
+                // 2. Fix Profile Photo URL
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
@@ -70,13 +69,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
                 // 3. Robust Error Handling
                 val errorText = when {
-                    // Handle 401 Unauthorized (Session Expired)
                     e is HttpException && e.code() == 401 -> "Session expired. Please login again."
-
-                    // Handle the "Expected BEGIN_OBJECT but was STRING" error
-                    e is JsonSyntaxException -> "Server returned an unexpected response. Please check your internet or login status."
-
-                    // General errors
+                    e is JsonSyntaxException -> "Data format error: ${e.message}. Please check App Updates."
                     else -> "Failed to fetch profile: ${e.message}"
                 }
 

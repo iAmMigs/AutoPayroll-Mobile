@@ -74,7 +74,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         val loginRequest = LoginRequest(
             identifier = loginIdentifier,
             password = pass,
-            androidId = androidId
+            androidId = androidId,
+            fcmToken = "placeholder_token_for_now" // Update this once FCM is integrated
         )
 
         val apiService = ApiClient.getClient(getApplication<Application>().applicationContext)

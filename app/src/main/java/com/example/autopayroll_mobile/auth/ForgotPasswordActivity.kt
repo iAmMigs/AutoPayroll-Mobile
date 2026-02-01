@@ -21,18 +21,22 @@ class ForgotPasswordActivity : BaseActivity() {
             AutoPayrollMobileTheme {
                 ForgotPasswordScreen(
                     viewModel = forgotPasswordViewModel,
-                    onNavigateBack = { finish() } // Close activity to go back to Login
+                    onNavigateBack = { finish() }
                 )
             }
         }
 
-        // Observe success state (e.g., Email sent successfully)
+        // Observe success state
         forgotPasswordViewModel.submitSuccess.observe(this) { isSuccess ->
             if (isSuccess) {
-                Toast.makeText(this, "Reset link sent to your email", Toast.LENGTH_LONG).show()
-                // Navigate to Verification or back to Login depending on your flow
+                Toast.makeText(this, "OTP sent!", Toast.LENGTH_LONG).show()
+
                 val intent = Intent(this, VerificationActivity::class.java)
-                intent.putExtra(LoginActivity.EXTRA_VERIFICATION_REASON, LoginActivity.REASON_FORGOT_PASSWORD)
+
+                // Pass ONLY the email. The verification reason is removed.
+                val emailValue = forgotPasswordViewModel.email.value ?: ""
+                intent.putExtra("EXTRA_EMAIL", emailValue)
+
                 startActivity(intent)
                 finish()
             }

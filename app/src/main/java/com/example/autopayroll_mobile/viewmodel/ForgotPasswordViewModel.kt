@@ -1,14 +1,21 @@
 package com.example.autopayroll_mobile.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.example.autopayroll_mobile.data.auth.OtpRequest
+import com.example.autopayroll_mobile.data.model.ApiErrorResponse
+import com.example.autopayroll_mobile.network.PublicApiClient
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class ForgotPasswordViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val apiService = PublicApiClient.getService() // Use Public Client (no auth token)
 
     private val _email = MutableLiveData<String>()
     val email: LiveData<String> = _email
@@ -27,34 +34,46 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun submitRequest() {
-        val currentEmail = _email.value ?: ""
+        val currentEmail = _email.value?.trim() ?: ""
 
         if (currentEmail.isEmpty()) {
             _errorMessage.value = "Please enter your email address"
             return
         }
 
-        // TODO: Integrate actual API call here later
-        simulateApiCall(currentEmail)
-    }
-
-    private fun simulateApiCall(email: String) {
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
-            // Simulate network delay
-            delay(2000)
+            try {
+                val response = apiService.requestOtp(OtpRequest(email = currentEmail))
 
-            // Mock success logic
-            if (email.contains("@")) {
-                _submitSuccess.value = true
-            } else {
-                _errorMessage.value = "Invalid email format"
-                _submitSuccess.value = false
+                if (response.success) {
+                    _submitSuccess.value = true
+                } else {
+                    _errorMessage.value = response.message
+                }
+
+            } catch (e: Exception) {
+                Log.e("ForgotPasswordVM", "API call failed", e)
+                val msg = when (e) {
+                    is HttpException -> {
+                        // Handle 429 Too Many Requests or 422 Validation Errors
+                        val errorBody = e.response()?.errorBody()?.string()
+                        try {
+                            // PHP returns {"message": "..."} for 429
+                            val err = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
+                            err.message
+                        } catch (ex: Exception) {
+                            "Request failed: ${e.message()}"
+                        }
+                    }
+                    else -> "Network error. Please try again."
+                }
+                _errorMessage.value = msg
+            } finally {
+                _isLoading.value = false
             }
-
-            _isLoading.value = false
         }
     }
 

@@ -18,7 +18,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// 1. We keep 'category' here because the UI relies on it for filtering
 data class AnnouncementUiItem(
     val id: String,
     val title: String,
@@ -54,19 +53,18 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
 
                 if (response.success) {
                     val calendar = Calendar.getInstance()
-                    calendar.add(Calendar.MONTH, -2) // Show last 2 months
+                    calendar.add(Calendar.MONTH, -2)
                     val twoMonthsAgo: Date = calendar.time
 
-                    val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) // Adjusted format likely matches DB
+                    val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
                     val uiItems = response.announcements.filter { announcement ->
                         try {
-                            // Handle cases where DB date might be slightly different format
                             val dateString = announcement.createdAt.replace("T", " ").substringBefore(".")
                             val date = parser.parse(dateString)
                             date != null && date.after(twoMonthsAgo)
                         } catch (e: Exception) {
-                            true // If date parsing fails, keep it just in case
+                            true
                         }
                     }.map { it.toUiItem() }
 
@@ -112,7 +110,6 @@ class AnnouncementViewModel(application: Application) : AndroidViewModel(applica
 
     private fun String.toFormattedDate(): String {
         return try {
-            // Flexible parser for standard SQL timestamp
             val raw = this.replace("T", " ").substringBefore(".")
             val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val formatter = SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault())

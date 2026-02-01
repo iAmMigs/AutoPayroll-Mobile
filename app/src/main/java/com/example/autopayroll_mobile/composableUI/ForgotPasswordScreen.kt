@@ -21,8 +21,6 @@ import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 import com.example.autopayroll_mobile.viewmodel.ForgotPasswordViewModel
 
-// 1. STATEFUL COMPOSABLE (Used by the Activity)
-// This deals with the ViewModel and "State Hoisting"
 @Composable
 fun ForgotPasswordScreen(
     viewModel: ForgotPasswordViewModel = viewModel(),
@@ -31,7 +29,6 @@ fun ForgotPasswordScreen(
     val isLoading by viewModel.isLoading.observeAsState(false)
     val email by viewModel.email.observeAsState("")
 
-    // Pass the state values down to the stateless content
     ForgotPasswordContent(
         email = email,
         isLoading = isLoading,
@@ -41,8 +38,6 @@ fun ForgotPasswordScreen(
     )
 }
 
-// 2. STATELESS COMPOSABLE (The actual UI)
-// This takes pure data, making it easy to Preview without a ViewModel
 @Composable
 fun ForgotPasswordContent(
     email: String,
@@ -60,7 +55,7 @@ fun ForgotPasswordContent(
     ) {
         Image(
             painter = painterResource(id = R.drawable.autopayrolltitle),
-            contentDescription = "Application Logo"
+            contentDescription = "Application Log o"
         )
 
         Spacer(modifier = Modifier.height(60.dp))

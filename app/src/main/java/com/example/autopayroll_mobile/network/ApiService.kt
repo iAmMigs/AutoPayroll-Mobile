@@ -19,6 +19,12 @@ import com.example.autopayroll_mobile.data.model.LeaveCreditsResponse
 import com.example.autopayroll_mobile.data.model.AbsencesResponse
 import com.example.autopayroll_mobile.data.model.ChangePasswordRequest
 import com.example.autopayroll_mobile.data.model.GenericSuccessResponse
+import com.example.autopayroll_mobile.data.auth.OtpRequest
+import com.example.autopayroll_mobile.data.auth.OtpResponse
+import com.example.autopayroll_mobile.data.auth.OtpVerifyRequest
+import com.example.autopayroll_mobile.data.auth.ResetPasswordRequest
+import com.example.autopayroll_mobile.data.auth.ResetPasswordResponse
+import com.example.autopayroll_mobile.data.auth.VerifyOtpResponse
 
 import retrofit2.Response
 import retrofit2.http.Body
@@ -39,8 +45,6 @@ interface ApiService {
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit>
 
-    // --- Password Reset ---
-    // Inside ApiService interface
     @POST("api/employee/password-reset") // Ensure this matches your Laravel route
     suspend fun resetPassword(@Body request: ChangePasswordRequest): GenericSuccessResponse
 
@@ -58,15 +62,12 @@ interface ApiService {
     @GET("api/attendance/today")
     suspend fun getTodayAttendance(): TodayAttendanceResponse
 
-    // --- Payroll Endpoint ---
     @GET("api/payroll/view")
     suspend fun getPayrolls(): PayrollResponse
 
-    // --- Schedule Endpoint ---
     @GET("api/employee/schedules")
     suspend fun getSchedule(): ScheduleResponse
 
-    // --- DASHBOARD STATISTICS ---
     @GET("api/employee/work-hours")
     suspend fun getTotalWorkedHours(): WorkedHoursResponse
 
@@ -117,4 +118,16 @@ interface ApiService {
 
     @GET("api/employee/announcements")
     suspend fun getAnnouncements(): AnnouncementResponse
+
+    // ----- OTP -------
+
+    @POST("api/request-otp")
+    suspend fun requestOtp(@Body request: OtpRequest): OtpResponse
+
+    @POST("api/verify-otp")
+    suspend fun verifyOtp(@Body request: OtpVerifyRequest): VerifyOtpResponse
+
+    @POST("api/change-password")
+    suspend fun changePassword(@Body request: ResetPasswordRequest): ResetPasswordResponse
+
 }

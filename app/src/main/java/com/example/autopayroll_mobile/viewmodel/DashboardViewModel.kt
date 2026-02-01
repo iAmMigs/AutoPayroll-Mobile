@@ -93,7 +93,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         hoursResponse.total.toInt().toString()
                     } else "0"
 
-                    // ## FIX: Convert to Int to remove decimal ##
                     val credits = if (leavesResponse?.success == true) {
                         leavesResponse.creditDays.toInt().toString()
                     } else "0"
@@ -102,6 +101,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         absencesResponse.count.toString()
                     } else "0"
 
+                    // Static placeholders until API endpoints exist for these
                     val overtime = "0"
                     val late = "0"
 

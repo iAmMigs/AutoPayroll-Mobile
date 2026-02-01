@@ -56,7 +56,7 @@ fun AnnouncementScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            // --- HEADER ---
+
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Announcements",
@@ -65,7 +65,6 @@ fun AnnouncementScreen(
                 color = TextHeader
             )
 
-            // --- TABS (Added Back) ---
             ScrollableTabRow(
                 selectedTabIndex = categories.indexOf(selectedCategory),
                 containerColor = Color.Transparent,
@@ -100,7 +99,6 @@ fun AnnouncementScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- FILTER LOGIC ---
             val filteredList = remember(selectedCategory, announcements) {
                 if (selectedCategory == "All") {
                     announcements
