@@ -1,6 +1,5 @@
 package com.example.autopayroll_mobile.network
 
-import com.example.autopayroll_mobile.data.generalData.VerifyOtpResponse
 import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
@@ -20,7 +19,10 @@ import com.example.autopayroll_mobile.data.model.LeaveCreditsResponse
 import com.example.autopayroll_mobile.data.model.AbsencesResponse
 import com.example.autopayroll_mobile.data.model.ChangePasswordRequest
 import com.example.autopayroll_mobile.data.model.GenericSuccessResponse
-import com.example.autopayroll_mobile.data.generalData.SendOtpResponse
+import com.example.autopayroll_mobile.data.auth.OtpRequest
+import com.example.autopayroll_mobile.data.auth.OtpResponse
+import com.example.autopayroll_mobile.data.auth.OtpVerifyRequest
+import com.example.autopayroll_mobile.data.auth.VerifyOtpResponse
 
 import retrofit2.Response
 import retrofit2.http.Body
@@ -117,10 +119,10 @@ interface ApiService {
 
     // ----- OTP -------
 
-    @GET("bin/otp/send")
-    suspend fun sendOtp(): SendOtpResponse
+    @POST("api/request-otp")
+    suspend fun requestOtp(@Body request: OtpRequest): OtpResponse
 
-    @GET("bin/otp/verify")
-    suspend fun verifyOtp(): VerifyOtpResponse
+    @POST("api/verify-otp")
+    suspend fun verifyOtp(@Body request: OtpVerifyRequest): VerifyOtpResponse
 
 }
