@@ -44,7 +44,9 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
                 if (response.success) {
                     _verificationState.value = VerificationState.Success
                 } else {
-                    _verificationState.value = VerificationState.Error(response.message)
+                    // FIX: Use the Elvis operator (?:) to handle null messages
+                    val errorMsg = response.message ?: "Verification failed. Please try again."
+                    _verificationState.value = VerificationState.Error(errorMsg)
                 }
             } catch (e: Exception) {
                 val errorMsg = parseError(e)
