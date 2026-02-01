@@ -22,6 +22,8 @@ import com.example.autopayroll_mobile.data.model.GenericSuccessResponse
 import com.example.autopayroll_mobile.data.auth.OtpRequest
 import com.example.autopayroll_mobile.data.auth.OtpResponse
 import com.example.autopayroll_mobile.data.auth.OtpVerifyRequest
+import com.example.autopayroll_mobile.data.auth.ResetPasswordRequest
+import com.example.autopayroll_mobile.data.auth.ResetPasswordResponse
 import com.example.autopayroll_mobile.data.auth.VerifyOtpResponse
 
 import retrofit2.Response
@@ -124,5 +126,8 @@ interface ApiService {
 
     @POST("api/verify-otp")
     suspend fun verifyOtp(@Body request: OtpVerifyRequest): VerifyOtpResponse
+
+    @POST("api/change-password")
+    suspend fun changePassword(@Body request: ResetPasswordRequest): ResetPasswordResponse
 
 }

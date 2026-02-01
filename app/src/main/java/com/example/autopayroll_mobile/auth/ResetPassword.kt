@@ -5,56 +5,69 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.example.autopayroll_mobile.composableUI.ResetPasswordScreen
 import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
+import com.example.autopayroll_mobile.viewmodel.ResetPasswordState
+import com.example.autopayroll_mobile.viewmodel.ResetPasswordViewModel
 
 class ResetPassword : ComponentActivity() {
 
+    private val viewModel: ResetPasswordViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1. Retrieve the email passed from VerificationActivity
+        val email = intent.getStringExtra("EXTRA_EMAIL") ?: ""
+
+        if (email.isEmpty()) {
+            Toast.makeText(this, "Error: Email not found.", Toast.LENGTH_SHORT).show()
+        }
+
         setContent {
             AutoPayrollMobileTheme {
+                val state by viewModel.resetState.collectAsState()
+
+                // 2. Use your existing UI Composable
                 ResetPasswordScreen(
-                    onConfirmClick = { newPassword, confirmPassword ->
-                        handleConfirmNewPassword(newPassword, confirmPassword)
+                    onSubmit = { newPass, confirmPass ->
+                        viewModel.submitNewPassword(email, newPass, confirmPass)
                     },
-                    onCancelClick = {
-                        val intent = Intent(this, LoginActivity::class.java)
+                    onCancel = {
+                        // Navigate back to Login
+                        val intent = Intent(this@ResetPassword, LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         startActivity(intent)
                         finish()
                     }
                 )
+
+                // 3. Handle State Changes (Success/Error/Loading)
+                when (val result = state) {
+                    is ResetPasswordState.Success -> {
+                        Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
+
+                        // Navigate to Login on success
+                        val intent = Intent(this, LoginActivity::class.java)
+                        // Clear back stack so user can't go back to reset password page
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        finish()
+                    }
+                    is ResetPasswordState.Error -> {
+                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                        // Reset state so the toast doesn't show repeatedly on recomposition
+                        viewModel.resetStateToIdle()
+                    }
+                    is ResetPasswordState.Loading -> {
+                        // Optional: Show a loading dialog or indicator here if not handled in Screen
+                    }
+                    else -> {}
+                }
             }
         }
-    }
-
-    private fun handleConfirmNewPassword(newPassword: String, confirmedPassword: String) {
-        if (newPassword.isEmpty()) {
-            Toast.makeText(this, "New password cannot be empty", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (newPassword.length < 6) {
-            Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (confirmedPassword.isEmpty()) {
-            Toast.makeText(this, "Please confirm your password", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (newPassword != confirmedPassword) {
-            Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        Toast.makeText(this, "Password reset successfully (simulated)", Toast.LENGTH_LONG).show()
-
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        startActivity(intent)
-        finish()
     }
 }

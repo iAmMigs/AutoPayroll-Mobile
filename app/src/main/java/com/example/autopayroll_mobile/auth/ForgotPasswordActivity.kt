@@ -29,12 +29,11 @@ class ForgotPasswordActivity : BaseActivity() {
         // Observe success state (e.g., Email sent successfully)
         forgotPasswordViewModel.submitSuccess.observe(this) { isSuccess ->
             if (isSuccess) {
-                Toast.makeText(this, "OTP sent to your email", Toast.LENGTH_LONG).show()
-
+                Toast.makeText(this, "OTP sent!", Toast.LENGTH_LONG).show()
                 val intent = Intent(this, VerificationActivity::class.java)
                 intent.putExtra(LoginActivity.EXTRA_VERIFICATION_REASON, LoginActivity.REASON_FORGOT_PASSWORD)
 
-                // IMPORTANT: Pass the email to VerificationActivity
+                // ADD THIS LINE:
                 intent.putExtra("EXTRA_EMAIL", forgotPasswordViewModel.email.value)
 
                 startActivity(intent)

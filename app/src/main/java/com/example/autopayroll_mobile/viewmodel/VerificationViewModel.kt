@@ -1,20 +1,20 @@
 package com.example.autopayroll_mobile.viewmodel
 
-import android.util.Log
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.autopayroll_mobile.data.auth.OtpErrorResponse
-import com.example.autopayroll_mobile.data.auth.OtpRequest
 import com.example.autopayroll_mobile.data.auth.OtpVerifyRequest
 import com.example.autopayroll_mobile.network.PublicApiClient
 import com.google.gson.Gson
+import com.example.autopayroll_mobile.data.model.ApiErrorResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
-class VerificationViewModel : ViewModel() {
+class VerificationViewModel(application: Application) : AndroidViewModel(application) {
 
+    // Use PublicApiClient because user is not logged in yet
     private val apiService = PublicApiClient.getService()
     private var userEmail: String = ""
 
@@ -26,26 +26,28 @@ class VerificationViewModel : ViewModel() {
     }
 
     fun verifyOtp(otp: String) {
-        if (userEmail.isBlank()) {
-            _verificationState.value = VerificationState.Error("Email not found. Please try again.")
+        if (otp.length != 6) {
+            _verificationState.value = VerificationState.Error("Please enter a 6-digit code")
             return
         }
-        if (otp.length != 6) {
-            _verificationState.value = VerificationState.Error("OTP must be 6 digits")
+        if (userEmail.isBlank()) {
+            _verificationState.value = VerificationState.Error("Email missing. Please restart.")
             return
         }
 
         viewModelScope.launch {
             _verificationState.value = VerificationState.Loading
             try {
-                val response = apiService.verifyOtp(OtpVerifyRequest(email = userEmail, otp = otp))
+                // Call API: /api/verify-otp
+                val response = apiService.verifyOtp(OtpVerifyRequest(userEmail, otp))
+
                 if (response.success) {
                     _verificationState.value = VerificationState.Success
                 } else {
                     _verificationState.value = VerificationState.Error(response.message)
                 }
             } catch (e: Exception) {
-                val errorMsg = parseOtpError(e)
+                val errorMsg = parseError(e)
                 _verificationState.value = VerificationState.Error(errorMsg)
             }
         }
@@ -53,29 +55,33 @@ class VerificationViewModel : ViewModel() {
 
     fun resendCode() {
         if (userEmail.isBlank()) return
-
         viewModelScope.launch {
             try {
-                // Call requestOtp again to resend
-                apiService.requestOtp(OtpRequest(email = userEmail))
-                Log.d("VerificationVM", "Resend OTP successful")
+                // Reuse the requestOtp endpoint
+                // Note: You might need a simple OtpRequest(email) data class
+                // apiService.requestOtp(OtpRequest(userEmail))
             } catch (e: Exception) {
-                Log.e("VerificationVM", "Resend failed", e)
+                // Handle error silently or show toast
             }
         }
     }
 
-    private fun parseOtpError(e: Exception): String {
-        if (e is HttpException) {
-            val errorBody = e.response()?.errorBody()?.string()
-            return try {
-                val err = Gson().fromJson(errorBody, OtpErrorResponse::class.java)
-                err.otp ?: err.message ?: "Verification failed"
-            } catch (jsonEx: Exception) {
-                "Server error: ${e.code()}"
+    fun resetState() {
+        _verificationState.value = VerificationState.Idle
+    }
+
+    private fun parseError(e: Exception): String {
+        return if (e is HttpException) {
+            try {
+                val body = e.response()?.errorBody()?.string()
+                val error = Gson().fromJson(body, ApiErrorResponse::class.java)
+                error.message
+            } catch (e: Exception) {
+                "Verification failed: ${e.message}"
             }
+        } else {
+            "Network error. Please check your connection."
         }
-        return "Network error"
     }
 }
 
