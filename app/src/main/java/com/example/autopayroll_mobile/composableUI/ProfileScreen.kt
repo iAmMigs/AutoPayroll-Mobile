@@ -164,19 +164,6 @@ fun ProfileScreen(
                             )
                             Text("${employee.jobPosition} • ${employee.companyName}", fontSize = 14.sp)
                         }
-
-                        // Edit Button (Visual only for now)
-                        Button(
-                            onClick = { /* TODO: Edit Profile */ },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFBC02D),
-                                contentColor = Color.Black
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                        ) {
-                            Text("Edit")
-                        }
                     }
                 }
 
