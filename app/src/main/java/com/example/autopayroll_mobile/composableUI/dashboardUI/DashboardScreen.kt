@@ -2,6 +2,7 @@ package com.example.autopayroll_mobile.composableUI.dashboardUI
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -142,8 +143,10 @@ fun WebHeaderSection(state: DashboardUiState) {
             placeholder = painterResource(id = R.drawable.profiledefault),
             error = painterResource(id = R.drawable.profiledefault),
             modifier = Modifier
-                .size(64.dp) // Slightly smaller to fit clean web look
+                .size(64.dp)
                 .clip(CircleShape)
+                // ADDED: Yellow Border (2.dp thickness)
+                .border(2.dp, AccentYellow, CircleShape)
                 .background(Color.LightGray)
         )
 

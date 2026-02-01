@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.autopayroll_mobile.viewmodel.AnnouncementViewModel
+// FIX: Add this import so the screen knows what the function returns
+import com.example.autopayroll_mobile.viewmodel.AnnouncementUiItem
 
 // Reuse local design tokens for consistency
 private val WebBackground = Color(0xFFF8F9FA)
@@ -35,7 +37,11 @@ fun AnnouncementDetailScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     // Retrieve item
-    val item = if (!isLoading) viewModel.getAnnouncementById(announcementId) else null
+    val item: AnnouncementUiItem? = if (!isLoading) {
+        viewModel.getAnnouncementById(announcementId)
+    } else {
+        null
+    }
 
     Box(
         modifier = Modifier

@@ -3,6 +3,7 @@ package com.example.autopayroll_mobile.composableUI
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -136,6 +137,8 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(CircleShape)
+                                // ADDED: Yellow Border (3.dp for a slightly bolder look on profile)
+                                .border(3.dp, Color(0xFFFFC107), CircleShape)
                                 .background(Color.LightGray)
                         ) {
                             val painter = rememberAsyncImagePainter(
