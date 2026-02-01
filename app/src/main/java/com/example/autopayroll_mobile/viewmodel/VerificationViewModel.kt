@@ -38,13 +38,11 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             _verificationState.value = VerificationState.Loading
             try {
-                // Call API: /api/verify-otp
                 val response = apiService.verifyOtp(OtpVerifyRequest(userEmail, otp))
 
                 if (response.success) {
                     _verificationState.value = VerificationState.Success
                 } else {
-                    // FIX: Use the Elvis operator (?:) to handle null messages
                     val errorMsg = response.message ?: "Verification failed. Please try again."
                     _verificationState.value = VerificationState.Error(errorMsg)
                 }
@@ -59,11 +57,7 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
         if (userEmail.isBlank()) return
         viewModelScope.launch {
             try {
-                // Reuse the requestOtp endpoint
-                // Note: You might need a simple OtpRequest(email) data class
-                // apiService.requestOtp(OtpRequest(userEmail))
             } catch (e: Exception) {
-                // Handle error silently or show toast
             }
         }
     }
