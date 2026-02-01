@@ -1,5 +1,6 @@
 package com.example.autopayroll_mobile.network
 
+import com.example.autopayroll_mobile.data.generalData.VerifyOtpResponse
 import com.example.autopayroll_mobile.data.generalData.Employee
 import com.example.autopayroll_mobile.data.model.PayrollResponse
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
@@ -19,6 +20,7 @@ import com.example.autopayroll_mobile.data.model.LeaveCreditsResponse
 import com.example.autopayroll_mobile.data.model.AbsencesResponse
 import com.example.autopayroll_mobile.data.model.ChangePasswordRequest
 import com.example.autopayroll_mobile.data.model.GenericSuccessResponse
+import com.example.autopayroll_mobile.data.generalData.SendOtpResponse
 
 import retrofit2.Response
 import retrofit2.http.Body
@@ -39,8 +41,6 @@ interface ApiService {
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit>
 
-    // --- Password Reset ---
-    // Inside ApiService interface
     @POST("api/employee/password-reset") // Ensure this matches your Laravel route
     suspend fun resetPassword(@Body request: ChangePasswordRequest): GenericSuccessResponse
 
@@ -58,15 +58,12 @@ interface ApiService {
     @GET("api/attendance/today")
     suspend fun getTodayAttendance(): TodayAttendanceResponse
 
-    // --- Payroll Endpoint ---
     @GET("api/payroll/view")
     suspend fun getPayrolls(): PayrollResponse
 
-    // --- Schedule Endpoint ---
     @GET("api/employee/schedules")
     suspend fun getSchedule(): ScheduleResponse
 
-    // --- DASHBOARD STATISTICS ---
     @GET("api/employee/work-hours")
     suspend fun getTotalWorkedHours(): WorkedHoursResponse
 
@@ -118,6 +115,12 @@ interface ApiService {
     @GET("api/employee/announcements")
     suspend fun getAnnouncements(): AnnouncementResponse
 
+    // ----- OTP -------
 
+    @GET("bin/otp/send")
+    suspend fun sendOtp(): SendOtpResponse
+
+    @GET("bin/otp/verify")
+    suspend fun verifyOtp(): VerifyOtpResponse
 
 }

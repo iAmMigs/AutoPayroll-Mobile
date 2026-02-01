@@ -356,8 +356,6 @@ fun InfoItem(label: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
-// --- ROBUST DATE UTILS ---
-
 private fun formatApiDate(apiDate: String): String {
     if (apiDate.isBlank()) return "N/A"
 

@@ -1,6 +1,5 @@
 package com.example.autopayroll_mobile.data.generalData
 
+data class SendOtpResponse {
 
-data class EmployeeResponse(
-    val data: Employee
-)
+}
