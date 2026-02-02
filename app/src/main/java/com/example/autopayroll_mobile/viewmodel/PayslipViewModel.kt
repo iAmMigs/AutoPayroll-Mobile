@@ -6,8 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.Payslip
 import com.example.autopayroll_mobile.network.ApiClient
-import com.example.autopayroll_mobile.utils.SessionManager
-import com.google.gson.JsonSyntaxException // Added for JSON error handling
+import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +37,9 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
 
     private val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
 
+    // URL to your public storage. Adjust if your server uses a different structure.
+    private val baseUrl = "https://autopayroll.org/storage/"
+
     init {
         fetchData(initialLoad = true)
     }
@@ -52,7 +54,6 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             it.copy(
                 selectedYear = year,
                 payslips = filtered,
-                // Only show "No payslips found" if the filtering results in empty, but we have data for other years
                 listErrorMessage = if (filtered.isEmpty() && it.allPayslips.isNotEmpty()) "No payslips found for $year." else it.listErrorMessage
             )
         }
@@ -66,7 +67,7 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
-            // --- PART 1: Fetch Employee (Unchanged) ---
+            // --- PART 1: Fetch Employee ---
             try {
                 val employee = apiService.getEmployeeProfile()
                 _uiState.update {
@@ -77,28 +78,44 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching employee", e)
-                // Continue to fetch payslips even if profile fails
             }
 
             // --- PART 2: Fetch Payrolls ---
             try {
                 val payrollResponse = apiService.getPayrolls()
 
-                val realPayslips = payrollResponse.data.map { apiPayroll ->
-                    // Handle potential date parsing errors gracefully
+                // Safely handle null data to prevent crashes
+                val rawList = payrollResponse.data ?: emptyList()
+
+                val realPayslips = rawList.map { apiPayroll ->
+                    // 1. Safe Date Parsing
+                    val rawDate = apiPayroll.payDate ?: ""
                     val dateStr = try {
-                        OffsetDateTime.parse(apiPayroll.payDate).format(outputFormatter)
-                    } catch (e: Exception) { apiPayroll.payDate }
+                        if (rawDate.isNotEmpty()) OffsetDateTime.parse(rawDate).format(outputFormatter) else "N/A"
+                    } catch (e: Exception) { rawDate }
 
                     val yearInt = try {
-                        OffsetDateTime.parse(apiPayroll.payDate).year
+                        if (rawDate.isNotEmpty()) OffsetDateTime.parse(rawDate).year else Year.now().value
                     } catch (e: Exception) { Year.now().value }
+
+                    // 2. Safe Strings
+                    val net = apiPayroll.netPay ?: "0.00"
+                    val status = apiPayroll.status?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+
+                    // 3. Construct PDF URL
+                    val pdfUrl = if (!apiPayroll.filePath.isNullOrBlank()) {
+                        // Remove leading slash if present to avoid double slashes
+                        baseUrl + apiPayroll.filePath.removePrefix("/")
+                    } else {
+                        null
+                    }
 
                     Payslip(
                         dateRange = dateStr,
-                        netAmount = "₱${apiPayroll.netPay}",
-                        status = apiPayroll.status.replaceFirstChar { it.uppercase() },
-                        year = yearInt
+                        netAmount = "₱$net",
+                        status = status,
+                        year = yearInt,
+                        pdfUrl = pdfUrl
                     )
                 }
 
@@ -112,30 +129,21 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                         payslips = realPayslips.filter { p -> p.year == currentYear },
                         availableYears = years,
                         selectedYear = currentYear,
-                        // If list is empty, show the message immediately
                         listErrorMessage = if (realPayslips.isEmpty()) "No available payslip" else null
                     )
                 }
             } catch (e: Exception) {
                 Log.e("PayslipViewModel", "Error fetching payrolls", e)
-
-                // --- ERROR HANDLING LOGIC ---
                 val errorMessage = when (e) {
-                    is JsonSyntaxException, is IllegalStateException -> "No available payslip" // Handle "BEGIN_OBJECT but was STRING"
+                    is JsonSyntaxException, is IllegalStateException -> "Error parsing data"
                     is HttpException -> {
                         if (e.code() == 404 || e.code() == 401) "No available payslip"
                         else "Server error: ${e.message()}"
                     }
                     else -> "An unexpected error occurred."
                 }
-
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        payslips = emptyList(),
-                        allPayslips = emptyList(),
-                        listErrorMessage = errorMessage
-                    )
+                    it.copy(isLoading = false, payslips = emptyList(), listErrorMessage = errorMessage)
                 }
             }
         }

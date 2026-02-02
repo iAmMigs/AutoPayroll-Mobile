@@ -451,8 +451,11 @@ class QrScannerFragment : Fragment() {
             return
         }
 
-        // Skip validation check since the API will handle already clocked in/out status.
-        // We rely on API for final status check and error handling.
+        // NEW: Retrieve the unique Android ID
+        val androidId = Settings.Secure.getString(
+            requireContext().contentResolver,
+            Settings.Secure.ANDROID_ID
+        )
 
         showLoading("Submitting $action...")
 
@@ -461,7 +464,8 @@ class QrScannerFragment : Fragment() {
             token = scannedQrData!!.token,
             signature = scannedQrData!!.signature,
             latitude = currentLocation!!.latitude,
-            longitude = currentLocation!!.longitude
+            longitude = currentLocation!!.longitude,
+            androidId = androidId // <--- PASS THE ID HERE
         )
 
         val apiService = ApiClient.getClient(requireContext().applicationContext)

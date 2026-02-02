@@ -2,45 +2,48 @@ package com.example.autopayroll_mobile.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// This class matches the main JSON response: { "data": [...], "success": true }
+// Matches: { "data": [...], "success": true }
 data class PayrollResponse(
     @SerializedName("data")
-    val data: List<Payroll>,
+    val data: List<Payroll>?, // Made nullable to prevent crashes if key is missing
 
     @SerializedName("success")
     val success: Boolean
 )
 
-// This class matches a single payroll object from your database
+// Matches a single payroll object from your database
 data class Payroll(
-    @SerializedName("payroll_id")
-    val payrollId: String,
+    @SerializedName("payroll_id", alternate = ["id"])
+    val payrollId: String?,
 
     @SerializedName("employee_id")
-    val employeeId: String,
+    val employeeId: String?,
 
     @SerializedName("payroll_period_id")
-    val payrollPeriodId: String,
+    val payrollPeriodId: String?,
 
     @SerializedName("net_pay")
-    val netPay: String, // Kept as String for easy display, matches decimal(10,2)
+    val netPay: String?,
 
     @SerializedName("pay_date")
-    val payDate: String, // Matches date type, e.g., "2025-11-15"
+    val payDate: String?,
 
     @SerializedName("status")
-    val status: String, // "released" or "processing"
+    val status: String?,
 
-    // Add any other fields you might need from the API
     @SerializedName("gross_salary")
-    val grossSalary: String,
+    val grossSalary: String?,
 
     @SerializedName("pag_ibig_deductions")
-    val pagIbigDeductions: String,
+    val pagIbigDeductions: String?,
 
     @SerializedName("phil_health_deductions")
-    val philHealthDeductions: String,
+    val philHealthDeductions: String?,
 
     @SerializedName("sss_deductions")
-    val sssDeductions: String
+    val sssDeductions: String?,
+
+    // NEW: Path to the PDF file (e.g., "payrolls/sample.pdf")
+    @SerializedName("file_path", alternate = ["attachment", "pdf_path"])
+    val filePath: String?
 )

@@ -3,16 +3,18 @@ package com.example.autopayroll_mobile.composableUI.dashboardUI
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -21,11 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.example.autopayroll_mobile.R
 import com.example.autopayroll_mobile.data.model.Schedule
@@ -54,6 +59,18 @@ fun DashboardScreen(
     viewModel: DashboardViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // AUTO-REFRESH: Update data when screen resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(
         modifier = Modifier
@@ -69,12 +86,12 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. HEADER (Profile Pic + Greeting)
+            // 1. HEADER
             WebHeaderSection(uiState)
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 2. ATTENDANCE STATS (3 Separate Cards)
+            // 2. ATTENDANCE STATS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -86,7 +103,7 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 3. BALANCE & ABSENCES (Colored Left Borders)
+            // 3. BALANCE & ABSENCES
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -110,7 +127,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // 4. PAYSLIP
-            WebPayslipCard(uiState = uiState)
+            WebPayslipCard(uiState = uiState, onClick = { })
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -135,7 +152,6 @@ fun WebHeaderSection(state: DashboardUiState) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // --- PROFILE PICTURE RESTORED ---
         AsyncImage(
             model = state.profilePhotoUrl,
             contentDescription = "Profile Picture",
@@ -145,14 +161,12 @@ fun WebHeaderSection(state: DashboardUiState) {
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                // ADDED: Yellow Border (2.dp thickness)
                 .border(2.dp, AccentYellow, CircleShape)
                 .background(Color.LightGray)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // --- GREETING TEXT ---
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "$greeting ${state.employeeName}!",
@@ -225,15 +239,12 @@ fun AccentStatCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Colored Bar on Left
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(4.dp)
                     .background(accentColor)
             )
-
-            // Content
             Column(
                 modifier = Modifier
                     .padding(16.dp)
@@ -269,7 +280,7 @@ fun AccentStatCard(
 }
 
 @Composable
-fun WebPayslipCard(uiState: DashboardUiState) {
+fun WebPayslipCard(uiState: DashboardUiState, onClick: () -> Unit) {
     Text(
         text = "Most Recent Payslip",
         fontSize = 18.sp,
@@ -283,10 +294,11 @@ fun WebPayslipCard(uiState: DashboardUiState) {
         colors = CardDefaults.cardColors(containerColor = WebSurface),
         border = BorderStroke(1.dp, WebBorderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Table Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -299,7 +311,6 @@ fun WebPayslipCard(uiState: DashboardUiState) {
 
             Divider(color = WebBorderColor, thickness = 1.dp)
 
-            // Content
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,34 +320,39 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else if (uiState.recentPayslip != null) {
-                    val payslip = uiState.recentPayslip
+                    val payslip = uiState.recentPayslip!!
+
+                    // --- FIX: Safely handle nullable strings ---
+                    val netPay = payslip.netPay ?: "0.00"
+                    val payDateStr = payslip.payDate ?: ""
+                    val statusStr = payslip.status ?: "Unknown"
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "₱${payslip.netPay}",
+                            text = "₱$netPay",
                             fontWeight = FontWeight.Bold,
                             color = TextHeader,
                             modifier = Modifier.weight(1.2f),
                             fontSize = 14.sp
                         )
                         Text(
-                            text = formatDate(payslip.payDate),
+                            text = formatDate(payDateStr), // Safe call
                             color = TextBody,
                             modifier = Modifier.weight(1f),
                             fontSize = 14.sp
                         )
 
-                        // Status Pill
-                        val isPaid = payslip.status.equals("released", ignoreCase = true) || payslip.status.equals("paid", ignoreCase = true)
+                        val isPaid = statusStr.equals("released", ignoreCase = true) || statusStr.equals("paid", ignoreCase = true)
 
                         Box(
                             modifier = Modifier.weight(0.8f),
                             contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = if(isPaid) "Paid" else payslip.status,
+                                text = if(isPaid) "Paid" else statusStr,
                                 color = if(isPaid) StatusPaidText else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
@@ -349,25 +365,6 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                     }
                 } else {
                     Text("No records found", color = TextLabel, fontSize = 14.sp)
-                }
-            }
-
-            Divider(color = WebBorderColor, thickness = 1.dp)
-
-            // View Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                OutlinedButton(
-                    onClick = { /* TODO: Navigate to Details */ },
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text("View", fontSize = 12.sp, color = TextBody)
                 }
             }
         }
@@ -409,10 +406,10 @@ fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else if (schedule != null) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    // Start Time
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = formatTimeBig(schedule.startTime),
@@ -427,7 +424,6 @@ fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                         )
                     }
 
-                    // Arrow
                     Text(
                         text = "→",
                         fontSize = 24.sp,
@@ -435,7 +431,6 @@ fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
 
-                    // End Time
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = formatTimeBig(schedule.endTime),
@@ -478,6 +473,7 @@ fun formatTimeAmPm(timeString: String?): String {
 }
 
 fun formatDate(dateString: String): String {
+    if (dateString.isBlank()) return "N/A"
     return try {
         val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())

@@ -14,7 +14,6 @@ import retrofit2.HttpException
 
 class VerificationViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Use PublicApiClient because user is not logged in yet
     private val apiService = PublicApiClient.getService()
     private var userEmail: String = ""
 

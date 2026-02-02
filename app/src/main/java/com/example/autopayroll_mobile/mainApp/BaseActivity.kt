@@ -126,10 +126,10 @@ abstract class BaseActivity : AppCompatActivity() {
             showSecurityDialog("Security Risk Detected", "For security reasons, AutoPayroll cannot be used on rooted devices.", false)
             return
         }
-        if (isDevOptionsEnabled()) {
-            showSecurityDialog("Developer Options Enabled", "Please disable Developer Options to use AutoPayroll.", true)
-            return
-        }
+//        if (isDevOptionsEnabled()) {
+//            showSecurityDialog("Developer Options Enabled", "Please disable Developer Options to use AutoPayroll.", true)
+//            return
+//        }
     }
 
     private fun isDevOptionsEnabled(): Boolean {

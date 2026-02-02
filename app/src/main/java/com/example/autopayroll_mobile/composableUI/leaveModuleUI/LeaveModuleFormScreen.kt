@@ -18,20 +18,14 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.NavigationEvent
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
-// Match the background color from LeaveModuleListScreen
-private val AppBackground = Color(0xFFF5F5F5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,13 +36,14 @@ fun LeaveModuleFormScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // File Picker Launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onAttachmentSelected(it) }
     }
 
-    // Observe error messages
+    // Error Handling
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -56,7 +51,7 @@ fun LeaveModuleFormScreen(
         }
     }
 
-    // Observe navigation events
+    // Navigation Handling
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             if (event == NavigationEvent.NavigateBack) {
@@ -74,108 +69,82 @@ fun LeaveModuleFormScreen(
                     IconButton(onClick = onBackClicked) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
-                )
+                }
             )
-        },
-        containerColor = AppBackground // Set background to match List Screen
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Container Card for the Form
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            // 1. Leave Type
+            LeaveTypeDropdown(
+                selectedType = uiState.formLeaveType,
+                leaveTypes = uiState.leaveTypes,
+                onTypeSelected = { viewModel.onLeaveTypeChanged(it) }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 2. Start Date
+            DatePickerField(
+                label = "Start Date",
+                date = uiState.formStartDate,
+                onDateSelected = { viewModel.onStartDateChanged(it) }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. End Date
+            DatePickerField(
+                label = "End Date",
+                date = uiState.formEndDate,
+                onDateSelected = { viewModel.onEndDateChanged(it) }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 4. Reason
+            OutlinedTextField(
+                value = uiState.formReason,
+                onValueChange = { viewModel.onReasonChanged(it) },
+                label = { Text("Reason") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 5. Attachment Button
+            AttachmentButton(
+                fileName = uiState.formAttachment?.name,
+                onFilePick = {
+                    filePickerLauncher.launch("*/*")
+                },
+                onFileRemove = { viewModel.onAttachmentRemoved() }
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 6. Submit Button
+            Button(
+                onClick = { viewModel.submitLeaveRequest() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                enabled = !uiState.formIsSubmitting
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp) // Inner padding for the card content
-                ) {
-                    Text(
-                        text = "Leave Details",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                if (uiState.formIsSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
-
-                    // 1. Leave Type Dropdown
-                    LeaveTypeDropdown(
-                        selectedType = uiState.formLeaveType,
-                        leaveTypes = uiState.leaveTypes,
-                        onTypeSelected = { viewModel.onLeaveTypeChanged(it) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 2. Date Pickers
-                    DatePickerField(
-                        label = "Start Date",
-                        date = uiState.formStartDate,
-                        onDateSelected = { viewModel.onStartDateChanged(it) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    DatePickerField(
-                        label = "End Date",
-                        date = uiState.formEndDate,
-                        onDateSelected = { viewModel.onEndDateChanged(it) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 3. Reason Text Field
-                    OutlinedTextField(
-                        value = uiState.formReason,
-                        onValueChange = { viewModel.onReasonChanged(it) },
-                        label = { Text("Reason") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // 4. Attachment Button
-                    AttachmentButton(
-                        fileName = uiState.formAttachment?.name,
-                        onFilePick = { filePickerLauncher.launch("*/*") },
-                        onFileRemove = { viewModel.onAttachmentRemoved() }
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // 5. Submit Button
-                    Button(
-                        onClick = { viewModel.submitLeaveRequest() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        enabled = !uiState.formIsSubmitting,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        if (uiState.formIsSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text("SUBMIT", fontWeight = FontWeight.Bold)
-                        }
-                    }
+                } else {
+                    Text("SUBMIT")
                 }
             }
         }
     }
 }
-
-// (Rest of the composables: LeaveTypeDropdown, DatePickerField, AttachmentButton remain unchanged)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,7 +276,9 @@ private fun AttachmentButton(
         if (fileName == null) {
             Text("Attach Image / File")
         } else {
-            Text(fileName, modifier = Modifier.weight(1f))
+            // Truncate long names for UI
+            val displayName = if (fileName.length > 25) fileName.take(20) + "..." else fileName
+            Text(displayName, modifier = Modifier.weight(1f))
             Text(" (Remove)", color = MaterialTheme.colorScheme.error)
         }
     }
