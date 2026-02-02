@@ -1,5 +1,8 @@
 package com.example.autopayroll_mobile.composableUI
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,15 +21,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.autopayroll_mobile.data.model.Payslip
 import com.example.autopayroll_mobile.viewmodel.PayslipViewModel
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
 
 // --- WEB DESIGN TOKENS ---
 private val WebBackground = Color(0xFFF8F9FA)
@@ -43,13 +46,25 @@ private val StatusProcessingText = Color(0xFFB45309)
 private val StatusRejectedBg = Color(0xFFFEE2E2)
 private val StatusRejectedText = Color(0xFF991B1B)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PayslipScreen(
     viewModel: PayslipViewModel,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // AUTO-REFRESH: Update data when screen resumes (e.g., navigating back)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(
         modifier = Modifier
@@ -62,7 +77,6 @@ fun PayslipScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            // --- 1. HEADER SECTION ---
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "My Payslips",
@@ -77,7 +91,7 @@ fun PayslipScreen(
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
             )
 
-            // --- 2. FILTERS ---
+            // FILTERS
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,8 +114,7 @@ fun PayslipScreen(
                 )
             }
 
-            // --- 3. LIST CONTENT ---
-            // If there is an error message OR the list is empty (and not loading), show the message
+            // LIST CONTENT
             val showEmptyState = !uiState.isLoading && (uiState.payslips.isEmpty() || uiState.listErrorMessage != null)
 
             if (uiState.isLoading) {
@@ -109,15 +122,11 @@ fun PayslipScreen(
                     items(5) { PayslipItemPlaceholder() }
                 }
             } else if (showEmptyState) {
-                // Centered Empty State
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f), // Take remaining space
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        // Prefer the specific error message, fallback to generic
                         text = uiState.listErrorMessage ?: "No available payslip",
                         color = TextLabel,
                         fontSize = 16.sp
@@ -130,7 +139,23 @@ fun PayslipScreen(
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     items(uiState.payslips) { payslip ->
-                        WebPayslipCard(payslip = payslip)
+                        WebPayslipCard(
+                            payslip = payslip,
+                            onViewClick = {
+                                if (payslip.pdfUrl != null) {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            data = Uri.parse(payslip.pdfUrl)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Cannot open PDF. No viewer installed.", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "PDF not available", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -139,7 +164,7 @@ fun PayslipScreen(
 }
 
 @Composable
-fun WebPayslipCard(payslip: Payslip) {
+fun WebPayslipCard(payslip: Payslip, onViewClick: () -> Unit) {
     val (bg, txt) = when (payslip.status.lowercase()) {
         "released", "paid", "completed" -> StatusReleasedBg to StatusReleasedText
         "processing", "pending" -> StatusProcessingBg to StatusProcessingText
@@ -184,7 +209,7 @@ fun WebPayslipCard(payslip: Payslip) {
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = payslip.status.replaceFirstChar { it.uppercase() },
+                        text = payslip.status,
                         color = txt,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -221,7 +246,7 @@ fun WebPayslipCard(payslip: Payslip) {
                 }
 
                 OutlinedButton(
-                    onClick = { /* TODO: View Details */ },
+                    onClick = onViewClick,
                     shape = RoundedCornerShape(4.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     border = BorderStroke(1.dp, WebBorderColor),
@@ -250,7 +275,6 @@ fun WebYearDropdown(
     var isExpanded by remember { mutableStateOf(false) }
 
     Box {
-        // FIXED: Replaced Modifier.clickable with Surface(onClick) to prevent crash
         Surface(
             onClick = { isExpanded = true },
             modifier = Modifier

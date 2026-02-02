@@ -16,14 +16,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
 
 @Composable
 fun ResetPasswordScreen(
+    isLoading: Boolean, // Received from Activity
     onConfirmClick: (String, String) -> Unit,
     onCancelClick: () -> Unit
 ) {
@@ -75,9 +74,8 @@ fun ResetPasswordScreen(
             visualTransformation = if (isNewPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (isNewPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                val description = if (isNewPasswordVisible) "Hide password" else "Show password"
                 IconButton(onClick = { isNewPasswordVisible = !isNewPasswordVisible }) {
-                    Icon(imageVector = image, description)
+                    Icon(imageVector = image, "Toggle visibility")
                 }
             }
         )
@@ -93,9 +91,8 @@ fun ResetPasswordScreen(
             visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (isConfirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                val description = if (isConfirmPasswordVisible) "Hide password" else "Show password"
                 IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
-                    Icon(imageVector = image, description)
+                    Icon(imageVector = image, "Toggle visibility")
                 }
             }
         )
@@ -110,6 +107,7 @@ fun ResetPasswordScreen(
         ) {
             OutlinedButton(
                 onClick = onCancelClick,
+                enabled = !isLoading, // Disable when loading
                 modifier = Modifier
                     .weight(1f)
                     .height(55.dp),
@@ -119,22 +117,22 @@ fun ResetPasswordScreen(
             }
             Button(
                 onClick = { onConfirmClick(newPassword, confirmPassword) },
+                enabled = !isLoading, // Disable when loading
                 modifier = Modifier
                     .weight(1f)
                     .height(55.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107))
             ) {
-                Text("Confirm", color = Color.Black, fontSize = 16.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.Black
+                    )
+                } else {
+                    Text("Confirm", color = Color.Black, fontSize = 16.sp)
+                }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ResetPasswordScreenPreview() {
-    AutoPayrollMobileTheme {
-        ResetPasswordScreen(onConfirmClick = { _, _ -> }, onCancelClick = {})
     }
 }

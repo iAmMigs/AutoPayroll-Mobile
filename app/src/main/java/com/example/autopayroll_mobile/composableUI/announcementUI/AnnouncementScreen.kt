@@ -15,10 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.autopayroll_mobile.viewmodel.AnnouncementUiItem
 import com.example.autopayroll_mobile.viewmodel.AnnouncementViewModel
 
@@ -38,6 +41,18 @@ fun AnnouncementScreen(
 ) {
     val announcements by viewModel.announcements.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // AUTO-REFRESH: Update data when screen resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshAnnouncements()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // State for Tabs
     val categories = listOf("All", "Payroll", "Admin", "Memo")
@@ -227,7 +242,6 @@ fun WebAnnouncementCard(
                 }
 
                 // Dynamic Category Label
-                // Displays "ADMIN UPDATE" if category is Admin, etc.
                 val displayCategory = when(item.category.uppercase()) {
                     "ADMIN" -> "ADMIN UPDATE"
                     "MEMO" -> "GENERAL MEMO"
@@ -235,7 +249,6 @@ fun WebAnnouncementCard(
                     else -> item.category.uppercase()
                 }
 
-                // Color code the category text slightly
                 val categoryColor = when(item.category.uppercase()) {
                     "PAYROLL" -> Color(0xFF166534) // Green
                     "ADMIN" -> Color(0xFFB45309)   // Orange

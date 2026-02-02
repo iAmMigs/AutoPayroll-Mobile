@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import retrofit2.HttpException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -34,110 +38,115 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                // --- STEP 1: CRITICAL DATA (Sequential) ---
+                // --- STEP 1: EMPLOYEE PROFILE ---
                 val employee = apiService.getEmployeeProfile()
-
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
-
-                // Check if company is empty, null, or "N/A"
-                val companyName = employee.companyName
-                val displayCompany = if (companyName.isNullOrBlank() || companyName.equals("N/A", ignoreCase = true)) {
-                    "No Assigned Company"
-                } else {
-                    companyName
-                }
+                val companyName = if (employee.companyName.isNullOrBlank() || employee.companyName.equals("N/A", true)) "No Assigned Company" else employee.companyName
 
                 _uiState.update {
                     it.copy(
                         employeeName = "${employee.firstName} ${employee.lastName}",
                         employeeId = employee.employeeId,
-                        jobAndCompany = "${employee.jobPosition} • $displayCompany",
+                        jobAndCompany = "${employee.jobPosition} • $companyName",
                         profilePhotoUrl = fullPhotoUrl
                     )
                 }
 
-                // --- STEP 2: SECONDARY DATA (Parallel) ---
+                // --- STEP 2: FETCH ALL DATA ---
                 supervisorScope {
-                    val payrollDeferred = async {
-                        try { apiService.getPayrolls() } catch (e: Exception) { null }
+                    val payrollDef = async { try { apiService.getPayrolls() } catch (e: Exception) { null } }
+                    val scheduleDef = async { try { apiService.getSchedule() } catch (e: Exception) { null } }
+                    val leavesDef = async { try { apiService.getLeaveCredits() } catch (e: Exception) { null } }
+                    val absencesDef = async { try { apiService.getAbsences() } catch (e: Exception) { null } }
+                    val historyDef = async { try { apiService.getTotalWorkedHours() } catch (e: Exception) { null } }
+                    val todayDef = async { try { apiService.getTodayAttendance() } catch (e: Exception) { null } }
+
+                    val payrollRes = payrollDef.await()
+                    val scheduleRes = scheduleDef.await()
+                    val leavesRes = leavesDef.await()
+                    val absencesRes = absencesDef.await()
+                    val historyRes = historyDef.await()
+                    val todayRes = todayDef.await()
+
+                    // --- CALCULATION LOGIC ---
+                    var workedHoursVal = 0.0
+                    var overtimeVal = 0.0
+                    var lateMins = 0L
+
+                    // 1. SAFE NULL HANDLING to prevent "String? but String expected" crash
+                    val todayLog = todayRes?.data
+                    val clockInRaw = todayLog?.clock_in_time // Extracts the nullable string safely
+
+                    if (clockInRaw != null) {
+                        // LIVE DATA: User is currently clocked in
+                        try {
+                            // Laravel Format: "2026-02-02 08:15:00"
+                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                            val clockIn = LocalDateTime.parse(clockInRaw, formatter)
+
+                            // LATE CALCULATION (vs 8:00 AM)
+                            val startShift = clockIn.toLocalDate().atTime(8, 0)
+                            if (clockIn.isAfter(startShift)) {
+                                lateMins = ChronoUnit.MINUTES.between(startShift, clockIn)
+                            }
+
+                            // OVERTIME CALCULATION
+                            val clockOutRaw = todayLog.clock_out_time
+                            val clockOut = if (clockOutRaw != null) {
+                                LocalDateTime.parse(clockOutRaw, formatter)
+                            } else {
+                                LocalDateTime.now() // Still working, calculate duration so far
+                            }
+
+                            val durationMinutes = ChronoUnit.MINUTES.between(clockIn, clockOut)
+                            val totalHours = durationMinutes / 60.0
+
+                            // Rule: > 9 Hours is Overtime
+                            if (totalHours > 9.0) {
+                                overtimeVal = totalHours - 9.0
+                                workedHoursVal = 9.0
+                            } else {
+                                workedHoursVal = totalHours
+                            }
+
+                        } catch (e: Exception) {
+                            Log.e("DashboardVM", "Calc error", e)
+                        }
+                    } else if (historyRes?.success == true) {
+                        // HISTORY DATA: User hasn't clocked in today, show last log
+                        workedHoursVal = historyRes.total
+
+                        // Fallback logic if API doesn't send OT/Late yet
+                        if (workedHoursVal > 9.0) {
+                            overtimeVal = workedHoursVal - 9.0
+                            workedHoursVal = 9.0
+                        }
+                        // Late cannot be determined from just "total hours" in history
                     }
-                    val scheduleDeferred = async {
-                        try { apiService.getSchedule() } catch (e: Exception) { null }
-                    }
-                    val hoursDeferred = async {
-                        try { apiService.getTotalWorkedHours() } catch (e: Exception) { null }
-                    }
-                    val leavesDeferred = async {
-                        try { apiService.getLeaveCredits() } catch (e: Exception) { null }
-                    }
-                    val absencesDeferred = async {
-                        try { apiService.getAbsences() } catch (e: Exception) { null }
-                    }
 
-                    val payrollResponse = payrollDeferred.await()
-                    val scheduleResponse = scheduleDeferred.await()
-                    val hoursResponse = hoursDeferred.await()
-                    val leavesResponse = leavesDeferred.await()
-                    val absencesResponse = absencesDeferred.await()
-
-                    // Process Results
-                    val mostRecentPayslip = payrollResponse?.data
-                        ?.sortedByDescending { it.payDate }
-                        ?.firstOrNull()
-
-                    val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
-
-                    val workedHours = if (hoursResponse?.success == true) {
-                        hoursResponse.total.toInt().toString()
-                    } else "0"
-
-                    val credits = if (leavesResponse?.success == true) {
-                        leavesResponse.creditDays.toInt().toString()
-                    } else "0"
-
-                    val absCount = if (absencesResponse?.success == true) {
-                        absencesResponse.count.toString()
-                    } else "0"
-
-                    // Static placeholders until API endpoints exist for these
-                    val overtime = "0"
-                    val late = "0"
+                    // --- UPDATE UI ---
+                    val mostRecentPayslip = payrollRes?.data?.sortedByDescending { it.payDate }?.firstOrNull()
+                    val schedule = if (scheduleRes?.success == true) scheduleRes.schedule else null
+                    val credits = if (leavesRes?.success == true) leavesRes.creditDays.toInt().toString() else "0"
+                    val absCount = if (absencesRes?.success == true) absencesRes.count.toString() else "0"
 
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             recentPayslip = mostRecentPayslip,
                             currentSchedule = schedule,
-                            lastWorkedHours = workedHours,
-                            overtimeHours = overtime,
-                            lateHours = late,
+                            lastWorkedHours = String.format("%.1f", workedHoursVal),
+                            overtimeHours = String.format("%.1f", overtimeVal),
+                            lateHours = lateMins.toString(),
                             leaveCredits = credits,
                             absences = absCount
                         )
                     }
                 }
-
             } catch (e: Exception) {
-                Log.e("DashboardViewModel", "Error fetching dashboard data", e)
-
-                val errorText = if (e is retrofit2.HttpException && e.code() == 401) {
-                    "Session expired. Please login again."
-                } else {
-                    "Error: ${e.message}"
-                }
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        employeeName = "Error loading data",
-                        employeeId = "N/A",
-                        jobAndCompany = errorText,
-                        recentPayslip = null,
-                        currentSchedule = null
-                    )
-                }
+                Log.e("DashboardViewModel", "Error", e)
             }
         }
     }

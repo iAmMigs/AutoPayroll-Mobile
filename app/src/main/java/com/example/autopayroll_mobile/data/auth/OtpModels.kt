@@ -13,12 +13,12 @@ data class OtpVerifyRequest(
 
 data class OtpResponse(
     val success: Boolean,
-    val message: String
+    val message: String? // Changed to nullable
 )
 
 data class VerifyOtpResponse(
     val success: Boolean,
-    val message: String
+    val message: String? // Changed to nullable to prevent crash
 )
 
 data class OtpErrorResponse(

@@ -55,7 +55,7 @@ class VerificationActivity : ComponentActivity() {
 
                         // Proceed directly to ResetPassword
                         val intent = Intent(this, ResetPassword::class.java)
-                        intent.putExtra("EXTRA_EMAIL", email)
+                        intent.putExtra("EXTRA_EMAIL", email) // Ensure "email" variable contains the user's email
                         startActivity(intent)
                         finish()
 

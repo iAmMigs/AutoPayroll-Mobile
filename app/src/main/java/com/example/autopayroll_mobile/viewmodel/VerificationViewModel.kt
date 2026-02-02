@@ -14,7 +14,6 @@ import retrofit2.HttpException
 
 class VerificationViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Use PublicApiClient because user is not logged in yet
     private val apiService = PublicApiClient.getService()
     private var userEmail: String = ""
 
@@ -38,13 +37,13 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             _verificationState.value = VerificationState.Loading
             try {
-                // Call API: /api/verify-otp
                 val response = apiService.verifyOtp(OtpVerifyRequest(userEmail, otp))
 
                 if (response.success) {
                     _verificationState.value = VerificationState.Success
                 } else {
-                    _verificationState.value = VerificationState.Error(response.message)
+                    val errorMsg = response.message ?: "Verification failed. Please try again."
+                    _verificationState.value = VerificationState.Error(errorMsg)
                 }
             } catch (e: Exception) {
                 val errorMsg = parseError(e)
@@ -57,11 +56,7 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
         if (userEmail.isBlank()) return
         viewModelScope.launch {
             try {
-                // Reuse the requestOtp endpoint
-                // Note: You might need a simple OtpRequest(email) data class
-                // apiService.requestOtp(OtpRequest(userEmail))
             } catch (e: Exception) {
-                // Handle error silently or show toast
             }
         }
     }
