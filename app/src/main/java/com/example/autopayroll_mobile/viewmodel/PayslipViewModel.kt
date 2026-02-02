@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.Year
 import java.time.format.DateTimeFormatter
@@ -36,9 +37,6 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
     val uiState: StateFlow<PayslipUiState> = _uiState.asStateFlow()
 
     private val outputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
-
-    // URL to your public storage. Adjust if your server uses a different structure.
-    private val baseUrl = "https://autopayroll.org/storage/"
 
     init {
         fetchData(initialLoad = true)
@@ -83,35 +81,44 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             // --- PART 2: Fetch Payrolls ---
             try {
                 val payrollResponse = apiService.getPayrolls()
-
-                // Safely handle null data to prevent crashes
                 val rawList = payrollResponse.data ?: emptyList()
 
                 val realPayslips = rawList.map { apiPayroll ->
-                    // 1. Safe Date Parsing
-                    val rawDate = apiPayroll.payDate ?: ""
-                    val dateStr = try {
-                        if (rawDate.isNotEmpty()) OffsetDateTime.parse(rawDate).format(outputFormatter) else "N/A"
-                    } catch (e: Exception) { rawDate }
+                    // 1. Safe Date Parsing (using 'payrollDate')
+                    val rawDate = apiPayroll.payrollDate ?: ""
 
-                    val yearInt = try {
-                        if (rawDate.isNotEmpty()) OffsetDateTime.parse(rawDate).year else Year.now().value
-                    } catch (e: Exception) { Year.now().value }
+                    var dateStr = "N/A"
+                    var yearInt = Year.now().value
 
-                    // 2. Safe Strings
-                    val net = apiPayroll.netPay ?: "0.00"
-                    val status = apiPayroll.status?.replaceFirstChar { it.uppercase() } ?: "Unknown"
-
-                    // 3. Construct PDF URL
-                    val pdfUrl = if (!apiPayroll.filePath.isNullOrBlank()) {
-                        // Remove leading slash if present to avoid double slashes
-                        baseUrl + apiPayroll.filePath.removePrefix("/")
-                    } else {
-                        null
+                    if (rawDate.isNotEmpty()) {
+                        try {
+                            // Try parsing as simple date "2025-02-01"
+                            val dateObj = LocalDate.parse(rawDate)
+                            dateStr = dateObj.format(outputFormatter)
+                            yearInt = dateObj.year
+                        } catch (e: Exception) {
+                            try {
+                                // Try parsing as datetime if needed
+                                val dateTimeObj = OffsetDateTime.parse(rawDate)
+                                dateStr = dateTimeObj.format(outputFormatter)
+                                yearInt = dateTimeObj.year
+                            } catch (e2: Exception) {
+                                Log.e("PayslipVM", "Date parse error: $rawDate")
+                            }
+                        }
                     }
 
+                    // 2. Map Net Salary
+                    val net = apiPayroll.netSalary ?: "0.00"
+
+                    // 3. Status is missing in new API, default to "Completed" if it exists
+                    val status = "Completed"
+
+                    // 4. PDF URL is missing in new API
+                    val pdfUrl: String? = null
+
                     Payslip(
-                        dateRange = dateStr,
+                        dateRange = dateStr, // e.g. "February 1, 2026"
                         netAmount = "₱$net",
                         status = status,
                         year = yearInt,

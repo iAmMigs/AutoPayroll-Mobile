@@ -451,21 +451,22 @@ class QrScannerFragment : Fragment() {
             return
         }
 
-        // NEW: Retrieve the unique Android ID
+        // 1. Retrieve Unique Device ID (Required for Clock In)
         val androidId = Settings.Secure.getString(
             requireContext().contentResolver,
             Settings.Secure.ANDROID_ID
-        )
+        ) ?: "unknown_device"
 
         showLoading("Submitting $action...")
 
+        // 2. Create Request with Android ID
         val request = ClockInOutRequest(
             companyId = scannedQrData!!.company_id,
             token = scannedQrData!!.token,
             signature = scannedQrData!!.signature,
             latitude = currentLocation!!.latitude,
             longitude = currentLocation!!.longitude,
-            androidId = androidId // <--- PASS THE ID HERE
+            androidId = androidId
         )
 
         val apiService = ApiClient.getClient(requireContext().applicationContext)
@@ -478,14 +479,13 @@ class QrScannerFragment : Fragment() {
                     apiService.clockOut(request)
                 }
 
-                // --- FIX: Show immediate pop-up notification (Toast) on success ---
                 activity?.runOnUiThread {
                     showToast(response.message)
                 }
 
                 hideLoading()
 
-                // On success, refetch status to update buttons and UI correctly
+                // Refresh data to update UI state (Clock In -> Clock Out)
                 fetchEmployeeProfileAndAttendance()
 
             } catch (e: Exception) {
@@ -499,7 +499,6 @@ class QrScannerFragment : Fragment() {
                         val errorBody = e.response()?.errorBody()?.string()
                         if (errorBody != null) {
                             val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
-
                             errorMessage = errorResponse.message
                         }
                     } catch (jsonError: Exception) {
@@ -508,9 +507,10 @@ class QrScannerFragment : Fragment() {
                 }
 
                 showToast(errorMessage)
+                // Optional: Reset scan if error occurred to allow retry
                 scannedQrData = null
                 currentLocation = null
-                fetchEmployeeProfileAndAttendance()
+                startCamera() // Restart camera for re-scan
             }
         }
     }

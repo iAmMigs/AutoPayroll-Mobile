@@ -5,45 +5,62 @@ import com.google.gson.annotations.SerializedName
 // Matches: { "data": [...], "success": true }
 data class PayrollResponse(
     @SerializedName("data")
-    val data: List<Payroll>?, // Made nullable to prevent crashes if key is missing
-
+    val data: List<Payroll>?,
     @SerializedName("success")
     val success: Boolean
 )
 
-// Matches a single payroll object from your database
+// Matches the new structure from PayrollController (2).php
 data class Payroll(
-    @SerializedName("payroll_id", alternate = ["id"])
+    @SerializedName("payroll_id")
     val payrollId: String?,
 
     @SerializedName("employee_id")
     val employeeId: String?,
 
-    @SerializedName("payroll_period_id")
-    val payrollPeriodId: String?,
+    @SerializedName("employee_name")
+    val employeeName: String?,
 
-    @SerializedName("net_pay")
-    val netPay: String?,
-
-    @SerializedName("pay_date")
-    val payDate: String?,
-
-    @SerializedName("status")
-    val status: String?,
+    @SerializedName("net_salary") // Changed from net_pay
+    val netSalary: String?,
 
     @SerializedName("gross_salary")
     val grossSalary: String?,
 
-    @SerializedName("pag_ibig_deductions")
-    val pagIbigDeductions: String?,
+    @SerializedName("payroll_date") // Changed from pay_date
+    val payrollDate: String?,
 
-    @SerializedName("phil_health_deductions")
-    val philHealthDeductions: String?,
+    // The new API returns a single "deductions" field (likely total)
+    @SerializedName("deductions")
+    val deductions: String?,
 
-    @SerializedName("sss_deductions")
-    val sssDeductions: String?,
+    @SerializedName("overtime")
+    val overtime: String?,
 
-    // NEW: Path to the PDF file (e.g., "payrolls/sample.pdf")
-    @SerializedName("file_path", alternate = ["attachment", "pdf_path"])
-    val filePath: String?
+    @SerializedName("night_differential")
+    val nightDifferential: String?,
+
+    @SerializedName("holiday_pay")
+    val holidayPay: String?,
+
+    @SerializedName("late_time")
+    val lateTime: String?,
+
+    @SerializedName("work_hours")
+    val workHours: String?,
+
+    // Attendance details for the payroll period
+    @SerializedName("clock_in_date")
+    val clockInDate: String?,
+
+    @SerializedName("clock_in_time")
+    val clockInTime: String?,
+
+    @SerializedName("clock_out_date")
+    val clockOutDate: String?,
+
+    @SerializedName("clock_out_time")
+    val clockOutTime: String?
+
+    // Note: 'file_path' and 'status' are no longer returned by the new API.
 )

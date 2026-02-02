@@ -322,10 +322,15 @@ fun WebPayslipCard(uiState: DashboardUiState, onClick: () -> Unit) {
                 } else if (uiState.recentPayslip != null) {
                     val payslip = uiState.recentPayslip!!
 
-                    // --- FIX: Safely handle nullable strings ---
-                    val netPay = payslip.netPay ?: "0.00"
-                    val payDateStr = payslip.payDate ?: ""
-                    val statusStr = payslip.status ?: "Unknown"
+                    // --- UPDATED FIELD ACCESS for New API Structure ---
+                    // Changed from payslip.netPay to payslip.netSalary
+                    val netPay = payslip.netSalary ?: "0.00"
+                    // Changed from payslip.payDate to payslip.payrollDate
+                    val payDateStr = payslip.payrollDate ?: ""
+
+                    // The new API does not return a status, so we default to "Paid"
+                    // since it is a historical record.
+                    val statusStr = "Paid"
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -339,26 +344,27 @@ fun WebPayslipCard(uiState: DashboardUiState, onClick: () -> Unit) {
                             fontSize = 14.sp
                         )
                         Text(
-                            text = formatDate(payDateStr), // Safe call
+                            text = formatDate(payDateStr),
                             color = TextBody,
                             modifier = Modifier.weight(1f),
                             fontSize = 14.sp
                         )
 
-                        val isPaid = statusStr.equals("released", ignoreCase = true) || statusStr.equals("paid", ignoreCase = true)
+                        // Logic simplified since status is hardcoded to "Paid"
+                        val isPaid = true
 
                         Box(
                             modifier = Modifier.weight(0.8f),
                             contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = if(isPaid) "Paid" else statusStr,
-                                color = if(isPaid) StatusPaidText else Color.White,
+                                text = statusStr,
+                                color = StatusPaidText,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(if(isPaid) StatusPaidBg else Color.Gray)
+                                    .background(StatusPaidBg)
                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                             )
                         }
