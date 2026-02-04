@@ -8,6 +8,6 @@ data class ClockInOutRequest(
     val signature: String,
     val latitude: Double,
     val longitude: Double,
-    // Required by AttendanceController.php validation
-    @SerializedName("android_id") val androidId: String
+    // Made nullable: Required for Clock In, Null for Clock Out
+    @SerializedName("android_id") val androidId: String? = null
 )

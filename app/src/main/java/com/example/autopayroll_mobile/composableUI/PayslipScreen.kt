@@ -1,18 +1,15 @@
 package com.example.autopayroll_mobile.composableUI
 
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -52,10 +48,9 @@ fun PayslipScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // AUTO-REFRESH: Update data when screen resumes (e.g., navigating back)
+    // AUTO-REFRESH: Update data when screen resumes
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -85,7 +80,7 @@ fun PayslipScreen(
                 color = TextHeader
             )
             Text(
-                text = "View and download your payment history.",
+                text = "View your payment history.", // Text slightly updated since download is gone
                 fontSize = 14.sp,
                 color = TextBody,
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
@@ -139,23 +134,8 @@ fun PayslipScreen(
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     items(uiState.payslips) { payslip ->
-                        WebPayslipCard(
-                            payslip = payslip,
-                            onViewClick = {
-                                if (payslip.pdfUrl != null) {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                                            data = Uri.parse(payslip.pdfUrl)
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Cannot open PDF. No viewer installed.", Toast.LENGTH_SHORT).show()
-                                    }
-                                } else {
-                                    Toast.makeText(context, "PDF not available", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        )
+                        // UPDATED: No longer passing a click listener
+                        WebPayslipCard(payslip = payslip)
                     }
                 }
             }
@@ -164,7 +144,7 @@ fun PayslipScreen(
 }
 
 @Composable
-fun WebPayslipCard(payslip: Payslip, onViewClick: () -> Unit) {
+fun WebPayslipCard(payslip: Payslip) {
     val (bg, txt) = when (payslip.status.lowercase()) {
         "released", "paid", "completed" -> StatusReleasedBg to StatusReleasedText
         "processing", "pending" -> StatusProcessingBg to StatusProcessingText
@@ -195,11 +175,18 @@ fun WebPayslipCard(payslip: Payslip, onViewClick: () -> Unit) {
                         letterSpacing = 0.5.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
                         text = payslip.dateRange,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
                         color = TextHeader
+                    )
+                    Text(
+                        text = payslip.year.toString(),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextBody
                     )
                 }
                 Box(
@@ -223,44 +210,21 @@ fun WebPayslipCard(payslip: Payslip, onViewClick: () -> Unit) {
                 thickness = 1.dp
             )
 
-            // Row 2: Net Pay & Action
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "NET PAY",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextLabel,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = payslip.netAmount,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextHeader
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onViewClick,
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    border = BorderStroke(1.dp, WebBorderColor),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Visibility,
-                        contentDescription = "View",
-                        tint = TextBody,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("View", color = TextBody, fontSize = 12.sp)
-                }
+            // Row 2: Net Pay ONLY (Button Removed)
+            Column {
+                Text(
+                    text = "NET PAY",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextLabel,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = payslip.netAmount,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextHeader
+                )
             }
         }
     }
@@ -343,10 +307,9 @@ fun PayslipItemPlaceholder() {
                 Box(modifier = Modifier.height(20.dp).width(50.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush))
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.height(18.dp).width(100.dp).background(shimmerBrush))
-                Box(modifier = Modifier.height(32.dp).width(60.dp).background(shimmerBrush))
-            }
+            // Removed the button placeholder row
+            Box(modifier = Modifier.height(18.dp).width(100.dp).background(shimmerBrush))
+            Box(modifier = Modifier.height(32.dp).width(60.dp).background(shimmerBrush))
         }
     }
 }

@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.composableUI.dashboardUI.DashboardUiState
-import com.example.autopayroll_mobile.data.model.Payroll
 import com.example.autopayroll_mobile.network.ApiClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,10 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -39,129 +34,139 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                // --- STEP 1: EMPLOYEE PROFILE ---
+                // --- STEP 1: CRITICAL DATA (Sequential) ---
                 val employee = apiService.getEmployeeProfile()
+
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
-                val companyName = if (employee.companyName.isNullOrBlank() || employee.companyName.equals("N/A", true)) "No Assigned Company" else employee.companyName
+
+                val companyName = employee.companyName
+                val displayCompany = if (companyName.isNullOrBlank() || companyName.equals("N/A", ignoreCase = true)) {
+                    "No Assigned Company"
+                } else {
+                    companyName
+                }
 
                 _uiState.update {
                     it.copy(
                         employeeName = "${employee.firstName} ${employee.lastName}",
                         employeeId = employee.employeeId,
-                        jobAndCompany = "${employee.jobPosition} • $companyName",
+                        jobAndCompany = "${employee.jobPosition} • $displayCompany",
                         profilePhotoUrl = fullPhotoUrl
                     )
                 }
 
-                // --- STEP 2: FETCH ALL DATA PARALLEL ---
+                // --- STEP 2: SECONDARY DATA (Parallel) ---
                 supervisorScope {
-                    val payrollDef = async { try { apiService.getPayrolls() } catch (e: Exception) { null } }
-                    val scheduleDef = async { try { apiService.getSchedule() } catch (e: Exception) { null } }
-                    val leavesDef = async { try { apiService.getLeaveCredits() } catch (e: Exception) { null } }
-                    val absencesDef = async { try { apiService.getAbsences() } catch (e: Exception) { null } }
-                    val historyDef = async { try { apiService.getTotalWorkedHours() } catch (e: Exception) { null } }
-                    val todayDef = async { try { apiService.getTodayAttendance() } catch (e: Exception) { null } }
-
-                    val payrollRes = payrollDef.await()
-                    val scheduleRes = scheduleDef.await()
-                    val leavesRes = leavesDef.await()
-                    val absencesRes = absencesDef.await()
-                    val historyRes = historyDef.await()
-                    val todayRes = todayDef.await()
-
-                    // --- LOGIC: WORKED HOURS / OVERTIME / LATE ---
-                    var workedHoursVal = 0.0
-                    var overtimeVal = 0.0
-                    var lateMins = 0L
-
-                    // 1. EXTRACT SCHEDULE (or default 8am-5pm)
-                    val schedule = if (scheduleRes?.success == true) scheduleRes.schedule else null
-                    val schedStart = parseTime(schedule?.startTime) ?: LocalTime.of(8, 0)
-                    val schedEnd = parseTime(schedule?.endTime) ?: LocalTime.of(17, 0)
-
-                    // 2. CHECK LIVE ATTENDANCE
-                    val todayLog = todayRes?.data
-                    val clockInRaw = todayLog?.clock_in_time
-
-                    if (clockInRaw != null) {
-                        // --- LIVE CALCULATION (User clocked in today) ---
+                    val payrollDeferred = async {
                         try {
-                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                            val clockIn = LocalDateTime.parse(clockInRaw, formatter)
-
-                            // Late: Compare ClockIn vs Schedule Start
-                            val shiftStart = clockIn.toLocalDate().atTime(schedStart)
-                            if (clockIn.isAfter(shiftStart)) {
-                                lateMins = ChronoUnit.MINUTES.between(shiftStart, clockIn)
-                            }
-
-                            // Overtime: Compare ClockOut (or Now) vs Schedule End
-                            val clockOutRaw = todayLog.clock_out_time
-                            val clockOut = if (clockOutRaw != null) {
-                                LocalDateTime.parse(clockOutRaw, formatter)
-                            } else {
-                                LocalDateTime.now()
-                            }
-
-                            val shiftEnd = clockIn.toLocalDate().atTime(schedEnd)
-
-                            // Total Duration
-                            val totalDurationMinutes = ChronoUnit.MINUTES.between(clockIn, clockOut)
-                            workedHoursVal = totalDurationMinutes / 60.0
-
-                            if (clockOut.isAfter(shiftEnd)) {
-                                val otMinutes = ChronoUnit.MINUTES.between(shiftEnd, clockOut)
-                                if (otMinutes > 0) {
-                                    overtimeVal = otMinutes / 60.0
-                                }
-                            }
+                            val response = apiService.getPayrolls()
+                            Log.d("DashboardViewModel", "Payroll Response - Success: ${response.success}, Count: ${response.data.size}")
+                            response
                         } catch (e: Exception) {
-                            Log.e("DashboardVM", "Live Calc error", e)
+                            Log.e("DashboardViewModel", "Payroll fetch error", e)
+                            null
                         }
-                    } else if (historyRes?.success == true) {
-                        // --- HISTORY API DATA ---
-                        // Use values DIRECTLY from the API response
-                        workedHoursVal = historyRes.total
-                        overtimeVal = historyRes.overtime ?: 0.0
-                        lateMins = historyRes.late?.toLong() ?: 0L
+                    }
+                    val scheduleDeferred = async {
+                        try { apiService.getSchedule() } catch (e: Exception) { null }
+                    }
+                    val hoursDeferred = async {
+                        try { apiService.getTotalWorkedHours() } catch (e: Exception) { null }
+                    }
+                    val leavesDeferred = async {
+                        try { apiService.getLeaveCredits() } catch (e: Exception) { null }
+                    }
+                    val absencesDeferred = async {
+                        try { apiService.getAbsences() } catch (e: Exception) { null }
                     }
 
-                    // --- UPDATE UI ---
-                    // 1. Payslip: Sort by payrollDate (descending)
-                    val mostRecentPayslip = payrollRes?.data
-                        ?.sortedByDescending { it.payrollDate ?: "" }
+                    val payrollResponse = payrollDeferred.await()
+                    val scheduleResponse = scheduleDeferred.await()
+                    val hoursResponse = hoursDeferred.await()
+                    val leavesResponse = leavesDeferred.await()
+                    val absencesResponse = absencesDeferred.await()
+
+                    // CRITICAL FIX: Process payroll results with proper validation
+                    val mostRecentPayslip = payrollResponse?.data
+                        ?.filter { payroll ->
+                            // Filter out invalid entries
+                            val isValid = payroll.payDate.isNotBlank() &&
+                                    payroll.netPay.isNotBlank()
+
+                            if (!isValid) {
+                                Log.w("DashboardViewModel", "Filtered invalid payroll: ID=${payroll.payrollId}, PayDate=${payroll.payDate}")
+                            }
+
+                            isValid
+                        }
+                        ?.sortedByDescending { it.payDate }
                         ?.firstOrNull()
 
-                    // 2. Credits & Absences
-                    val credits = if (leavesRes?.success == true) leavesRes.creditDays.toString() else "0"
-                    val absCount = if (absencesRes?.success == true) absencesRes.count.toString() else "0"
+                    if (mostRecentPayslip != null) {
+                        Log.d("DashboardViewModel", "Most recent payslip: Date=${mostRecentPayslip.payDate}, Amount=${mostRecentPayslip.netPay}")
+                    } else {
+                        Log.w("DashboardViewModel", "No valid payslips found")
+                    }
+
+                    val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
+
+                    // Use real values from API
+                    val workedHours = if (hoursResponse?.success == true) {
+                        hoursResponse.total.toInt().toString()
+                    } else "0"
+
+                    val overtime = if (hoursResponse?.success == true) {
+                        hoursResponse.overtime.toInt().toString()
+                    } else "0"
+
+                    val late = if (hoursResponse?.success == true) {
+                        hoursResponse.late.toString()
+                    } else "0"
+
+                    val credits = if (leavesResponse?.success == true) {
+                        leavesResponse.creditDays.toInt().toString()
+                    } else "0"
+
+                    val absCount = if (absencesResponse?.success == true) {
+                        absencesResponse.count.toString()
+                    } else "0"
 
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             recentPayslip = mostRecentPayslip,
                             currentSchedule = schedule,
-                            lastWorkedHours = String.format("%.1f", workedHoursVal),
-                            overtimeHours = String.format("%.1f", overtimeVal),
-                            lateHours = lateMins.toString(),
+                            lastWorkedHours = workedHours,
+                            overtimeHours = overtime,
+                            lateHours = late,
                             leaveCredits = credits,
                             absences = absCount
                         )
                     }
                 }
+
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error fetching dashboard data", e)
-                _uiState.update { it.copy(isLoading = false) }
+
+                val errorText = if (e is retrofit2.HttpException && e.code() == 401) {
+                    "Session expired. Please login again."
+                } else {
+                    "Error: ${e.message}"
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        employeeName = "Error loading data",
+                        employeeId = "N/A",
+                        jobAndCompany = errorText,
+                        recentPayslip = null,
+                        currentSchedule = null
+                    )
+                }
             }
         }
-    }
-
-    private fun parseTime(timeStr: String?): LocalTime? {
-        if (timeStr.isNullOrBlank()) return null
-        return try {
-            LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("HH:mm:ss"))
-        } catch (e: Exception) { null }
     }
 }
