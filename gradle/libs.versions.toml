@@ -12,9 +12,10 @@ activity = "1.8.0"
 constraintlayout = "2.2.1"
 navigationCompose = "2.7.7"
 
-# ## ADD THESE VERSIONS ##
+# ## UPDATED VERSIONS ##
 lifecycle = "2.8.0"
-composeBom = "2024.05.00"
+# Changed from 2024.05.00 to 2024.09.03 to fix the 'IndicationNodeFactory' crash
+composeBom = "2024.09.03"
 activityCompose = "1.9.0"
 navigationUiKtx = "2.9.6"
 
@@ -42,6 +43,8 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationCompose" }
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
+
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

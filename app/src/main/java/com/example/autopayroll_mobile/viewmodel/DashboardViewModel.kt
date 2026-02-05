@@ -41,7 +41,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     if (path.startsWith("http")) path else "$baseUrl/" + path.removePrefix("/")
                 }
 
-                // Check if company is empty, null, or "N/A"
                 val companyName = employee.companyName
                 val displayCompany = if (companyName.isNullOrBlank() || companyName.equals("N/A", ignoreCase = true)) {
                     "No Assigned Company"
@@ -61,7 +60,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // --- STEP 2: SECONDARY DATA (Parallel) ---
                 supervisorScope {
                     val payrollDeferred = async {
-                        try { apiService.getPayrolls() } catch (e: Exception) { null }
+                        try {
+                            val response = apiService.getPayrolls()
+                            Log.d("DashboardViewModel", "Payroll Response - Success: ${response.success}, Count: ${response.data.size}")
+                            response
+                        } catch (e: Exception) {
+                            Log.e("DashboardViewModel", "Payroll fetch error", e)
+                            null
+                        }
                     }
                     val scheduleDeferred = async {
                         try { apiService.getSchedule() } catch (e: Exception) { null }
@@ -82,15 +88,41 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val leavesResponse = leavesDeferred.await()
                     val absencesResponse = absencesDeferred.await()
 
-                    // Process Results
+                    // CRITICAL FIX: Process payroll results with proper validation
                     val mostRecentPayslip = payrollResponse?.data
+                        ?.filter { payroll ->
+                            // Filter out invalid entries
+                            val isValid = payroll.payDate.isNotBlank() &&
+                                    payroll.netPay.isNotBlank()
+
+                            if (!isValid) {
+                                Log.w("DashboardViewModel", "Filtered invalid payroll: ID=${payroll.payrollId}, PayDate=${payroll.payDate}")
+                            }
+
+                            isValid
+                        }
                         ?.sortedByDescending { it.payDate }
                         ?.firstOrNull()
 
+                    if (mostRecentPayslip != null) {
+                        Log.d("DashboardViewModel", "Most recent payslip: Date=${mostRecentPayslip.payDate}, Amount=${mostRecentPayslip.netPay}")
+                    } else {
+                        Log.w("DashboardViewModel", "No valid payslips found")
+                    }
+
                     val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
 
+                    // Use real values from API
                     val workedHours = if (hoursResponse?.success == true) {
                         hoursResponse.total.toInt().toString()
+                    } else "0"
+
+                    val overtime = if (hoursResponse?.success == true) {
+                        hoursResponse.overtime.toInt().toString()
+                    } else "0"
+
+                    val late = if (hoursResponse?.success == true) {
+                        hoursResponse.late.toString()
                     } else "0"
 
                     val credits = if (leavesResponse?.success == true) {
@@ -100,10 +132,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val absCount = if (absencesResponse?.success == true) {
                         absencesResponse.count.toString()
                     } else "0"
-
-                    // Static placeholders until API endpoints exist for these
-                    val overtime = "0"
-                    val late = "0"
 
                     _uiState.update {
                         it.copy(

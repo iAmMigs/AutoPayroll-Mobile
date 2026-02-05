@@ -3,15 +3,14 @@ package com.example.autopayroll_mobile.data.loginModule
 import com.google.gson.annotations.SerializedName
 
 data class LoginResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String,
+    // PHP now returns these directly on success, so we make success/message nullable
+    @SerializedName("success") val success: Boolean? = true,
+    @SerializedName("message") val message: String? = null,
 
-    // Check BOTH "token" and "access_token"
     @SerializedName("token", alternate = ["access_token"])
     val token: String,
 
     @SerializedName("employee_id") val employeeId: String,
 
-    // Optional: Capture user data if sent
-    @SerializedName("user") val user: Any? = null
+    @SerializedName("fcm_token") val fcmToken: String? = null
 )

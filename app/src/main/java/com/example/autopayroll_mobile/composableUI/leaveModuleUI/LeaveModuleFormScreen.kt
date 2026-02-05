@@ -1,10 +1,10 @@
 package com.example.autopayroll_mobile.composableUI.leaveModuleUI
 
-import android.net.Uri // NEW IMPORT
+import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult // NEW IMPORT
-import androidx.activity.result.contract.ActivityResultContracts // NEW IMPORT
-import androidx.compose.foundation.BorderStroke // NEW IMPORT for AttachmentButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,18 +13,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.AttachFile // NEW IMPORT for AttachmentButton
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // NEW IMPORT for AttachmentButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp // NEW IMPORT for AttachmentButton
-import com.example.autopayroll_mobile.ui.theme.TextPrimary // NEW IMPORT for AttachmentButton
+import com.example.autopayroll_mobile.ui.theme.TextPrimary
 import com.example.autopayroll_mobile.viewmodel.LeaveModuleViewModel
 import com.example.autopayroll_mobile.viewmodel.NavigationEvent
 import java.time.Instant
@@ -40,14 +36,14 @@ fun LeaveModuleFormScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    val filePickerLauncher = rememberLauncherForActivityResult( // ## NEW ##
-        contract = ActivityResultContracts.GetContent() // Contract to pick any content type
+    // File Picker Launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onAttachmentSelected(it) }
     }
 
-
-    // Observe error messages
+    // Error Handling
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -55,7 +51,7 @@ fun LeaveModuleFormScreen(
         }
     }
 
-    // Observe navigation events
+    // Navigation Handling
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             if (event == NavigationEvent.NavigateBack) {
@@ -83,7 +79,7 @@ fun LeaveModuleFormScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // 1. Leave Type Dropdown
+            // 1. Leave Type
             LeaveTypeDropdown(
                 selectedType = uiState.formLeaveType,
                 leaveTypes = uiState.leaveTypes,
@@ -91,13 +87,15 @@ fun LeaveModuleFormScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Date Pickers
+            // 2. Start Date
             DatePickerField(
                 label = "Start Date",
                 date = uiState.formStartDate,
                 onDateSelected = { viewModel.onStartDateChanged(it) }
             )
             Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. End Date
             DatePickerField(
                 label = "End Date",
                 date = uiState.formEndDate,
@@ -105,7 +103,7 @@ fun LeaveModuleFormScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Reason Text Field
+            // 4. Reason
             OutlinedTextField(
                 value = uiState.formReason,
                 onValueChange = { viewModel.onReasonChanged(it) },
@@ -117,15 +115,17 @@ fun LeaveModuleFormScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ## NEW: Attachment Button ##
+            // 5. Attachment Button
             AttachmentButton(
                 fileName = uiState.formAttachment?.name,
-                onFilePick = { filePickerLauncher.launch("*/*") }, // Launch file picker for any file type
+                onFilePick = {
+                    filePickerLauncher.launch("*/*")
+                },
                 onFileRemove = { viewModel.onAttachmentRemoved() }
             )
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 4. Submit Button
+            // 6. Submit Button
             Button(
                 onClick = { viewModel.submitLeaveRequest() },
                 modifier = Modifier
@@ -145,8 +145,6 @@ fun LeaveModuleFormScreen(
         }
     }
 }
-
-// (LeaveTypeDropdown and DatePickerField composables are unchanged, keeping them here for completeness)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -255,7 +253,6 @@ fun DatePickerField(
     }
 }
 
-// ## NEW: AttachmentButton composable (copied and adapted from AdjustmentFilingScreen.kt) ##
 @Composable
 private fun AttachmentButton(
     fileName: String?,
@@ -267,7 +264,7 @@ private fun AttachmentButton(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = TextPrimary // Assuming TextPrimary is a theme color
+            contentColor = TextPrimary
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
@@ -279,7 +276,9 @@ private fun AttachmentButton(
         if (fileName == null) {
             Text("Attach Image / File")
         } else {
-            Text(fileName, modifier = Modifier.weight(1f))
+            // Truncate long names for UI
+            val displayName = if (fileName.length > 25) fileName.take(20) + "..." else fileName
+            Text(displayName, modifier = Modifier.weight(1f))
             Text(" (Remove)", color = MaterialTheme.colorScheme.error)
         }
     }

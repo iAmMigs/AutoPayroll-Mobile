@@ -40,10 +40,9 @@ class LeaveModuleFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Observe navigation events from the ViewModel (used for back presses triggered internally).
+        // Observe navigation events from the ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.navigationEvent.collect { event ->
-                // Note: The NavigationEvent in LeaveModuleViewModel was updated to include NavigateBackToMenu
                 if (event is NavigationEvent.NavigateBackToMenu) {
                     findNavController().popBackStack()
                     viewModel.onNavigationHandled()

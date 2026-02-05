@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autopayroll_mobile.data.model.LeaveBalance
@@ -34,12 +35,16 @@ data class LeaveModuleUiState(
     val leaveBalance: LeaveBalance = LeaveBalance(),
     val selectedTab: String = "Pending",
 
+    // --- RENAMED: Changed from isCalendar to isCalendarVisible to match your UI ---
+    val isCalendarVisible: Boolean = false,
+
     val leaveTypes: Map<String, String> = mapOf(
         "sick" to "Sick Leave",
         "vacation" to "Vacation Leave",
         "maternity" to "Maternity Leave",
         "bereavement" to "Bereavement Leave",
-        "emergency" to "Emergency Leave"
+        "emergency" to "Emergency Leave",
+        "paternity" to "Paternity Leave"
     ),
 
     val errorMessage: String? = null,
@@ -49,22 +54,22 @@ data class LeaveModuleUiState(
     val formReason: String = "",
     val formIsSubmitting: Boolean = false,
     val allRequests: List<LeaveRequest> = emptyList(),
-    val formAttachment: File? = null
+
+    // --- Attachment State ---
+    val formAttachment: File? = null,
+    val formAttachmentMimeType: String? = null
 )
 
-// ## FIX 1: Updated Filter Logic ##
 val LeaveModuleUiState.filteredRequests: List<LeaveRequest>
     get() = when (selectedTab) {
         "Pending" -> allRequests.filter { it.status.equals("pending", ignoreCase = true) }
         "Approved" -> allRequests.filter { it.status.equals("approved", ignoreCase = true) }
         "Declined" -> allRequests.filter {
             val s = it.status.lowercase()
-            // Includes declined, rejected, and need revision
             s == "declined" || s == "rejected" || s == "need revision" || s == "needs revision"
         }
         else -> allRequests
     }
-
 
 class LeaveModuleViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -89,21 +94,15 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 val response = apiService.getLeaveCredits()
-
                 if (response.success) {
                     _uiState.update {
-                        it.copy(
-                            leaveBalance = LeaveBalance(
-                                available = response.creditDays.toInt(),
-                                used = 0
-                            )
-                        )
+                        it.copy(leaveBalance = LeaveBalance(available = response.creditDays.toInt(), used = 0))
                     }
                 } else {
                     _uiState.update { it.copy(errorMessage = "Failed to load leave credits") }
                 }
             } catch (e: Exception) {
-                Log.e("LeaveModuleViewModel", "Failed to fetch leave credits", e)
+                Log.e("LeaveVM", "Failed to fetch leave credits", e)
                 _uiState.update { it.copy(errorMessage = "Failed to load leave balance") }
             }
         }
@@ -120,7 +119,7 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                     _uiState.update { it.copy(isLoading = false, allRequests = emptyList()) }
                 }
             } catch (e: Exception) {
-                Log.e("LeaveModuleViewModel", "Failed to fetch leave requests", e)
+                Log.e("LeaveVM", "Failed to fetch leave requests", e)
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load requests: ${e.message}") }
             }
         }
@@ -134,21 +133,23 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
             return
         }
 
-        val leaveTypeApiKey = state.leaveTypes.entries
-            .find { it.value == state.formLeaveType }
-            ?.key
-            ?: "sick"
+        val leaveTypeMapReverse = state.leaveTypes.entries.associate { (k, v) -> v to k }
+        val rawType = leaveTypeMapReverse[state.formLeaveType] ?: "sick"
+        val apiLeaveType = rawType.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(formIsSubmitting = true, errorMessage = null) }
             try {
-                val leaveTypePart = leaveTypeApiKey.toRequestBody("text/plain".toMediaTypeOrNull())
+                val leaveTypePart = apiLeaveType.toRequestBody("text/plain".toMediaTypeOrNull())
                 val startDatePart = state.formStartDate.toRequestBody("text/plain".toMediaTypeOrNull())
                 val endDatePart = state.formEndDate.toRequestBody("text/plain".toMediaTypeOrNull())
                 val reasonPart = state.formReason.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 val filePart = state.formAttachment?.let { file ->
-                    val requestFile = file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+                    val mimeType = state.formAttachmentMimeType ?: "application/octet-stream"
+                    val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("attachment", file.name, requestFile)
                 }
 
@@ -164,22 +165,18 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                     _uiState.update { it.copy(formIsSubmitting = false) }
                     fetchLeaveRequests()
                     fetchLeaveBalances()
-
                     _navigationEvent.value = NavigationEvent.NavigateBack
                     clearForm()
                 } else {
-                    val errorMsg = response.errors?.values?.firstOrNull()?.firstOrNull() ?: response.message ?: "Submission failed"
-                    Log.w("LeaveModuleViewModel", "Submission failed: $errorMsg")
-                    _uiState.update {
-                        it.copy(
-                            formIsSubmitting = false,
-                            errorMessage = errorMsg
-                        )
-                    }
+                    val errorMsg = response.errors?.values?.firstOrNull()?.firstOrNull()
+                        ?: response.message
+                        ?: "Submission failed"
+                    Log.w("LeaveVM", "Submission failed: $errorMsg")
+                    _uiState.update { it.copy(formIsSubmitting = false, errorMessage = errorMsg) }
                 }
 
             } catch (e: Exception) {
-                Log.e("LeaveModuleViewModel", "Failed to submit leave request", e)
+                Log.e("LeaveVM", "Failed to submit leave request", e)
                 var errorMsg = "Submission failed: ${e.message}"
 
                 if (e is HttpException) {
@@ -187,78 +184,110 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                         try {
                             val errorBody = e.response()?.errorBody()?.string()
                             val validationResponse = Gson().fromJson(errorBody, ValidationErrorResponse::class.java)
-                            val firstError = validationResponse.errors?.values?.firstOrNull()?.firstOrNull()
-                            errorMsg = firstError ?: validationResponse.message ?: "Submission failed: Invalid data"
+                            errorMsg = validationResponse.errors?.values?.firstOrNull()?.firstOrNull()
+                                ?: validationResponse.message
+                                        ?: "Invalid data"
                         } catch (jsonError: Exception) {
-                            Log.e("LeaveModuleViewModel", "Failed to parse 422 error body", jsonError)
                             errorMsg = "Submission failed: Invalid data"
                         }
-                    } else if (e.code() == 500) {
-                        errorMsg = "A server error occurred. Please try again later."
+                    } else if (e.code() == 413) {
+                        errorMsg = "File is too large. Max size is 2MB."
                     }
                 }
-
                 _uiState.update { it.copy(formIsSubmitting = false, errorMessage = errorMsg) }
             }
         }
     }
 
-    // --- Helper Functions ---
+    // --- Calendar Toggles (Updated to match 'isCalendarVisible') ---
+    fun showCalendar() {
+        _uiState.update { it.copy(isCalendarVisible = true) }
+    }
 
-    // ## FIX 2: Added Helper Function for UI Formatting ##
-    /**
-     * Helper to convert raw API type (e.g., "vacation") to display format (e.g., "Vacation Leave").
-     * Call this in your composable: viewModel.formatLeaveType(request.leaveType)
-     */
+    fun hideCalendar() {
+        _uiState.update { it.copy(isCalendarVisible = false) }
+    }
+
+    // --- Attachment Helpers ---
+
+    fun onAttachmentSelected(uri: Uri) {
+        viewModelScope.launch {
+            val result = copyUriToCache(uri)
+            if (result != null) {
+                _uiState.update {
+                    it.copy(
+                        formAttachment = result.first,
+                        formAttachmentMimeType = result.second
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Failed to attach file") }
+            }
+        }
+    }
+
+    fun onAttachmentRemoved() {
+        _uiState.update { it.copy(formAttachment = null, formAttachmentMimeType = null) }
+    }
+
+    private fun copyUriToCache(uri: Uri): Pair<File, String>? {
+        return try {
+            val context = getApplication<Application>()
+            val contentResolver = context.contentResolver
+
+            val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
+
+            var fileName = "temp_attachment"
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index != -1) fileName = cursor.getString(index)
+                }
+            }
+
+            fileName = fileName.replace("[^a-zA-Z0-9._-]".toRegex(), "_")
+
+            if (!fileName.contains(".")) {
+                val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+                if (ext != null) {
+                    fileName = "$fileName.$ext"
+                }
+            }
+
+            val file = File(context.cacheDir, fileName)
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            Pair(file, mimeType)
+        } catch (e: Exception) {
+            Log.e("LeaveVM", "Error copying file", e)
+            null
+        }
+    }
+
+    // --- Other Helpers ---
+
     fun formatLeaveType(rawType: String?): String {
         if (rawType == null) return "Leave"
-
-        // 1. Try to find in the static map
         val mapped = _uiState.value.leaveTypes[rawType.lowercase()]
         if (mapped != null) return mapped
-
-        // 2. Fallback: Capitalize and append " Leave"
-        return rawType.replaceFirstChar { 
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+        return rawType.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
         } + " Leave"
     }
 
     fun onTabSelected(tab: String) {
         _uiState.update { it.copy(selectedTab = tab) }
-        // Fetch new data every time a tab is selected
         fetchLeaveRequests()
     }
-    fun onLeaveTypeChanged(type: String) {
-        _uiState.update { it.copy(formLeaveType = type) }
-    }
-    fun onStartDateChanged(date: String) {
-        _uiState.update { it.copy(formStartDate = date) }
-    }
-    fun onEndDateChanged(date: String) {
-        _uiState.update { it.copy(formEndDate = date) }
-    }
-    fun onReasonChanged(reason: String) {
-        _uiState.update { it.copy(formReason = reason) }
-    }
-
-    fun onAttachmentSelected(uri: Uri) {
-        viewModelScope.launch {
-            val file = copyUriToCache(uri)
-            _uiState.update { it.copy(formAttachment = file) }
-        }
-    }
-
-    fun onAttachmentRemoved() {
-        _uiState.update { it.copy(formAttachment = null) }
-    }
-
-    fun clearErrorMessage() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    fun onNavigationHandled() {
-        _navigationEvent.value = null
-    }
+    fun onLeaveTypeChanged(type: String) { _uiState.update { it.copy(formLeaveType = type) } }
+    fun onStartDateChanged(date: String) { _uiState.update { it.copy(formStartDate = date) } }
+    fun onEndDateChanged(date: String) { _uiState.update { it.copy(formEndDate = date) } }
+    fun onReasonChanged(reason: String) { _uiState.update { it.copy(formReason = reason) } }
+    fun clearErrorMessage() { _uiState.update { it.copy(errorMessage = null) } }
+    fun onNavigationHandled() { _navigationEvent.value = null }
 
     fun clearForm() {
         _uiState.update {
@@ -268,6 +297,7 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
                 formEndDate = "",
                 formReason = "",
                 formAttachment = null,
+                formAttachmentMimeType = null,
                 formIsSubmitting = false,
                 errorMessage = null
             )
@@ -287,36 +317,8 @@ class LeaveModuleViewModel(application: Application) : AndroidViewModel(applicat
             try {
                 return LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE).format(outputFormatter)
             } catch (e2: Exception) {
-                try {
-                    return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).format(outputFormatter)
-                } catch (e3: Exception) {
-                    return date
-                }
+                return date
             }
-        }
-    }
-
-    private fun copyUriToCache(uri: Uri): File? {
-        return try {
-            val contentResolver = getApplication<Application>().contentResolver
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            val name = cursor.use {
-                if (it?.moveToFirst() == true) {
-                    it.getString(it.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
-                } else {
-                    "temp_file"
-                }
-            }
-            val file = File(getApplication<Application>().cacheDir, name)
-            FileOutputStream(file).use { outputStream ->
-                contentResolver.openInputStream(uri)?.use { inputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-            file
-        } catch (e: Exception) {
-            Log.e("LeaveModuleViewModel", "Error copying file from Uri to cache", e)
-            null
         }
     }
 }

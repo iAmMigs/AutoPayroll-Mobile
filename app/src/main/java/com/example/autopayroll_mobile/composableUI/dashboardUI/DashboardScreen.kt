@@ -36,11 +36,11 @@ import java.util.Date
 import java.util.Locale
 
 // --- WEB DESIGN COLORS ---
-val WebBackground = Color(0xFFF8F9FA) // Light Gray Background
+val WebBackground = Color(0xFFF8F9FA)
 val WebSurface = Color.White
-val WebBorderColor = Color(0xFFE2E8F0) // Subtle Gray Border
-val TextHeader = Color(0xFF1E293B)     // Dark Navy
-val TextLabel = Color(0xFF64748B)      // Slate Gray
+val WebBorderColor = Color(0xFFE2E8F0)
+val TextHeader = Color(0xFF1E293B)
+val TextLabel = Color(0xFF64748B)
 val TextBody = Color(0xFF334155)
 
 // Status & Accents
@@ -69,24 +69,29 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. HEADER (Profile Pic + Greeting)
             WebHeaderSection(uiState)
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 2. ATTENDANCE STATS (3 Separate Cards)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 WebStatCard(title = "REGULAR", value = uiState.lastWorkedHours, unit = "hours", modifier = Modifier.weight(1f))
                 WebStatCard(title = "OVERTIME", value = uiState.overtimeHours, unit = "hours", modifier = Modifier.weight(1f))
-                WebStatCard(title = "LATE", value = uiState.lateHours, unit = "mins", modifier = Modifier.weight(1f))
+
+                // LATE logic: Ensure positive and Red color
+                WebStatCard(
+                    title = "LATE",
+                    value = uiState.lateHours.replace("-", ""),
+                    unit = "mins",
+                    valueColor = AccentRed,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 3. BALANCE & ABSENCES (Colored Left Borders)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -109,18 +114,19 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 4. PAYSLIP
+            // RESTORED: WebPayslipCard
             WebPayslipCard(uiState = uiState)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. SCHEDULE
             WebScheduleCard(schedule = uiState.currentSchedule, isLoading = uiState.isLoading)
 
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
+
+// ... WebHeaderSection, WebStatCard, AccentStatCard ...
 
 @Composable
 fun WebHeaderSection(state: DashboardUiState) {
@@ -135,7 +141,6 @@ fun WebHeaderSection(state: DashboardUiState) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // --- PROFILE PICTURE RESTORED ---
         AsyncImage(
             model = state.profilePhotoUrl,
             contentDescription = "Profile Picture",
@@ -145,14 +150,12 @@ fun WebHeaderSection(state: DashboardUiState) {
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                // ADDED: Yellow Border (2.dp thickness)
                 .border(2.dp, AccentYellow, CircleShape)
                 .background(Color.LightGray)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // --- GREETING TEXT ---
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "$greeting ${state.employeeName}!",
@@ -172,7 +175,13 @@ fun WebHeaderSection(state: DashboardUiState) {
 }
 
 @Composable
-fun WebStatCard(title: String, value: String, unit: String, modifier: Modifier = Modifier) {
+fun WebStatCard(
+    title: String,
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = TextHeader
+) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
@@ -198,7 +207,7 @@ fun WebStatCard(title: String, value: String, unit: String, modifier: Modifier =
                 text = value,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextHeader
+                color = valueColor
             )
             Text(
                 text = unit,
@@ -225,15 +234,12 @@ fun AccentStatCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Colored Bar on Left
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(4.dp)
                     .background(accentColor)
             )
-
-            // Content
             Column(
                 modifier = Modifier
                     .padding(16.dp)
@@ -286,7 +292,6 @@ fun WebPayslipCard(uiState: DashboardUiState) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Table Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -299,7 +304,6 @@ fun WebPayslipCard(uiState: DashboardUiState) {
 
             Divider(color = WebBorderColor, thickness = 1.dp)
 
-            // Content
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -328,15 +332,16 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                             fontSize = 14.sp
                         )
 
-                        // Status Pill
-                        val isPaid = payslip.status.equals("released", ignoreCase = true) || payslip.status.equals("paid", ignoreCase = true)
+                        // Handle potential null status safely
+                        val statusStr = payslip.status ?: "Released"
+                        val isPaid = statusStr.equals("released", ignoreCase = true) || statusStr.equals("paid", ignoreCase = true)
 
                         Box(
                             modifier = Modifier.weight(0.8f),
                             contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = if(isPaid) "Paid" else payslip.status,
+                                text = if(isPaid) "Paid" else statusStr,
                                 color = if(isPaid) StatusPaidText else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
@@ -351,29 +356,12 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                     Text("No records found", color = TextLabel, fontSize = 14.sp)
                 }
             }
-
-            Divider(color = WebBorderColor, thickness = 1.dp)
-
-            // View Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                OutlinedButton(
-                    onClick = { /* TODO: Navigate to Details */ },
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text("View", fontSize = 12.sp, color = TextBody)
-                }
-            }
+            // Removed the bottom footer row/button area entirely
         }
     }
 }
 
+// ... WebScheduleCard and formatters ...
 @Composable
 fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
     Text(
@@ -392,7 +380,9 @@ fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -456,8 +446,6 @@ fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
         }
     }
 }
-
-// --- Helper Formatters ---
 
 fun formatTimeBig(timeString: String?): String {
     if (timeString == null) return "--:--"
