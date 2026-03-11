@@ -111,24 +111,21 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
         if (_uiState.value.isPdfLoading) return
 
         _uiState.update { it.copy(isPdfLoading = true) }
-        showToast("Downloading payslip...")
+        showToast("Requesting PDF...")
 
         viewModelScope.launch {
             try {
-                val date = LocalDate.parse(payslip.originalPayDate, inputFormatter)
-                // Use the period identifier we calculated in mapToPayslipUiModel
-                val period = payslip.periodIdentifier
+                // FIXED: Use the correct field name 'downloadPeriod'
+                Log.d("PayslipViewModel", "Downloading PDF: Year=${payslip.downloadYear}, Month=${payslip.downloadMonth}, Period=${payslip.downloadPeriod}")
 
-                // 1. Download PDF
                 val response = apiService.downloadPayslip(
-                    year = date.year,
-                    month = date.monthValue,
-                    period = period
+                    year = payslip.downloadYear,
+                    month = payslip.downloadMonth,
+                    period = payslip.downloadPeriod
                 )
 
                 if (response.isSuccessful && response.body() != null) {
-                    // 2. Save to Cache
-                    val fileName = "Payslip_${date.year}_${date.monthValue}_$period.pdf"
+                    val fileName = "Payslip_${payslip.downloadYear}_${payslip.downloadMonth}_${payslip.downloadPeriod}.pdf"
                     val file = File(getApplication<Application>().cacheDir, fileName)
 
                     withContext(Dispatchers.IO) {
@@ -141,16 +138,17 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
 
-                    // 3. Open PDF
                     withContext(Dispatchers.Main) {
                         openPdfIntent(file)
                     }
                 } else {
-                    showToast("Download failed: ${response.code()}")
+                    val errorMsg = "Download failed: ${response.code()}"
+                    Log.e("PayslipViewModel", errorMsg)
+                    showToast(errorMsg)
                 }
 
             } catch (e: Exception) {
-                Log.e("PayslipViewModel", "PDF Error", e)
+                Log.e("PayslipViewModel", "PDF Exception", e)
                 showToast("Error: ${e.message}")
             } finally {
                 _uiState.update { it.copy(isPdfLoading = false) }
@@ -199,7 +197,6 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             if (apiPayroll.payDate.isNotBlank()) LocalDate.parse(apiPayroll.payDate, inputFormatter) else LocalDate.now()
         } catch (e: Exception) { LocalDate.now() }
 
-        // Logic to determine if it's 1-15 or 16-30
         val startDay = try {
             if (!apiPayroll.startDate.isNullOrBlank()) {
                 LocalDate.parse(apiPayroll.startDate, inputFormatter).dayOfMonth
@@ -210,19 +207,38 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
 
         val isFirstPeriod = startDay <= 15
         val periodString = if (isFirstPeriod) "1-15" else "16-30"
-
         val monthName = payDateObj.month.name.lowercase().replaceFirstChar { it.titlecase() }
-        val displayRange = "$periodString $monthName"
 
-        val netPayValue = try { apiPayroll.netPay.toDoubleOrNull() ?: 0.0 } catch (e: Exception) { 0.0 }
+        // Logic: Use reference if available, otherwise fallback to ID
+        val refDisplay = if (!apiPayroll.reference.isNullOrBlank()) {
+            apiPayroll.reference
+        } else {
+            // Fallback format if reference is missing
+            "#PAY-${payDateObj.year}-${apiPayroll.payrollId.takeLast(4)}"
+        }
+
+        // Logic for download params (End Date)
+        val endDateObj = try {
+            if (!apiPayroll.endDate.isNullOrBlank()) {
+                LocalDate.parse(apiPayroll.endDate, inputFormatter)
+            } else {
+                payDateObj
+            }
+        } catch (e: Exception) { payDateObj }
+
+        val downloadIdentifier = if (endDateObj.dayOfMonth <= 15) "1-15" else "16-30"
 
         return Payslip(
-            dateRange = displayRange,
-            periodIdentifier = periodString, // Use this for API calls
+            dateRange = "$periodString $monthName",
+            referenceId = refDisplay,
             originalPayDate = apiPayroll.payDate.ifBlank { payDateObj.format(inputFormatter) },
-            netAmount = "₱${String.format(Locale.US, "%.2f", netPayValue)}",
+            netAmount = "₱${String.format(Locale.US, "%.2f", apiPayroll.netPay.toDoubleOrNull() ?: 0.0)}",
             status = apiPayroll.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
-            month = monthName,
+
+            // FIXED: These fields match the new Payslip model from Turn 5
+            downloadPeriod = downloadIdentifier,
+            downloadYear = endDateObj.year,
+            downloadMonth = endDateObj.monthValue,
             year = payDateObj.year
         )
     }

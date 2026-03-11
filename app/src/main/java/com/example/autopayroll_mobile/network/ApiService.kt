@@ -46,7 +46,7 @@ interface ApiService {
     @POST("api/employee/logout")
     suspend fun logout(): Response<Unit>
 
-    @POST("api/employee/password-reset") // Ensure this matches your Laravel route
+    @POST("api/employee/password-reset")
     suspend fun resetPassword(@Body request: ChangePasswordRequest): GenericSuccessResponse
 
     // --- Employee Profile ---
@@ -62,6 +62,8 @@ interface ApiService {
 
     @GET("api/attendance/today")
     suspend fun getTodayAttendance(): TodayAttendanceResponse
+
+
 
     @GET("api/payroll/view")
     suspend fun getPayrolls(): PayrollResponse

@@ -175,7 +175,6 @@ fun WebPayslipCard(payslip: Payslip) {
                         letterSpacing = 0.5.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
                         text = payslip.dateRange,
                         fontSize = 15.sp,
@@ -210,21 +209,46 @@ fun WebPayslipCard(payslip: Payslip) {
                 thickness = 1.dp
             )
 
-            // Row 2: Net Pay ONLY (Button Removed)
-            Column {
-                Text(
-                    text = "NET PAY",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextLabel,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = payslip.netAmount,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextHeader
-                )
+            // Row 2: Net Pay (Left) vs Reference ID (Right)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // LEFT: Net Pay
+                Column {
+                    Text(
+                        text = "NET PAY",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = payslip.netAmount,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextHeader
+                    )
+                }
+
+                // RIGHT: Reference ID (Replaces Button)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "REFERENCE ID",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = payslip.referenceId,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextBody
+                    )
+                }
             }
         }
     }
