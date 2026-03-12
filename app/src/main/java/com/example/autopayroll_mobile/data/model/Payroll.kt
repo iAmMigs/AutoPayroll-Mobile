@@ -7,31 +7,46 @@ data class PayrollResponse(
     val data: List<Payroll> = emptyList(),
 
     @SerializedName("success")
-    val success: Boolean = false
+    val success: Boolean = false,
+
+    @SerializedName("message")
+    val message: String? = null
 )
 
 data class Payroll(
-    @SerializedName("id", alternate = ["payroll_id"])
-    val payrollId: String = "",
-
-    @SerializedName("employee_id")
-    val employeeId: String = "",
+    @SerializedName("payslips_id")
+    val payslipsId: String = "",
 
     @SerializedName("reference")
     val reference: String? = null,
 
-    @SerializedName("net_pay")
-    val netPay: String = "0.00",
+    @SerializedName("employee_id")
+    val employeeId: String = "",
+
+    @SerializedName("year")
+    val year: Int = 0,
+
+    @SerializedName("month")
+    val month: Int = 0,
+
+    @SerializedName("period")
+    val period: String = "",
+
+    @SerializedName("period_start")
+    val periodStart: String? = null,
+
+    @SerializedName("period_end")
+    val periodEnd: String? = null,
 
     @SerializedName("pay_date")
-    val payDate: String = "",
+    val payDate: String? = null,
+
+    @SerializedName("net_pay")
+    val netPay: String = "0.00",
 
     @SerializedName("status")
     val status: String = "pending",
 
-    @SerializedName("start_date")
-    val startDate: String? = null,
-
-    @SerializedName("end_date")
-    val endDate: String? = null
+    @SerializedName("breakdown")
+    val breakdown: String? = null
 )

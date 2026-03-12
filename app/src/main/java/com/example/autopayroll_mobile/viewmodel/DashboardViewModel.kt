@@ -34,7 +34,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                // --- STEP 1: CRITICAL DATA (Sequential) ---
+                // --- STEP 1: Fetch Profile ---
                 val employee = apiService.getEmployeeProfile()
 
                 val fullPhotoUrl = employee.profilePhoto?.let { path ->
@@ -57,10 +57,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
 
-                // --- STEP 2: SECONDARY DATA (Parallel) ---
+                // --- STEP 2: Fetch Secondary Data ---
                 supervisorScope {
                     val payrollDeferred = async {
                         try {
+                            // FIXED: Removed employeeId argument to match updated ApiService
                             val response = apiService.getPayrolls()
                             Log.d("DashboardViewModel", "Payroll Response - Success: ${response.success}, Count: ${response.data.size}")
                             response
@@ -88,50 +89,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val leavesResponse = leavesDeferred.await()
                     val absencesResponse = absencesDeferred.await()
 
-                    // CRITICAL FIX: Process payroll results with proper validation
+                    // FIXED: Handled nullable payDate safely
                     val mostRecentPayslip = payrollResponse?.data
-                        ?.filter { payroll ->
-                            // Filter out invalid entries
-                            val isValid = payroll.payDate.isNotBlank() &&
-                                    payroll.netPay.isNotBlank()
-
-                            if (!isValid) {
-                                Log.w("DashboardViewModel", "Filtered invalid payroll: ID=${payroll.payrollId}, PayDate=${payroll.payDate}")
-                            }
-
-                            isValid
-                        }
-                        ?.sortedByDescending { it.payDate }
+                        ?.filter { !it.payDate.isNullOrBlank() && it.netPay.isNotBlank() }
+                        ?.sortedByDescending { it.payDate ?: "" }
                         ?.firstOrNull()
-
-                    if (mostRecentPayslip != null) {
-                        Log.d("DashboardViewModel", "Most recent payslip: Date=${mostRecentPayslip.payDate}, Amount=${mostRecentPayslip.netPay}")
-                    } else {
-                        Log.w("DashboardViewModel", "No valid payslips found")
-                    }
 
                     val schedule = if (scheduleResponse?.success == true) scheduleResponse.schedule else null
 
-                    // Use real values from API
-                    val workedHours = if (hoursResponse?.success == true) {
-                        hoursResponse.total.toInt().toString()
-                    } else "0"
-
-                    val overtime = if (hoursResponse?.success == true) {
-                        hoursResponse.overtime.toInt().toString()
-                    } else "0"
-
-                    val late = if (hoursResponse?.success == true) {
-                        hoursResponse.late.toString()
-                    } else "0"
-
-                    val credits = if (leavesResponse?.success == true) {
-                        leavesResponse.creditDays.toInt().toString()
-                    } else "0"
-
-                    val absCount = if (absencesResponse?.success == true) {
-                        absencesResponse.count.toString()
-                    } else "0"
+                    val workedHours = if (hoursResponse?.success == true) hoursResponse.total.toInt().toString() else "0"
+                    val overtime = if (hoursResponse?.success == true) hoursResponse.overtime.toInt().toString() else "0"
+                    val late = if (hoursResponse?.success == true) hoursResponse.late.toString() else "0"
+                    val credits = if (leavesResponse?.success == true) leavesResponse.creditDays.toInt().toString() else "0"
+                    val absCount = if (absencesResponse?.success == true) absencesResponse.count.toString() else "0"
 
                     _uiState.update {
                         it.copy(
@@ -149,7 +119,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error fetching dashboard data", e)
-
                 val errorText = if (e is retrofit2.HttpException && e.code() == 401) {
                     "Session expired. Please login again."
                 } else {

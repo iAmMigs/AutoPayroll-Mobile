@@ -302,7 +302,7 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                 Text(text = "STATUS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextLabel, textAlign = TextAlign.End, modifier = Modifier.weight(0.8f))
             }
 
-            Divider(color = WebBorderColor, thickness = 1.dp)
+            HorizontalDivider(color = WebBorderColor, thickness = 1.dp)
 
             Box(
                 modifier = Modifier
@@ -326,14 +326,15 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                             fontSize = 14.sp
                         )
                         Text(
-                            text = formatDate(payslip.payDate),
+                            // FIXED: Provided fallback empty string if payDate is null
+                            text = formatDate(payslip.payDate ?: ""),
                             color = TextBody,
                             modifier = Modifier.weight(1f),
                             fontSize = 14.sp
                         )
 
                         // Handle potential null status safely
-                        val statusStr = payslip.status ?: "Released"
+                        val statusStr = payslip.status
                         val isPaid = statusStr.equals("released", ignoreCase = true) || statusStr.equals("paid", ignoreCase = true)
 
                         Box(
@@ -341,7 +342,7 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                             contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = if(isPaid) "Paid" else statusStr,
+                                text = if(isPaid) "Paid" else statusStr.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
                                 color = if(isPaid) StatusPaidText else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,

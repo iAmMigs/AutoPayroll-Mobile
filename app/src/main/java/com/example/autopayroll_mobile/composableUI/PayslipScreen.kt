@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ private val StatusRejectedText = Color(0xFF991B1B)
 @Composable
 fun PayslipScreen(
     viewModel: PayslipViewModel,
+    onViewDetails: (Payslip) -> Unit, // ADDED THIS NAVIGATOR
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -80,7 +82,7 @@ fun PayslipScreen(
                 color = TextHeader
             )
             Text(
-                text = "View your payment history.", // Text slightly updated since download is gone
+                text = "View your payment history.",
                 fontSize = 14.sp,
                 color = TextBody,
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
@@ -134,8 +136,8 @@ fun PayslipScreen(
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     items(uiState.payslips) { payslip ->
-                        // UPDATED: No longer passing a click listener
-                        WebPayslipCard(payslip = payslip)
+                        // Pass the specific payslip to the navigator
+                        WebPayslipCard(payslip = payslip, onViewDetails = { onViewDetails(payslip) })
                     }
                 }
             }
@@ -144,7 +146,7 @@ fun PayslipScreen(
 }
 
 @Composable
-fun WebPayslipCard(payslip: Payslip) {
+fun WebPayslipCard(payslip: Payslip, onViewDetails: () -> Unit) {
     val (bg, txt) = when (payslip.status.lowercase()) {
         "released", "paid", "completed" -> StatusReleasedBg to StatusReleasedText
         "processing", "pending" -> StatusProcessingBg to StatusProcessingText
@@ -160,7 +162,7 @@ fun WebPayslipCard(payslip: Payslip) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Row 1: Pay Period & Status
+            // Row 1: Pay Period & Status + Ref ID
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,17 +190,34 @@ fun WebPayslipCard(payslip: Payslip) {
                         color = TextBody
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(bg)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(bg)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = payslip.status,
+                            color = txt,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = payslip.status,
-                        color = txt,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "REFERENCE ID",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = payslip.referenceId,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextBody
                     )
                 }
             }
@@ -209,13 +228,12 @@ fun WebPayslipCard(payslip: Payslip) {
                 thickness = 1.dp
             )
 
-            // Row 2: Net Pay (Left) vs Reference ID (Right)
+            // Row 2: Net Pay (Left) vs Eye Icon (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // LEFT: Net Pay
                 Column {
                     Text(
                         text = "NET PAY",
@@ -232,21 +250,14 @@ fun WebPayslipCard(payslip: Payslip) {
                     )
                 }
 
-                // RIGHT: Reference ID (Replaces Button)
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "REFERENCE ID",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextLabel,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = payslip.referenceId,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextBody
+                IconButton(
+                    onClick = onViewDetails,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "View Payslip Details",
+                        tint = Color(0xFF475569)
                     )
                 }
             }
@@ -331,7 +342,6 @@ fun PayslipItemPlaceholder() {
                 Box(modifier = Modifier.height(20.dp).width(50.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush))
             }
             Spacer(modifier = Modifier.height(16.dp))
-            // Removed the button placeholder row
             Box(modifier = Modifier.height(18.dp).width(100.dp).background(shimmerBrush))
             Box(modifier = Modifier.height(32.dp).width(60.dp).background(shimmerBrush))
         }

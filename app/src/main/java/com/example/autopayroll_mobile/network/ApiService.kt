@@ -35,6 +35,7 @@ import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.http.Multipart
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
@@ -68,7 +69,6 @@ interface ApiService {
     @GET("api/payroll/view")
     suspend fun getPayrolls(): PayrollResponse
 
-    // NEW: Endpoint to download the PDF
     @GET("api/payroll/download")
     suspend fun downloadPayslip(
         @Query("year") year: Int,

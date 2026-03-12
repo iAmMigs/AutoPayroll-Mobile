@@ -9,9 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,12 +25,16 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +46,9 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel(), onForgotPasswordCl
     val isLoading by loginViewModel.isLoading.observeAsState(false)
     val email by loginViewModel.email.observeAsState("")
     val password by loginViewModel.password.observeAsState("")
+
+    // State to track password visibility
+    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -69,7 +81,16 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel(), onForgotPasswordCl
             value = password,
             onValueChange = { loginViewModel.onPasswordChange(it) },
             label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
+            // Update visual transformation based on visibility state
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            // Add trailing eye icon
+            trailingIcon = {
+                val image = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val description = if (isPasswordVisible) "Hide password" else "Show password"
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(imageVector = image, contentDescription = description)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
