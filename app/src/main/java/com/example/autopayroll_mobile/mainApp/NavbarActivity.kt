@@ -11,17 +11,18 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
-import com.example.autopayroll_mobile.mainApp.BaseActivity
 import androidx.camera.core.ExperimentalGetImage
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import com.example.autopayroll_mobile.R
-import com.example.autopayroll_mobile.databinding.NavbarmainBinding
-
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
-import androidx.navigation.ui.setupWithNavController
+import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.databinding.NavbarmainBinding
+import com.example.autopayroll_mobile.utils.TutorialManager
+import com.example.autopayroll_mobile.utils.TutorialStep
+import kotlinx.coroutines.launch
 
 class NavbarActivity : BaseActivity() {
 
@@ -29,28 +30,22 @@ class NavbarActivity : BaseActivity() {
     private var backPressedTime: Long = 0
 
     private lateinit var navController: NavController
-
-    // Keep track of the currently selected bottom nav item ID for resetting
-    private var currentBottomNavSelectedItemId: Int = R.id.navigation_dashboard // Initialize with start destination
+    private var currentBottomNavSelectedItemId: Int = R.id.navigation_dashboard
 
     private val requestLocationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
                 if (isLocationEnabled()) {
-                    // Navigate to QR scanner. This is the custom navigation for the QR button.
                     navController.navigate(R.id.navigation_qr_scanner)
-                    // Update the highlight manually if navigation was successful
                     binding.bottomNavigation.selectedItemId = R.id.navigation_qr_scanner
                     currentBottomNavSelectedItemId = R.id.navigation_qr_scanner
                 } else {
                     Toast.makeText(this, "Please turn on your location", Toast.LENGTH_LONG).show()
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    // Revert selection if location is not turned on
                     binding.bottomNavigation.selectedItemId = currentBottomNavSelectedItemId
                 }
             } else {
                 Toast.makeText(this, "Location permission is required.", Toast.LENGTH_LONG).show()
-                // Revert selection if permission is denied
                 binding.bottomNavigation.selectedItemId = currentBottomNavSelectedItemId
             }
         }
@@ -62,12 +57,32 @@ class NavbarActivity : BaseActivity() {
         binding = NavbarmainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
+        currentBottomNavSelectedItemId = R.id.navigation_dashboard
 
-        // Initialize currentBottomNavSelectedItemId with the actual start destination
-        currentBottomNavSelectedItemId = R.id.navigation_dashboard // Assuming this is your start destination from XML
+        // --- GLOBAL TUTORIAL OBSERVER ---
+        var wasTutorialActive = false
+        lifecycleScope.launch {
+            TutorialManager.isTutorialActive.collect { isActive ->
+                if (isActive) {
+                    // Tutorial started! Force the navbar to visually switch to Dashboard so "Menu" isn't left highlighted.
+                    if (binding.bottomNavigation.selectedItemId != R.id.navigation_dashboard) {
+                        binding.bottomNavigation.selectedItemId = R.id.navigation_dashboard
+                        currentBottomNavSelectedItemId = R.id.navigation_dashboard
+                    }
+                } else if (!isActive && wasTutorialActive) {
+                    // Tutorial exited or ended! Reset to Dashboard cleanly.
+                    navController.popBackStack(R.id.navigation_dashboard, false)
+                    if (navController.currentDestination?.id != R.id.navigation_dashboard) {
+                        navController.navigate(R.id.navigation_dashboard)
+                    }
+                    binding.bottomNavigation.selectedItemId = R.id.navigation_dashboard
+                    currentBottomNavSelectedItemId = R.id.navigation_dashboard
+                }
+                wasTutorialActive = isActive
+            }
+        }
 
         onBackPressedDispatcher.addCallback(this) {
             val twoSeconds = 2000
@@ -79,51 +94,60 @@ class NavbarActivity : BaseActivity() {
             backPressedTime = System.currentTimeMillis()
         }
 
-        // Correct way to set up bottom navigation with a custom listener for a specific item
         binding.bottomNavigation.setOnItemSelectedListener { item ->
-            // Update the stored selected item ID first
+
+            // --- AGGRESSIVE TUTORIAL NAVIGATION LOCK ---
+            if (TutorialManager.isTutorialActive.value) {
+                val currentStep = TutorialManager.currentStep.value
+
+                val isStartingTutorial = currentStep == TutorialStep.DASHBOARD_WELCOME && item.itemId == R.id.navigation_dashboard
+
+                val isAllowedPayslip = currentStep == TutorialStep.NAVIGATE_TO_PAYSLIP && item.itemId == R.id.navigation_payslip
+                val isAllowedQR = currentStep == TutorialStep.NAVIGATE_TO_QR && item.itemId == R.id.navigation_qr_scanner
+                val isAllowedAnnouncement = currentStep == TutorialStep.NAVIGATE_TO_ANNOUNCEMENT && item.itemId == R.id.navigation_announcement
+
+                // NEW: Allow clicking the menu when instructed
+                val isAllowedMenu = currentStep == TutorialStep.NAVIGATE_TO_MENU && item.itemId == R.id.navigation_menu
+
+                if (!isStartingTutorial && !isAllowedPayslip && !isAllowedQR && !isAllowedAnnouncement && !isAllowedMenu) {
+                    return@setOnItemSelectedListener false // HARD BLOCK
+                }
+            }
+            // ------------------------------------------
+
             val previouslySelectedItemId = currentBottomNavSelectedItemId
             currentBottomNavSelectedItemId = item.itemId
 
             when (item.itemId) {
                 R.id.navigation_qr_scanner -> {
-                    // Custom logic for QR scanner
                     val handledByCustomLogic = checkLocationAndProceed()
                     if (!handledByCustomLogic) {
-                        // If custom logic didn't navigate (e.g., permission denied),
-                        // revert the UI selection to the previous item
                         binding.bottomNavigation.selectedItemId = previouslySelectedItemId
                         currentBottomNavSelectedItemId = previouslySelectedItemId
                     }
-                    return@setOnItemSelectedListener handledByCustomLogic // Return true if handled, false otherwise
+                    return@setOnItemSelectedListener handledByCustomLogic
                 }
-
-                // FIX: Explicitly handle Dashboard navigation to ensure it always pops the stack.
                 R.id.navigation_dashboard -> {
-                    // Navigate to Dashboard, ensuring the stack is popped to the Dashboard itself (inclusive: false)
                     navController.popBackStack(R.id.navigation_dashboard, false)
                     navController.navigate(R.id.navigation_dashboard)
                     return@setOnItemSelectedListener true
                 }
-
-                // FIX: Explicitly handle navigation back to the Menu fragment
                 R.id.navigation_menu -> {
-                    // Pop stack up to the Dashboard (root) and then navigate to Menu
                     navController.popBackStack(R.id.navigation_dashboard, false)
                     navController.navigate(R.id.navigation_menu)
                     return@setOnItemSelectedListener true
                 }
-
                 else -> {
-                    // For all other top-level items (Payslip, Announcement, etc.)
                     return@setOnItemSelectedListener NavigationUI.onNavDestinationSelected(item, navController)
                 }
             }
         }
 
-        // Only use setOnItemReselectedListener for special reselection behavior.
+        // --- LOCK THE RESELECT LISTENER TOO! ---
         binding.bottomNavigation.setOnItemReselectedListener {
-            // For all top-level destinations, pop the back stack to the tab's root destination
+            if (TutorialManager.isTutorialActive.value) {
+                return@setOnItemReselectedListener // Block any random double-taps on icons breaking the tutorial
+            }
             navController.popBackStack(it.itemId, false)
         }
     }
@@ -135,6 +159,12 @@ class NavbarActivity : BaseActivity() {
     }
 
     private fun checkLocationAndProceed(): Boolean {
+        // BYPASS LOCATION REQUIREMENT DURING TUTORIAL
+        if (TutorialManager.isTutorialActive.value) {
+            navController.navigate(R.id.navigation_qr_scanner)
+            return true
+        }
+
         when {
             ContextCompat.checkSelfPermission(
                 this,
@@ -142,16 +172,16 @@ class NavbarActivity : BaseActivity() {
             ) == PackageManager.PERMISSION_GRANTED -> {
                 if (isLocationEnabled()) {
                     navController.navigate(R.id.navigation_qr_scanner)
-                    return true // Navigation performed
+                    return true
                 } else {
                     Toast.makeText(this, "Please turn on your location", Toast.LENGTH_LONG).show()
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    return false // Did not navigate due to location being off
+                    return false
                 }
             }
             else -> {
                 requestLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                return false // Did not navigate yet, permission request initiated
+                return false
             }
         }
     }

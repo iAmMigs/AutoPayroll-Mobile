@@ -14,7 +14,7 @@ data class PayrollResponse(
 )
 
 data class Payroll(
-    @SerializedName("id", alternate = ["payroll_id"])
+    @SerializedName("payslips_id", alternate = ["id", "payroll_id"])
     val payrollId: String = "",
 
     @SerializedName("employee_id")
@@ -32,11 +32,21 @@ data class Payroll(
     @SerializedName("status")
     val status: String = "Released",
 
-    @SerializedName("start_date", alternate = ["clock_in_date"])
+    @SerializedName("period_start", alternate = ["start_date", "clock_in_date"])
     val startDate: String? = null,
 
-    @SerializedName("end_date", alternate = ["clock_out_date"])
+    @SerializedName("period_end", alternate = ["end_date", "clock_out_date"])
     val endDate: String? = null,
+
+    // --- NEW: Read these exactly from the Payslip table ---
+    @SerializedName("period")
+    val period: String? = null,
+
+    @SerializedName("year")
+    val year: Int? = null,
+
+    @SerializedName("month")
+    val month: Int? = null,
 
     @SerializedName("breakdown")
     val breakdown: String? = null

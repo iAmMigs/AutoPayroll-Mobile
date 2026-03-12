@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.autopayroll_mobile.R
@@ -16,14 +17,11 @@ import com.example.autopayroll_mobile.composableUI.menuModule.MenuScreen
 import com.example.autopayroll_mobile.network.ApiClient
 import com.example.autopayroll_mobile.network.ApiService
 import com.example.autopayroll_mobile.utils.SessionManager
-import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme // Ensure your theme is imported
+import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
+import com.example.autopayroll_mobile.utils.TutorialManager
 import kotlinx.coroutines.launch
 
 class MenuFragment : Fragment() {
-
-    // Note: Since we are moving the UI to Compose, we no longer need the FragmentMenuBinding.
-    // private var _binding: FragmentMenuBinding? = null
-    // private val binding get() = _binding!!
 
     private lateinit var sessionManager: SessionManager
     private lateinit var apiService: ApiService
@@ -32,53 +30,46 @@ class MenuFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // Initialize managers
         sessionManager = SessionManager(requireContext())
         apiService = ApiClient.getClient(requireContext().applicationContext)
 
-        // Return the ComposeView hosting the MenuScreen
         return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AutoPayrollMobileTheme {
                     MenuScreen(
-                        onNavigateToProfile = {
-                            findNavController().navigate(R.id.action_menu_to_profile)
+                        onNavigateToProfile = { findNavController().navigate(R.id.action_menu_to_profile) },
+                        onNavigateToLeave = { findNavController().navigate(R.id.action_menu_to_leave) },
+                        onNavigateToAdjustment = { findNavController().navigate(R.id.action_menu_to_adjustment) },
+                        onNavigateToChangePassword = { findNavController().navigate(R.id.action_menu_to_change_password) },
+
+                        onStartTutorial = {
+                            // 1. Activate the tutorial state globally
+                            TutorialManager.startTutorial()
+
+                            // 2. INSTANTLY force the app back to the Dashboard
+                            findNavController().popBackStack(R.id.navigation_dashboard, false)
                         },
-                        onNavigateToLeave = {
-                            findNavController().navigate(R.id.action_menu_to_leave)
-                        },
-                        onNavigateToAdjustment = {
-                            findNavController().navigate(R.id.action_menu_to_adjustment)
-                        },
-                        // NEW NAVIGATION
-                        onNavigateToChangePassword = {
-                            findNavController().navigate(R.id.action_menu_to_change_password)
-                        },
-                        onLogout = {
-                            logoutUser()
-                        }
+
+                        onLogout = { logoutUser() }
                     )
                 }
             }
         }
     }
 
-    // Extracted logout logic into a function
     private fun logoutUser() {
         lifecycleScope.launch {
             try {
-                // ## VERIFIED: Calls the API service logout ##
                 val response = apiService.logout()
                 if (response.isSuccessful) {
                     Log.d("MenuFragment", "Server logout successful.")
                 } else {
-                    Log.e("MenuFragment", "Server logout failed with code: ${response.code()}, message: ${response.errorBody()?.string()}")
-                    // Optionally, show a toast to the user about the server logout failure
+                    Log.e("MenuFragment", "Server logout failed")
                 }
             } catch (e: Exception) {
                 Log.e("MenuFragment", "API logout failed, proceeding with local logout", e)
             } finally {
-                // Always clear local session and navigate to login, regardless of server logout success
                 if (isAdded && activity != null) {
                     sessionManager.clearSession()
                     val intent = Intent(requireActivity(), LoginActivity::class.java)
@@ -89,10 +80,4 @@ class MenuFragment : Fragment() {
             }
         }
     }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-    }
-
-    // Note: onViewCreated is no longer overridden as the click listeners are now in Compose.
 }

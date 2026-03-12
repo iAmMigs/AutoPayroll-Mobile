@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -30,12 +31,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.composableUI.StatusChip
+import com.example.autopayroll_mobile.composableUI.TutorialOverlay
+import com.example.autopayroll_mobile.composableUI.tutorialTarget
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentModuleUiState
 import com.example.autopayroll_mobile.data.AdjustmentModule.AdjustmentRequest
+import com.example.autopayroll_mobile.utils.TutorialManager
+import com.example.autopayroll_mobile.utils.TutorialStep
 import com.example.autopayroll_mobile.viewmodel.AdjustmentModuleViewModel
+import com.google.gson.Gson
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
 private val WebBackground = Color(0xFFF8F9FA)
 private val WebSurface = Color.White
 private val WebBorderColor = Color(0xFFE2E8F0)
@@ -58,111 +65,138 @@ fun AdjustmentHubScreen(
     onNavigateToDetail: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val pendingCount = uiState.adjustmentRequests.count { it.status.equals("Pending", ignoreCase = true) }
-    val approvedCount = uiState.adjustmentRequests.count { it.status.equals("Approved", ignoreCase = true) }
+    val isTutorialActive by TutorialManager.isTutorialActive.collectAsState()
+    val currentStep by TutorialManager.currentStep.collectAsState()
 
-    val filteredList = remember(uiState.adjustmentRequests, uiState.filterStatus) {
-        if (uiState.filterStatus == "All") uiState.adjustmentRequests
-        else uiState.adjustmentRequests.filter { it.status.equals(uiState.filterStatus, ignoreCase = true) }
+    LaunchedEffect(currentStep) {
+        if (isTutorialActive && currentStep == TutorialStep.NAVIGATE_TO_ADJUSTMENT) {
+            TutorialManager.nextStep(TutorialStep.ADJUSTMENT_OVERVIEW)
+        }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Payroll Credit Adjustment", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextHeader)
+    val activeState = remember(isTutorialActive, uiState) {
+        if (isTutorialActive) {
+            // We use an expanded JSON to guarantee we hit the exact @SerializedName keys your app uses
+            val mockJson1 = """{
+                "id": "1", "adjustment_id": "1", "employee_id": "EMP", "reference_id": "ADJ-001",
+                "type": "Overtime", "adjustment_type": "Overtime", "adjustmentType": "Overtime",
+                "date": "2026-03-12T10:00:00Z", "date_submitted": "2026-03-12T10:00:00Z", "created_at": "2026-03-12T10:00:00Z", "start_date": "2026-03-12",
+                "status": "Pending", "remarks": "Tutorial data", "reason": "Tutorial data", "description": "Tutorial"
+            }"""
+
+            val mockJson2 = """{
+                "id": "2", "adjustment_id": "2", "employee_id": "EMP", "reference_id": "ADJ-002",
+                "type": "Missed Punch", "adjustment_type": "Missed Punch", "adjustmentType": "Missed Punch",
+                "date": "2026-03-10T10:00:00Z", "date_submitted": "2026-03-10T10:00:00Z", "created_at": "2026-03-10T10:00:00Z", "start_date": "2026-03-10",
+                "status": "Approved", "remarks": "Tutorial data", "reason": "Tutorial data", "description": "Tutorial"
+            }"""
+
+            val mockRequests = try { listOf(
+                Gson().fromJson(mockJson1, AdjustmentRequest::class.java),
+                Gson().fromJson(mockJson2, AdjustmentRequest::class.java)
+            ) } catch(e:Exception) { emptyList() }
+
+            uiState.copy(isLoading = false, adjustmentRequests = mockRequests)
+        } else uiState
+    }
+
+    val pendingCount = activeState.adjustmentRequests.count { it.status.equals("Pending", ignoreCase = true) }
+    val approvedCount = activeState.adjustmentRequests.count { it.status.equals("Approved", ignoreCase = true) }
+
+    val filteredList = remember(activeState.adjustmentRequests, activeState.filterStatus) {
+        if (activeState.filterStatus == "All") activeState.adjustmentRequests
+        else activeState.adjustmentRequests.filter { it.status.equals(activeState.filterStatus, ignoreCase = true) }
+    }
+
+    var statsRect by remember { mutableStateOf<Rect?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Payroll Credit Adjustment", fontWeight = FontWeight.Bold) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextHeader) } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = WebBackground, titleContentColor = TextHeader)
+                )
+            },
+            containerColor = WebBackground,
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = { if (!isTutorialActive) onNavigateToFiling() },
+                    containerColor = AccentYellow,
+                    contentColor = TextHeader,
+                    elevation = FloatingActionButtonDefaults.elevation(2.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("File Request", fontWeight = FontWeight.Bold)
+                }
+            }
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().tutorialTarget(isActive = currentStep == TutorialStep.ADJUSTMENT_STATS) { statsRect = it },
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            StatsCard(label = "PENDING", value = pendingCount.toString(), icon = Icons.Default.HourglassEmpty, iconTint = IconYellow, modifier = Modifier.weight(1f))
+                            StatsCard(label = "APPROVED", value = approvedCount.toString(), icon = Icons.Default.Check, iconTint = IconGreen, modifier = Modifier.weight(1f))
+                        }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = WebBackground, titleContentColor = TextHeader)
-            )
-        },
-        containerColor = WebBackground,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNavigateToFiling,
-                containerColor = AccentYellow,
-                contentColor = TextHeader,
-                elevation = FloatingActionButtonDefaults.elevation(2.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("File Request", fontWeight = FontWeight.Bold)
+
+                    item {
+                        Column {
+                            HorizontalDivider(color = WebBorderColor)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Adjustment History", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextHeader)
+                                FilterChipButton(activeState.filterStatus, { if (!isTutorialActive) viewModel.onFilterChanged(it) })
+                            }
+                        }
+                    }
+
+                    if (activeState.isLoading && !isTutorialActive) {
+                        item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = TextHeader) } }
+                    } else if (filteredList.isEmpty()) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.Inbox, null, tint = Color(0xFFE2E8F0), modifier = Modifier.size(64.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("No available data", color = TextBody, fontSize = 14.sp)
+                            }
+                        }
+                    } else {
+                        items(filteredList, key = { it.id }) { request ->
+                            HistoryItemCard(request = request, onClick = { if (!isTutorialActive) onNavigateToDetail(request.id) })
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                    item { Spacer(modifier = Modifier.height(60.dp)) }
+                }
             }
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Pending
-                        StatsCard(
-                            label = "PENDING",
-                            value = pendingCount.toString(),
-                            icon = Icons.Default.HourglassEmpty,
-                            iconTint = IconYellow,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        // Approved
-                        StatsCard(
-                            label = "APPROVED",
-                            value = approvedCount.toString(),
-                            icon = Icons.Default.Check,
-                            iconTint = IconGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+        // OVERLAYS
+        if (isTutorialActive) {
+            when (currentStep) {
+                TutorialStep.ADJUSTMENT_OVERVIEW -> {
+                    TutorialOverlay(title = "Adjustment Module", description = "Finally, this is where you can file for missing punches, overtime, and schedule adjustments.", onNext = { TutorialManager.nextStep(TutorialStep.ADJUSTMENT_STATS) })
                 }
-
-                item {
-                    Column {
-                        HorizontalDivider(color = WebBorderColor)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-
-                            Text("Adjustment History", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextHeader)
-                            FilterChipButton(uiState.filterStatus, { viewModel.onFilterChanged(it) })
-                        }
-                    }
+                TutorialStep.ADJUSTMENT_STATS -> {
+                    TutorialOverlay(title = "Track Adjustments", description = "Monitor the approval status of your filed adjustments directly from here.", targetRect = statsRect, onNext = { TutorialManager.nextStep(TutorialStep.TUTORIAL_END) }, onBack = { TutorialManager.nextStep(TutorialStep.ADJUSTMENT_OVERVIEW) })
                 }
-
-                if (uiState.isLoading) {
-                    item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = TextHeader) } }
-                } else if (filteredList.isEmpty()) {
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Default.Inbox, null, tint = Color(0xFFE2E8F0), modifier = Modifier.size(64.dp))
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("No available data", color = TextBody, fontSize = 14.sp)
-                        }
-                    }
-                } else {
-                    items(filteredList, key = { it.id }) { request ->
-                        HistoryItemCard(request = request, onClick = { onNavigateToDetail(request.id) })
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                TutorialStep.TUTORIAL_END -> {
+                    // CONCLUDE TUTORIAL
+                    TutorialOverlay(title = "You're All Set!", description = "That concludes the tutorial. You are now ready to use AutoPayroll! Click 'Finish' below to unlock the app.", onNext = { TutorialManager.endTutorial() }, onBack = { TutorialManager.nextStep(TutorialStep.ADJUSTMENT_STATS) })
                 }
-                item { Spacer(modifier = Modifier.height(60.dp)) }
+                else -> {}
             }
         }
     }
 }
+
+// ... Keep existing StatsCard, LatestStatsCardCompact, HistoryItemCard, FilterChipButton ...
 
 // --- UPDATED CARDS FOR FIXED LAYOUT ---
 

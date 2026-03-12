@@ -12,12 +12,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -28,105 +27,110 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.autopayroll_mobile.R
+import com.example.autopayroll_mobile.data.model.Payroll
 import com.example.autopayroll_mobile.data.model.Schedule
 import com.example.autopayroll_mobile.viewmodel.DashboardViewModel
+import com.example.autopayroll_mobile.utils.TutorialManager
+import com.example.autopayroll_mobile.utils.TutorialStep
+import com.example.autopayroll_mobile.composableUI.TutorialOverlay
+import com.example.autopayroll_mobile.composableUI.tutorialTarget
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// --- WEB DESIGN COLORS ---
 val WebBackground = Color(0xFFF8F9FA)
 val WebSurface = Color.White
 val WebBorderColor = Color(0xFFE2E8F0)
 val TextHeader = Color(0xFF1E293B)
 val TextLabel = Color(0xFF64748B)
 val TextBody = Color(0xFF334155)
-
-// Status & Accents
 val AccentYellow = Color(0xFFFFC107)
 val AccentRed = Color(0xFFEF5350)
 val StatusPaidBg = Color(0xFFDCFCE7)
 val StatusPaidText = Color(0xFF166534)
 
 @Composable
-fun DashboardScreen(
-    viewModel: DashboardViewModel
-) {
-    val uiState by viewModel.uiState.collectAsState()
+fun DashboardScreen(viewModel: DashboardViewModel) {
+    val realUiState by viewModel.uiState.collectAsState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(WebBackground)
-            .windowInsetsPadding(WindowInsets.statusBars)
-    ) {
+    val isTutorialActive by TutorialManager.isTutorialActive.collectAsState()
+    val currentStep by TutorialManager.currentStep.collectAsState()
+
+    // DIRECT OVERRIDE: Reverts to real data immediately when tutorial ends
+    val activeState = if (isTutorialActive) {
+        DashboardUiState(
+            isLoading = false,
+            employeeName = "Juan Dela Cruz",
+            jobAndCompany = "Software Engineer • AutoPayroll",
+            lastWorkedHours = "80.0",
+            overtimeHours = "4.5",
+            lateHours = "0",
+            leaveCredits = "12.0",
+            absences = "1",
+            recentPayslip = Payroll(netPay = "15000.00", payDate = "2026-03-15", status = "Released"),
+            currentSchedule = Schedule(id = 1, employeeId = "EMP-001", startTime = "08:00:00", endTime = "17:00:00", breakStart = null, breakEnd = null)
+        )
+    } else {
+        realUiState
+    }
+
+    var summaryTargetRect by remember { mutableStateOf<Rect?>(null) }
+    var payslipTargetRect by remember { mutableStateOf<Rect?>(null) }
+    var scheduleTargetRect by remember { mutableStateOf<Rect?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().background(WebBackground).windowInsetsPadding(WindowInsets.statusBars)
+                .padding(horizontal = 16.dp).verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-
-            WebHeaderSection(uiState)
-
+            WebHeaderSection(activeState)
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                WebStatCard(title = "REGULAR", value = uiState.lastWorkedHours, unit = "hours", modifier = Modifier.weight(1f))
-                WebStatCard(title = "OVERTIME", value = uiState.overtimeHours, unit = "hours", modifier = Modifier.weight(1f))
-
-                // LATE logic: Ensure positive and Red color
-                WebStatCard(
-                    title = "LATE",
-                    value = uiState.lateHours.replace("-", ""),
-                    unit = "mins",
-                    valueColor = AccentRed,
-                    modifier = Modifier.weight(1f)
-                )
+            Column(modifier = Modifier.fillMaxWidth().tutorialTarget(isActive = currentStep == TutorialStep.DASHBOARD_SUMMARY) { summaryTargetRect = it }) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WebStatCard(title = "REGULAR", value = activeState.lastWorkedHours, unit = "hours", modifier = Modifier.weight(1f))
+                    WebStatCard(title = "OVERTIME", value = activeState.overtimeHours, unit = "hours", modifier = Modifier.weight(1f))
+                    WebStatCard(title = "LATE", value = activeState.lateHours.replace("-", ""), unit = "mins", valueColor = AccentRed, modifier = Modifier.weight(1f))
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AccentStatCard(title = "LEAVE BALANCE", value = activeState.leaveCredits, accentColor = AccentYellow, icon = Icons.Default.DateRange, modifier = Modifier.weight(1f))
+                    AccentStatCard(title = "ABSENCES", value = activeState.absences, accentColor = AccentRed, icon = Icons.Default.Warning, modifier = Modifier.weight(1f))
+                }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AccentStatCard(
-                    title = "LEAVE BALANCE",
-                    value = uiState.leaveCredits,
-                    accentColor = AccentYellow,
-                    icon = Icons.Default.DateRange,
-                    modifier = Modifier.weight(1f)
-                )
-                AccentStatCard(
-                    title = "ABSENCES",
-                    value = uiState.absences,
-                    accentColor = AccentRed,
-                    icon = Icons.Default.Warning,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            // RESTORED: WebPayslipCard
-            WebPayslipCard(uiState = uiState)
-
+            Column(modifier = Modifier.fillMaxWidth().tutorialTarget(isActive = currentStep == TutorialStep.DASHBOARD_RECENT_PAYSLIP) { payslipTargetRect = it }) { WebPayslipCard(uiState = activeState) }
             Spacer(modifier = Modifier.height(16.dp))
 
-            WebScheduleCard(schedule = uiState.currentSchedule, isLoading = uiState.isLoading)
-
+            Column(modifier = Modifier.fillMaxWidth().tutorialTarget(isActive = currentStep == TutorialStep.DASHBOARD_SCHEDULE) { scheduleTargetRect = it }) { WebScheduleCard(schedule = activeState.currentSchedule, isLoading = activeState.isLoading) }
             Spacer(modifier = Modifier.height(40.dp))
+        }
+
+        if (isTutorialActive) {
+            when (currentStep) {
+                TutorialStep.DASHBOARD_WELCOME -> { TutorialOverlay(title = "Welcome to AutoPayroll!", description = "Let's take a quick tour. This dashboard gives you a summary of your work performance, schedule, and payouts.", onNext = { TutorialManager.nextStep(TutorialStep.DASHBOARD_SUMMARY) }) }
+                TutorialStep.DASHBOARD_SUMMARY -> { TutorialOverlay(title = "Your Summary", description = "Here you can track your total worked hours, overtime, lateness, and remaining leave credits.", targetRect = summaryTargetRect, onNext = { TutorialManager.nextStep(TutorialStep.DASHBOARD_RECENT_PAYSLIP) }, onBack = { TutorialManager.nextStep(TutorialStep.DASHBOARD_WELCOME) }) }
+                TutorialStep.DASHBOARD_RECENT_PAYSLIP -> { TutorialOverlay(title = "Recent Payslip", description = "Here you will see the most recent payslip issued to you.", targetRect = payslipTargetRect, customYOffset = 50.dp, onNext = { TutorialManager.nextStep(TutorialStep.DASHBOARD_SCHEDULE) }, onBack = { TutorialManager.nextStep(TutorialStep.DASHBOARD_SUMMARY) }) }
+                TutorialStep.DASHBOARD_SCHEDULE -> { TutorialOverlay(title = "Your Schedule", description = "Here you can see your current schedule for today.", targetRect = scheduleTargetRect, onNext = { TutorialManager.nextStep(TutorialStep.NAVIGATE_TO_PAYSLIP) }, onBack = { TutorialManager.nextStep(TutorialStep.DASHBOARD_RECENT_PAYSLIP) }) }
+                TutorialStep.NAVIGATE_TO_PAYSLIP -> {
+                    TutorialOverlay(
+                        title = "Checking Payslips",
+                        description = "To view the full details of your salary, please tap the 'Payslip' icon in the bottom navigation bar to continue.",
+                        targetRect = null, // Clear the bounding box
+                        showNextButton = false,
+                        pointerBias = -0.5f, // BOUNCING ARROW pointing roughly to the 2nd item in bottom nav
+                        onNext = { },
+                        onBack = { TutorialManager.nextStep(TutorialStep.DASHBOARD_SCHEDULE) }
+                    )
+                }
+                else -> { }
+            }
         }
     }
 }
-
-// ... WebHeaderSection, WebStatCard, AccentStatCard ...
 
 @Composable
 fun WebHeaderSection(state: DashboardUiState) {
@@ -326,15 +330,14 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                             fontSize = 14.sp
                         )
                         Text(
-                            // FIXED: Provided fallback empty string if payDate is null
-                            text = formatDate(payslip.payDate ?: ""),
+                            text = formatDate(payslip.payDate),
                             color = TextBody,
                             modifier = Modifier.weight(1f),
                             fontSize = 14.sp
                         )
 
                         // Handle potential null status safely
-                        val statusStr = payslip.status
+                        val statusStr = payslip.status ?: "Released"
                         val isPaid = statusStr.equals("released", ignoreCase = true) || statusStr.equals("paid", ignoreCase = true)
 
                         Box(
@@ -342,7 +345,7 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                             contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = if(isPaid) "Paid" else statusStr.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                                text = if(isPaid) "Paid" else statusStr,
                                 color = if(isPaid) StatusPaidText else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
@@ -357,12 +360,10 @@ fun WebPayslipCard(uiState: DashboardUiState) {
                     Text("No records found", color = TextLabel, fontSize = 14.sp)
                 }
             }
-            // Removed the bottom footer row/button area entirely
         }
     }
 }
 
-// ... WebScheduleCard and formatters ...
 @Composable
 fun WebScheduleCard(schedule: Schedule?, isLoading: Boolean) {
     Text(

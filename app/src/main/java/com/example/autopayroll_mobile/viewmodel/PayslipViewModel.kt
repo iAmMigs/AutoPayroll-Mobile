@@ -195,33 +195,34 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             if (apiPayroll.payDate.isNotBlank()) LocalDate.parse(apiPayroll.payDate, inputFormatter) else LocalDate.now()
         } catch (e: Exception) { LocalDate.now() }
 
-        val startDay = try {
-            if (!apiPayroll.startDate.isNullOrBlank()) {
-                LocalDate.parse(apiPayroll.startDate, inputFormatter).dayOfMonth
-            } else {
-                payDateObj.dayOfMonth
-            }
-        } catch (e: Exception) { payDateObj.dayOfMonth }
+        // FIX: Directly use the period from the database (e.g. "16-30")
+        val periodString = apiPayroll.period ?: run {
+            // Fallback just in case
+            val startDay = try {
+                if (!apiPayroll.startDate.isNullOrBlank()) {
+                    LocalDate.parse(apiPayroll.startDate, inputFormatter).dayOfMonth
+                } else payDateObj.dayOfMonth
+            } catch (e: Exception) { payDateObj.dayOfMonth }
+            if (startDay <= 15) "1-15" else "16-30"
+        }
 
-        val isFirstPeriod = startDay <= 15
-        val periodString = if (isFirstPeriod) "1-15" else "16-30"
-        val monthName = payDateObj.month.name.lowercase().replaceFirstChar { it.titlecase() }
+        // FIX: Directly use the month from the database
+        val monthName = try {
+            if (apiPayroll.month != null) {
+                java.time.Month.of(apiPayroll.month).name.lowercase().replaceFirstChar { it.titlecase() }
+            } else {
+                payDateObj.month.name.lowercase().replaceFirstChar { it.titlecase() }
+            }
+        } catch(e: Exception) { payDateObj.month.name.lowercase().replaceFirstChar { it.titlecase() } }
 
         val refDisplay = if (!apiPayroll.reference.isNullOrBlank()) {
             apiPayroll.reference
         } else {
-            "#PAY-${payDateObj.year}-${apiPayroll.payrollId.takeLast(4)}"
+            "#PAY-${apiPayroll.year ?: payDateObj.year}-${apiPayroll.payrollId.takeLast(4)}"
         }
 
-        val endDateObj = try {
-            if (!apiPayroll.endDate.isNullOrBlank()) {
-                LocalDate.parse(apiPayroll.endDate, inputFormatter)
-            } else {
-                payDateObj
-            }
-        } catch (e: Exception) { payDateObj }
-
-        val downloadIdentifier = if (endDateObj.dayOfMonth <= 15) "1-15" else "16-30"
+        val yearValue = apiPayroll.year ?: payDateObj.year
+        val monthValue = apiPayroll.month ?: payDateObj.monthValue
 
         return Payslip(
             dateRange = "$periodString $monthName",
@@ -230,12 +231,11 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
             netAmount = "₱${String.format(Locale.US, "%.2f", apiPayroll.netPay.toDoubleOrNull() ?: 0.0)}",
             status = apiPayroll.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
 
-            downloadPeriod = downloadIdentifier,
-            downloadYear = endDateObj.year,
-            downloadMonth = endDateObj.monthValue,
-            year = payDateObj.year,
+            downloadPeriod = periodString,
+            downloadYear = yearValue,
+            downloadMonth = monthValue,
+            year = yearValue,
 
-            // MAP THE REAL DATA HERE
             breakdown = apiPayroll.breakdown,
             employeeId = apiPayroll.employeeId
         )

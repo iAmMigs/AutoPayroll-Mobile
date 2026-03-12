@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,8 +20,9 @@ import androidx.compose.ui.unit.sp
 import com.example.autopayroll_mobile.data.model.Payslip
 import com.google.gson.annotations.SerializedName
 import java.util.Locale
+import com.example.autopayroll_mobile.utils.TutorialManager
+import com.example.autopayroll_mobile.utils.TutorialStep
 
-// --- DESIGN TOKENS ---
 private val WebYellow = Color(0xFFFFD147)
 private val WebBackground = Color(0xFFF8F9FA)
 private val WebSurface = Color.White
@@ -31,228 +32,164 @@ private val TextPrimary = Color(0xFF1E293B)
 private val TextSecondary = Color(0xFF64748B)
 private val TextRed = Color(0xFFDC2626)
 
-data class BreakdownData(
-    @SerializedName("period") val period: PeriodData? = null,
-    @SerializedName("employee") val employee: EmployeeData? = null,
-    @SerializedName("work_summary") val workSummary: WorkSummaryData? = null,
-    @SerializedName("rates") val rates: RatesData? = null,
-    @SerializedName("earnings") val earnings: EarningsData? = null,
-    @SerializedName("deductions") val deductions: DeductionsData? = null,
-    @SerializedName("net_taxable_income") val netTaxableIncome: Double = 0.0,
-    @SerializedName("net_pay") val netPay: Double = 0.0
-)
-
-data class PeriodData(
-    @SerializedName("period_label") val periodLabel: String? = null,
-    @SerializedName("start_date") val startDate: String? = null,
-    @SerializedName("end_date") val endDate: String? = null
-)
-
-data class EmployeeData(
-    @SerializedName("first_name") val firstName: String? = null,
-    @SerializedName("middle_name") val middleName: String? = null,
-    @SerializedName("last_name") val lastName: String? = null,
-    @SerializedName("employee_id") val employeeId: String? = null,
-    @SerializedName("job_position") val jobPosition: String? = null
-)
-
-data class WorkSummaryData(
-    @SerializedName("total_days") val totalDays: Double = 0.0,
-    @SerializedName("late_minutes") val lateMinutes: Int = 0
-)
-
-data class RatesData(
-    @SerializedName("daily") val daily: Double = 0.0,
-    @SerializedName("monthly") val monthly: Double = 0.0,
-    @SerializedName("hourly") val hourly: Double = 0.0
-)
-
-data class EarningsData(
-    @SerializedName("basic_salary") val basicSalary: Double = 0.0,
-    @SerializedName("overtime_pay") val overtimePay: Double = 0.0,
-    @SerializedName("holiday_pay") val holidayPay: Double = 0.0,
-    @SerializedName("night_differential") val nightDifferential: Double = 0.0,
-    @SerializedName("gross_taxable_salary") val grossTaxableSalary: Double = 0.0
-)
-
-data class DeductionsData(
-    @SerializedName("late_deductions") val lateDeductions: Double = 0.0,
-    @SerializedName("sss") val sss: Double = 0.0,
-    @SerializedName("philhealth") val philhealth: Double = 0.0,
-    @SerializedName("pagibig") val pagibig: Double = 0.0,
-    @SerializedName("total_statutory") val totalStatutory: Double = 0.0,
-    @SerializedName("withholding_tax") val withholdingTax: Double = 0.0,
-    @SerializedName("total_deductions") val totalDeductions: Double = 0.0
-)
+data class BreakdownData(@SerializedName("period") val period: PeriodData? = null, @SerializedName("employee") val employee: EmployeeData? = null, @SerializedName("work_summary") val workSummary: WorkSummaryData? = null, @SerializedName("rates") val rates: RatesData? = null, @SerializedName("earnings") val earnings: EarningsData? = null, @SerializedName("deductions") val deductions: DeductionsData? = null, @SerializedName("net_taxable_income") val netTaxableIncome: Double = 0.0, @SerializedName("net_pay") val netPay: Double = 0.0)
+data class PeriodData(@SerializedName("period_label") val periodLabel: String? = null, @SerializedName("start_date") val startDate: String? = null, @SerializedName("end_date") val endDate: String? = null)
+data class EmployeeData(@SerializedName("first_name") val firstName: String? = null, @SerializedName("middle_name") val middleName: String? = null, @SerializedName("last_name") val lastName: String? = null, @SerializedName("employee_id") val employeeId: String? = null, @SerializedName("job_position") val jobPosition: String? = null)
+data class WorkSummaryData(@SerializedName("total_days") val totalDays: Double = 0.0, @SerializedName("late_minutes") val lateMinutes: Int = 0)
+data class RatesData(@SerializedName("daily") val daily: Double = 0.0, @SerializedName("monthly") val monthly: Double = 0.0, @SerializedName("hourly") val hourly: Double = 0.0)
+data class EarningsData(@SerializedName("basic_salary") val basicSalary: Double = 0.0, @SerializedName("overtime_pay") val overtimePay: Double = 0.0, @SerializedName("holiday_pay") val holidayPay: Double = 0.0, @SerializedName("night_differential") val nightDifferential: Double = 0.0, @SerializedName("gross_taxable_salary") val grossTaxableSalary: Double = 0.0)
+data class DeductionsData(@SerializedName("late_deductions") val lateDeductions: Double = 0.0, @SerializedName("sss") val sss: Double = 0.0, @SerializedName("philhealth") val philhealth: Double = 0.0, @SerializedName("pagibig") val pagibig: Double = 0.0, @SerializedName("total_statutory") val totalStatutory: Double = 0.0, @SerializedName("withholding_tax") val withholdingTax: Double = 0.0, @SerializedName("total_deductions") val totalDeductions: Double = 0.0)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PayslipDetailScreen(
-    payslip: Payslip,
-    breakdown: BreakdownData,
-    onBack: () -> Unit
-) {
-    val emp = breakdown.employee
+fun PayslipDetailScreen(payslip: Payslip, breakdown: BreakdownData, onBack: () -> Unit) {
+
+    val isTutorialActive by TutorialManager.isTutorialActive.collectAsState()
+    val currentStep by TutorialManager.currentStep.collectAsState()
+
+    LaunchedEffect(currentStep) {
+        if (isTutorialActive && currentStep == TutorialStep.PAYSLIP_VIEW_BTN) {
+            TutorialManager.nextStep(TutorialStep.PAYSLIP_DETAIL_INFO)
+        }
+    }
+
+    // DIRECT OVERRIDE
+    val activeBreakdown = if (isTutorialActive) {
+        BreakdownData(
+            period = PeriodData("March 2026 (16th-31st)", "2026-03-16", "2026-03-31"),
+            employee = EmployeeData("Juan", "", "Dela Cruz", "EMP-001", "Software Engineer"),
+            workSummary = WorkSummaryData(11.0, 0),
+            rates = RatesData(1000.0, 22000.0, 125.0),
+            earnings = EarningsData(11000.0, 1500.0, 0.0, 0.0, 12500.0),
+            deductions = DeductionsData(0.0, 500.0, 300.0, 200.0, 1000.0, 500.0, 1500.0),
+            netTaxableIncome = 11500.0, netPay = 11000.0
+        )
+    } else breakdown
+
+    val activePayslip = if (isTutorialActive) {
+        Payslip(dateRange = "16-31 March", referenceId = "#PAY-2026-0001", originalPayDate = "2026-03-31", netAmount = "₱11,000.00", status = "Released", downloadPeriod = "16-31", downloadYear = 2026, downloadMonth = 3, year = 2026, employeeId = "EMP-001")
+    } else payslip
+
+    val emp = activeBreakdown.employee
     val empName = listOfNotNull(emp?.firstName, emp?.middleName?.takeIf { it.isNotBlank() }, emp?.lastName).joinToString(" ").ifBlank { "N/A" }
-    val daysWorked = breakdown.workSummary?.totalDays?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "0"
+    val daysWorked = activeBreakdown.workSummary?.totalDays?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "0"
 
-    val rates = breakdown.rates
-    val earnings = breakdown.earnings
-    val deductions = breakdown.deductions
-    val summary = breakdown.workSummary
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Payslip Details", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = WebSurface)
-            )
-        },
-        containerColor = WebBackground
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "NET PAY (Semi-Monthly Payslip)",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = breakdown.period?.periodLabel ?: payslip.dateRange,
-                        fontSize = 14.sp,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val periodDates = if (breakdown.period?.startDate != null && breakdown.period.endDate != null) {
-                        "Pay Period: ${breakdown.period.startDate} - ${breakdown.period.endDate}"
-                    } else ""
-                    if (periodDates.isNotBlank()) {
-                        Text(
-                            text = periodDates,
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = WebYellow, thickness = 2.dp, modifier = Modifier.width(200.dp))
-                }
-            }
-
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = WebSurface),
-                    border = BorderStroke(1.dp, WebBorder),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            PayslipDetailInfoItem(label = "Employee Name:", value = empName, modifier = Modifier.weight(1f))
-                            // FIXED FALLBACK: Strictly uses the real Employee ID from the main payload
-                            PayslipDetailInfoItem(label = "Employee ID:", value = emp?.employeeId ?: payslip.employeeId, modifier = Modifier.weight(1f))
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            PayslipDetailInfoItem(label = "Position:", value = emp?.jobPosition ?: "N/A", modifier = Modifier.weight(1f))
-                            PayslipDetailInfoItem(label = "Days Worked:", value = "$daysWorked days", modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-
-            item {
-                val dailyRate = rates?.daily ?: 0.0
-                val rowsList = mutableListOf(
-                    "Basic Semi-Monthly Salary ($daysWorked days × ${formatBreakdownCurrency(dailyRate)})" to formatBreakdownCurrency(earnings?.basicSalary ?: 0.0),
-                    "Daily Rate (${formatBreakdownCurrency(dailyRate)} × 22 days)" to formatBreakdownCurrency(rates?.monthly ?: 0.0),
-                    "Hourly Rate" to formatBreakdownCurrency(rates?.hourly ?: 0.0),
-                    "Overtime Pay" to formatBreakdownCurrency(earnings?.overtimePay ?: 0.0),
-                    "Holiday Pay" to (if ((earnings?.holidayPay ?: 0.0) > 0) formatBreakdownCurrency(earnings!!.holidayPay) else "-"),
-                    "Night Differentials" to (if ((earnings?.nightDifferential ?: 0.0) > 0) formatBreakdownCurrency(earnings!!.nightDifferential) else "-")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Payslip Details", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = WebSurface)
                 )
-
-                if ((summary?.lateMinutes ?: 0) > 0) {
-                    rowsList.add("Tardiness (${summary!!.lateMinutes} mins)" to formatBreakdownCurrency(deductions?.lateDeductions ?: 0.0, isDeduction = true))
-                }
-
-                SectionTable(
-                    title = "TAXABLE SALARY",
-                    rows = rowsList,
-                    totalLabel = "GROSS TAXABLE SALARY",
-                    totalAmount = formatBreakdownCurrency(earnings?.grossTaxableSalary ?: 0.0)
-                )
-            }
-
-            item {
-                SectionTable(
-                    title = "STATUTORY DEDUCTIONS",
-                    rows = listOf(
-                        "SSS Monthly Contribution" to formatBreakdownCurrency(deductions?.sss ?: 0.0),
-                        "PhilHealth Monthly Contribution" to formatBreakdownCurrency(deductions?.philhealth ?: 0.0),
-                        "Pag-IBIG Monthly Contribution" to formatBreakdownCurrency(deductions?.pagibig ?: 0.0)
-                    ),
-                    totalLabel = "TOTAL STATUTORY DEDUCTIONS",
-                    totalAmount = formatBreakdownCurrency(deductions?.totalStatutory ?: 0.0)
-                )
-            }
-
-            item {
-                SectionTable(
-                    title = "WITHHOLDING TAX",
-                    rows = listOf(
-                        "Net Taxable Income" to formatBreakdownCurrency(breakdown.netTaxableIncome),
-                        "Tax Bracket/Range" to "-"
-                    ),
-                    totalLabel = "WITHHOLDING TAX",
-                    totalAmount = formatBreakdownCurrency(deductions?.withholdingTax ?: 0.0)
-                )
-            }
-
-            item {
-                SectionTable(
-                    title = "SUMMARY",
-                    rows = listOf(
-                        "GROSS PAY" to formatBreakdownCurrency(earnings?.grossTaxableSalary ?: 0.0),
-                        "GROSS DEDUCTIONS" to formatBreakdownCurrency(deductions?.totalDeductions ?: 0.0)
-                    )
-                )
-            }
-
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(WebYellow)
-                        .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "NET PAY", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            },
+            containerColor = WebBackground
+        ) { paddingValues ->
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                item {
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "NET PAY (Semi-Monthly Payslip)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = formatBreakdownCurrency(breakdown.netPay), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = 1.sp)
+                        Text(text = activeBreakdown.period?.periodLabel ?: activePayslip.dateRange, fontSize = 14.sp, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val periodDates = if (activeBreakdown.period?.startDate != null && activeBreakdown.period.endDate != null) "Pay Period: ${activeBreakdown.period.startDate} - ${activeBreakdown.period.endDate}" else ""
+                        if (periodDates.isNotBlank()) Text(text = periodDates, fontSize = 13.sp, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = WebYellow, thickness = 2.dp, modifier = Modifier.width(200.dp))
                     }
                 }
+
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = WebSurface), border = BorderStroke(1.dp, WebBorder), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                PayslipDetailInfoItem(label = "Employee Name:", value = empName, modifier = Modifier.weight(1f))
+                                PayslipDetailInfoItem(label = "Employee ID:", value = emp?.employeeId ?: activePayslip.employeeId, modifier = Modifier.weight(1f))
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                PayslipDetailInfoItem(label = "Position:", value = emp?.jobPosition ?: "N/A", modifier = Modifier.weight(1f))
+                                PayslipDetailInfoItem(label = "Days Worked:", value = "$daysWorked days", modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    val rates = activeBreakdown.rates
+                    val earnings = activeBreakdown.earnings
+                    val summary = activeBreakdown.workSummary
+                    val deductions = activeBreakdown.deductions
+
+                    val dailyRate = rates?.daily ?: 0.0
+                    val rowsList = mutableListOf(
+                        "Basic Semi-Monthly Salary ($daysWorked days × ${formatBreakdownCurrency(dailyRate)})" to formatBreakdownCurrency(earnings?.basicSalary ?: 0.0),
+                        "Daily Rate (${formatBreakdownCurrency(dailyRate)} × 22 days)" to formatBreakdownCurrency(rates?.monthly ?: 0.0),
+                        "Hourly Rate" to formatBreakdownCurrency(rates?.hourly ?: 0.0),
+                        "Overtime Pay" to formatBreakdownCurrency(earnings?.overtimePay ?: 0.0),
+                        "Holiday Pay" to (if ((earnings?.holidayPay ?: 0.0) > 0) formatBreakdownCurrency(earnings!!.holidayPay) else "-"),
+                        "Night Differentials" to (if ((earnings?.nightDifferential ?: 0.0) > 0) formatBreakdownCurrency(earnings!!.nightDifferential) else "-")
+                    )
+                    if ((summary?.lateMinutes ?: 0) > 0) rowsList.add("Tardiness (${summary!!.lateMinutes} mins)" to formatBreakdownCurrency(deductions?.lateDeductions ?: 0.0, isDeduction = true))
+
+                    SectionTable(title = "TAXABLE SALARY", rows = rowsList, totalLabel = "GROSS TAXABLE SALARY", totalAmount = formatBreakdownCurrency(earnings?.grossTaxableSalary ?: 0.0))
+                }
+
+                item {
+                    val deductions = activeBreakdown.deductions
+                    SectionTable(title = "STATUTORY DEDUCTIONS", rows = listOf("SSS Monthly Contribution" to formatBreakdownCurrency(deductions?.sss ?: 0.0), "PhilHealth Monthly Contribution" to formatBreakdownCurrency(deductions?.philhealth ?: 0.0), "Pag-IBIG Monthly Contribution" to formatBreakdownCurrency(deductions?.pagibig ?: 0.0)), totalLabel = "TOTAL STATUTORY DEDUCTIONS", totalAmount = formatBreakdownCurrency(deductions?.totalStatutory ?: 0.0))
+                }
+
+                item {
+                    val deductions = activeBreakdown.deductions
+                    SectionTable(title = "WITHHOLDING TAX", rows = listOf("Net Taxable Income" to formatBreakdownCurrency(activeBreakdown.netTaxableIncome), "Tax Bracket/Range" to "-"), totalLabel = "WITHHOLDING TAX", totalAmount = formatBreakdownCurrency(deductions?.withholdingTax ?: 0.0))
+                }
+
+                item {
+                    val earnings = activeBreakdown.earnings
+                    val deductions = activeBreakdown.deductions
+                    SectionTable(title = "SUMMARY", rows = listOf("GROSS PAY" to formatBreakdownCurrency(earnings?.grossTaxableSalary ?: 0.0), "GROSS DEDUCTIONS" to formatBreakdownCurrency(deductions?.totalDeductions ?: 0.0)))
+                }
+
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(WebYellow).padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "NET PAY", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = formatBreakdownCurrency(activeBreakdown.netPay), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = 1.sp)
+                        }
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
             }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
+        }
+
+        if (isTutorialActive) {
+            when (currentStep) {
+                TutorialStep.PAYSLIP_DETAIL_INFO -> {
+                    TutorialOverlay(
+                        title = "Detailed Breakdown",
+                        description = "This screen gives you a complete breakdown of your gross pay, statutory deductions, and withholding tax to show exactly how your Net Pay was calculated. You can scroll down to view all the info.",
+                        onNext = { TutorialManager.nextStep(TutorialStep.NAVIGATE_TO_QR) },
+                        onBack = {
+                            TutorialManager.nextStep(TutorialStep.PAYSLIP_VIEW_BTN)
+                            onBack() // Pops them out of the fragment back to the list!
+                        }
+                    )
+                }
+                TutorialStep.NAVIGATE_TO_QR -> {
+                    TutorialOverlay(
+                        title = "Checking Attendance",
+                        description = "Next, let's learn how to clock in. Please tap the 'QR' scanner icon in the bottom navigation bar to continue the tour.",
+                        targetRect = null,
+                        showNextButton = false,
+                        pointerBias = 0f, // BOUNCING ARROW pointing exactly dead center (QR icon)
+                        onNext = { },
+                        onBack = { TutorialManager.nextStep(TutorialStep.PAYSLIP_DETAIL_INFO) }
+                    )
+                }
+                else -> { }
+            }
         }
     }
 }

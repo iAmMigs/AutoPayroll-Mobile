@@ -26,8 +26,18 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.autopayroll_mobile.composableUI.TutorialOverlay
 import com.example.autopayroll_mobile.data.model.ApiErrorResponse
 import com.example.autopayroll_mobile.data.qrModule.ClockInOutRequest
 import com.example.autopayroll_mobile.data.generalData.Employee
@@ -43,6 +53,9 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.example.autopayroll_mobile.data.qrModule.TodayAttendanceResponse
+import com.example.autopayroll_mobile.ui.theme.AutoPayrollMobileTheme
+import com.example.autopayroll_mobile.utils.TutorialManager
+import com.example.autopayroll_mobile.utils.TutorialStep
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.util.concurrent.ExecutorService
@@ -79,13 +92,66 @@ class QrScannerFragment : Fragment() {
             else showToast("Location permission is required for verification.")
         }
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentQrScannerBinding.inflate(inflater, container, false)
-        return binding.root
+
+        // --- NEW: Wrap XML in Compose to display the Overlay ---
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                AutoPayrollMobileTheme {
+                    val isTutorialActive by TutorialManager.isTutorialActive.collectAsState()
+                    val currentStep by TutorialManager.currentStep.collectAsState()
+
+                    // Auto-advance upon opening
+                    LaunchedEffect(currentStep) {
+                        if (isTutorialActive && currentStep == TutorialStep.NAVIGATE_TO_QR) {
+                            TutorialManager.nextStep(TutorialStep.QR_RULES)
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // The original XML View
+                        AndroidView(factory = { binding.root }, modifier = Modifier.fillMaxSize())
+
+                        // The Overlays
+                        if (isTutorialActive) {
+                            when (currentStep) {
+                                TutorialStep.QR_RULES -> {
+                                    TutorialOverlay(
+                                        title = "Attendance Rules",
+                                        description = "Before scanning, remember these 3 rules:\n\n1. You must Turn Location On.\n2. You must scan the assigned company's QR.\n3. You must be inside the assigned company's geofence.",
+                                        onNext = { TutorialManager.nextStep(TutorialStep.QR_HOW_TO_USE) }
+                                    )
+                                }
+                                TutorialStep.QR_HOW_TO_USE -> {
+                                    TutorialOverlay(
+                                        title = "How to Clock In/Out",
+                                        description = "Align the camera on the QR code. Once validated, click the button that appears below to either clock in or clock out.",
+                                        onNext = { TutorialManager.nextStep(TutorialStep.NAVIGATE_TO_ANNOUNCEMENT) },
+                                        onBack = { TutorialManager.nextStep(TutorialStep.QR_RULES) }
+                                    )
+                                }
+                                TutorialStep.NAVIGATE_TO_ANNOUNCEMENT -> {
+                                    TutorialOverlay(
+                                        title = "View Announcements",
+                                        description = "Next, let's see where you get company updates. Please tap the 'Announcement' icon in the bottom navigation bar.",
+                                        showNextButton = false,
+                                        pointerBias = 0.5f, // Points perfectly to the 4th icon
+                                        onNext = {},
+                                        onBack = { TutorialManager.nextStep(TutorialStep.QR_HOW_TO_USE) }
+                                    )
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -103,7 +169,10 @@ class QrScannerFragment : Fragment() {
             }
         }
 
-        checkCameraPermission()
+        // BYPASS CAMERA IF IN TUTORIAL
+        if (!TutorialManager.isTutorialActive.value) {
+            checkCameraPermission()
+        }
 
         binding.clockInButton.setOnClickListener {
             submitAttendance("clock-in")
@@ -316,7 +385,6 @@ class QrScannerFragment : Fragment() {
                                 return@addOnSuccessListener
                             }
 
-                            // Visual Feedback based on state
                             activity?.runOnUiThread {
                                 if (todayAttendanceLog?.data?.clock_in_time != null) {
                                     binding.statusTextView.text = "QR Code Validated! Ready to Clock Out."
@@ -355,7 +423,7 @@ class QrScannerFragment : Fragment() {
                 }
                 .addOnFailureListener {
                     Log.e("QrScannerFragment", "Barcode scanning failed", it)
-                    isProcessingQr = false // Allow retry on failure
+                    isProcessingQr = false
                     imageProxy.close()
                 }
                 .addOnCompleteListener {
@@ -424,7 +492,6 @@ class QrScannerFragment : Fragment() {
 
         showLoading("Submitting $action...")
 
-        // Logic Change: Android ID is required for Clock In, but Null for Clock Out
         var androidId: String? = null
 
         if (action == "clock-in") {
@@ -433,9 +500,6 @@ class QrScannerFragment : Fragment() {
                 Settings.Secure.ANDROID_ID
             ) ?: "unknown_device"
         } else {
-            // For clock-out, the controller does NOT validate android_id,
-            // and actually removes it from the user record.
-            // We pass null to be clean.
             androidId = null
         }
 
@@ -475,13 +539,11 @@ class QrScannerFragment : Fragment() {
                     try {
                         val errorBody = e.response()?.errorBody()?.string()
                         if (errorBody != null) {
-                            // Try to parse standard API error
                             val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
                             errorMessage = errorResponse.message
                         }
                     } catch (jsonError: Exception) {
                         Log.e("QrScannerFragment", "Failed to parse error JSON", jsonError)
-                        // Fallback: If 500 server error, it might be raw HTML or text
                         if(e.code() == 500) {
                             errorMessage = "Server Error (500). Please contact admin."
                         }
@@ -489,7 +551,6 @@ class QrScannerFragment : Fragment() {
                 }
 
                 showToast(errorMessage)
-                // Reset to allow retry
                 scannedQrData = null
                 currentLocation = null
                 startCamera()
@@ -530,11 +591,13 @@ class QrScannerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (!TutorialManager.isTutorialActive.value) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            if (employeeProfile != null) {
-                fetchEmployeeProfileAndAttendance()
+                if (employeeProfile != null) {
+                    fetchEmployeeProfileAndAttendance()
+                }
             }
         }
     }
