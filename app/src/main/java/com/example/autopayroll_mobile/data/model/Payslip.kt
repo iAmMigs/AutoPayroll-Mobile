@@ -12,5 +12,6 @@ data class Payslip(
     val downloadMonth: Int,
     val year: Int,
 
-    val breakdown: String? = null
+    val breakdown: String? = null,
+    val employeeId: String = ""
 )

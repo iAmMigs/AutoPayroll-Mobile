@@ -43,6 +43,14 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(PayslipUiState())
     val uiState: StateFlow<PayslipUiState> = _uiState.asStateFlow()
 
+    // --- ADD THESE 3 LINES ---
+    private val _selectedPayslip = MutableStateFlow<Payslip?>(null)
+    val selectedPayslip: StateFlow<Payslip?> = _selectedPayslip.asStateFlow()
+
+    fun selectPayslip(payslip: Payslip) {
+        _selectedPayslip.value = payslip
+    }
+
     private val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
 
     init {
@@ -183,18 +191,53 @@ class PayslipViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun mapToPayslipUiModel(apiPayroll: Payroll): Payslip {
+        val payDateObj = try {
+            if (apiPayroll.payDate.isNotBlank()) LocalDate.parse(apiPayroll.payDate, inputFormatter) else LocalDate.now()
+        } catch (e: Exception) { LocalDate.now() }
+
+        val startDay = try {
+            if (!apiPayroll.startDate.isNullOrBlank()) {
+                LocalDate.parse(apiPayroll.startDate, inputFormatter).dayOfMonth
+            } else {
+                payDateObj.dayOfMonth
+            }
+        } catch (e: Exception) { payDateObj.dayOfMonth }
+
+        val isFirstPeriod = startDay <= 15
+        val periodString = if (isFirstPeriod) "1-15" else "16-30"
+        val monthName = payDateObj.month.name.lowercase().replaceFirstChar { it.titlecase() }
+
+        val refDisplay = if (!apiPayroll.reference.isNullOrBlank()) {
+            apiPayroll.reference
+        } else {
+            "#PAY-${payDateObj.year}-${apiPayroll.payrollId.takeLast(4)}"
+        }
+
+        val endDateObj = try {
+            if (!apiPayroll.endDate.isNullOrBlank()) {
+                LocalDate.parse(apiPayroll.endDate, inputFormatter)
+            } else {
+                payDateObj
+            }
+        } catch (e: Exception) { payDateObj }
+
+        val downloadIdentifier = if (endDateObj.dayOfMonth <= 15) "1-15" else "16-30"
+
         return Payslip(
-            dateRange = apiPayroll.period, // Directly uses "1-15" or "16-30" from DB
-            referenceId = apiPayroll.reference ?: "#PAY-PENDING",
-            originalPayDate = apiPayroll.payDate ?: "N/A",
-            // Safely parse the decimal from the DB into a formatted string
+            dateRange = "$periodString $monthName",
+            referenceId = refDisplay,
+            originalPayDate = apiPayroll.payDate.ifBlank { payDateObj.format(inputFormatter) },
             netAmount = "₱${String.format(Locale.US, "%.2f", apiPayroll.netPay.toDoubleOrNull() ?: 0.0)}",
             status = apiPayroll.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
 
-            downloadPeriod = apiPayroll.period,
-            downloadYear = apiPayroll.year,
-            downloadMonth = apiPayroll.month,
-            year = apiPayroll.year
+            downloadPeriod = downloadIdentifier,
+            downloadYear = endDateObj.year,
+            downloadMonth = endDateObj.monthValue,
+            year = payDateObj.year,
+
+            // MAP THE REAL DATA HERE
+            breakdown = apiPayroll.breakdown,
+            employeeId = apiPayroll.employeeId
         )
     }
 }

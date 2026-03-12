@@ -14,38 +14,29 @@ data class PayrollResponse(
 )
 
 data class Payroll(
-    @SerializedName("payslips_id")
-    val payslipsId: String = "",
-
-    @SerializedName("reference")
-    val reference: String? = null,
+    @SerializedName("id", alternate = ["payroll_id"])
+    val payrollId: String = "",
 
     @SerializedName("employee_id")
     val employeeId: String = "",
 
-    @SerializedName("year")
-    val year: Int = 0,
+    @SerializedName("reference")
+    val reference: String? = null,
 
-    @SerializedName("month")
-    val month: Int = 0,
-
-    @SerializedName("period")
-    val period: String = "",
-
-    @SerializedName("period_start")
-    val periodStart: String? = null,
-
-    @SerializedName("period_end")
-    val periodEnd: String? = null,
-
-    @SerializedName("pay_date")
-    val payDate: String? = null,
-
-    @SerializedName("net_pay")
+    @SerializedName("net_pay", alternate = ["net_salary"])
     val netPay: String = "0.00",
 
+    @SerializedName("pay_date", alternate = ["payroll_date"])
+    val payDate: String = "",
+
     @SerializedName("status")
-    val status: String = "pending",
+    val status: String = "Released",
+
+    @SerializedName("start_date", alternate = ["clock_in_date"])
+    val startDate: String? = null,
+
+    @SerializedName("end_date", alternate = ["clock_out_date"])
+    val endDate: String? = null,
 
     @SerializedName("breakdown")
     val breakdown: String? = null
